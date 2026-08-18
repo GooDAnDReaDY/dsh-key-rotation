@@ -16,8 +16,11 @@
 ## Install
 
 ```bash
-# From npm / GitHub after publishing:
-dsh plugin --profile web add dsh-key-rotation
+# From npm after publishing:
+dsh plugin --profile web add @goodandready/dsh-key-rotation
+
+# From GitHub:
+dsh plugin --profile web add github:GooDAnDReaDY/dsh-key-rotation
 
 # Locally from a checkout:
 dsh plugin --profile web add /path/to/dsh-key-rotation
