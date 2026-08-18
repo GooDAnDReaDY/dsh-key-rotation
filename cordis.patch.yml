@@ -1,0 +1,7 @@
+# dsh-key-rotation bundle layer.
+# Registers the virtual provider route "rotation"; the adapter delegates each
+# request to the configured clone routes of the matching backend and rotates
+# them on switchable failures (QUOTA / RATE_LIMIT / ...).
+- insert:
+    - id: dsh-key-rotation
+      name: 'dsh-key-rotation'
