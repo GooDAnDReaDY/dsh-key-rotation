@@ -4,4 +4,4 @@
 # them on switchable failures (QUOTA / RATE_LIMIT / ...).
 - insert:
     - id: dsh-key-rotation
-      name: 'dsh-key-rotation'
+      name: '@goodandready/dsh-key-rotation'

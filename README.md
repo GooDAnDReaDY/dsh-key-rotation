@@ -7,11 +7,16 @@
 ## What it does
 
 - **Key pools per provider** — list the API keys (as credential/env names) that a provider may rotate through.
-- **Auto-created clone routes** — the plugin registers a virtual provider/route and wires it to the pool; clone routes are hidden from the model dropdown.
+- **The provider you picked stays the provider** — rotation swaps the key, never the route, so a multi-call turn does not break. Legacy clone routes remain registered but are hidden from the model dropdown.
 - **Transparent on-failure rotation** — on a switchable error (`QUOTA`, `RATE_LIMIT`, `AUTH`/`INVALID`…) the request is retried on the next key.
 - **Cooldown** — an exhausted key is skipped for `cooldownMs`, then returns.
 - **Dead/revoked key handling** — an auth/invalid key rotates to the next pool key instead of erroring out.
-- **Settings GUI** — a **Settings → Key Rotation** section to edit key pools, switch codes and cooldown without touching config files by hand.
+- **Settings GUI** — a **Settings → Key Rotation** section to manage everything without touching config files:
+  - **add a key in one place** — press *Add key*, paste the value, done. The credential name is generated for you (`OPENCODE_GO_API_KEY`, `_2`, `_3`, …) and shown only on hover; the card lists keys as *Key 1*, *Key 2*.
+  - **live key status** — per key: in use / ready / cooling down with a countdown / **no such credential**, which is what catches a mistyped name that would otherwise fail silently.
+  - **rotation counter** — how many times a provider switched key, on which failure, and how long ago.
+  - **key order** — ↑/↓ buttons; the order of keys is the order they are tried.
+  - **switch codes as checkboxes** instead of a comma-separated string.
 
 ## Install
 
@@ -55,7 +60,9 @@ dsh-key-rotation:
 
 ### How keys are stored
 
-The plugin only ever references keys by **name** (e.g. `OPENCODE_GO_API_KEY`). The actual values live in the dsh **Credentials** service (Web: **Settings → Credentials**) or `$DSH_HOME/.credentials.yaml` — never in the plugin config.
+The plugin config only ever references keys by **name** (e.g. `OPENCODE_GO_API_KEY`). The values live in the dsh **Credentials** service or `$DSH_HOME/.credentials.yaml` — never in the plugin config.
+
+A key typed into the Key Rotation card is written to that same credentials store: the value travels to the host once and is never sent back to the browser. Only its **last 5 characters** are, so two keys can be told apart in the UI. A key supplied by the launching environment is shown as read-only, because overwriting it here would be shadowed anyway.
 
 ## How it works
 
@@ -66,7 +73,10 @@ request ──► {provider: rotation} clone route ──► pick next healthy k
 ```
 
 - The plugin patches `ctx.credentials.resolve` so a pool reference resolves to the current healthy key (round-robin, skipping keys in cooldown).
-- It intercepts `llm/stream` to retry the request on the next key after a switchable failure, instead of surfacing the error to the caller.
+- It intercepts `llm/stream` to retry the request on the next key after a switchable failure, instead of surfacing the error to the caller. The hook is deliberately **not** `async`: the loop iterates its result directly, and returning a promise breaks every turn.
+- The provider identity never changes — only the resolved key does — which keeps the adapter's replay state consistent across a multi-call turn.
+
+Two local-only routes back the card: `GET /dsh-key-rotation/status` (key state, rotation counters, last 5 characters of each key) and `PUT|DELETE /dsh-key-rotation/key` (store or drop one key value). Both refuse anything that is not a same-origin request from loopback.
 
 ## Structure
 
