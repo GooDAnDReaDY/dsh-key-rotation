@@ -12,7 +12,7 @@
 - **Cooldown** — an exhausted key is skipped for `cooldownMs`, then returns.
 - **Dead/revoked key handling** — an auth/invalid key rotates to the next pool key instead of erroring out.
 - **Settings GUI** — a **Settings → Key Rotation** section to manage everything without touching config files:
-  - **add a key in one place** — press *Add key*, paste the value, done. The credential name is generated for you (`OPENCODE_GO_API_KEY`, `_2`, `_3`, …) and shown only on hover; the card lists keys as *Key 1*, *Key 2*.
+  - **add a key in one place** — press *Add key*, paste the value, done. The credential name is generated for you (`<PROVIDER>_API_KEY`, then `_2`, `_3`, …) and shown only on hover; the card lists keys as *Key 1*, *Key 2*.
   - **live key status** — per key: in use / ready / cooling down with a countdown / **no such credential**, which is what catches a mistyped name that would otherwise fail silently.
   - **rotation counter** — how many times a provider switched key, on which failure, and how long ago.
   - **key order** — ↑/↓ buttons; the order of keys is the order they are tried.
@@ -46,10 +46,12 @@ dsh-key-rotation:
   switchCodes: [QUOTA, RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT, EMPTY_RESPONSE, UNKNOWN_MODEL]
   cooldownMs: 60000
   providers:
-    - provider: opencode-go
-      keys: [OPENCODE_GO_API_KEY, OPENCODE_GO_API_KEY_2, OPENCODE_GO_API_KEY_3]
-    - provider: ollama
-      keys: [OLLAMA_API_KEY, OLLAMA_API_KEY_2, OLLAMA_API_KEY_3]
+    # `provider` is the id of a provider registered with dsh, as it appears
+    # in Settings -> Models. `keys` are CREDENTIAL NAMES, never key values.
+    - provider: my-provider
+      keys: [MY_PROVIDER_API_KEY, MY_PROVIDER_API_KEY_2, MY_PROVIDER_API_KEY_3]
+    - provider: another-provider
+      keys: [ANOTHER_PROVIDER_API_KEY, ANOTHER_PROVIDER_API_KEY_2]
 ```
 
 | Field | Default | Description |
@@ -60,7 +62,7 @@ dsh-key-rotation:
 
 ### How keys are stored
 
-The plugin config only ever references keys by **name** (e.g. `OPENCODE_GO_API_KEY`). The values live in the dsh **Credentials** service or `$DSH_HOME/.credentials.yaml` — never in the plugin config.
+The plugin config only ever references keys by **name** (e.g. `MY_PROVIDER_API_KEY`). The values live in the dsh **Credentials** service or `$DSH_HOME/.credentials.yaml` — never in the plugin config.
 
 A key typed into the Key Rotation card is written to that same credentials store: the value travels to the host once and is never sent back to the browser. Only its **last 5 characters** are, so two keys can be told apart in the UI. A key supplied by the launching environment is shown as read-only, because overwriting it here would be shadowed anyway.
 
