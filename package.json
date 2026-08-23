@@ -51,5 +51,8 @@
     "@deepseek-ai/cordis": "^4.0.1",
     "@deepseek-ai/schemastery": "^3.18.1",
     "@deepseek-ai/dsh-llm": "^0.1.0-rc.6"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
   }
 }
