@@ -17,6 +17,13 @@
   - **rotation counter** — how many times a provider switched key, on which failure, and how long ago.
   - **key order** — ↑/↓ buttons; the order of keys is the order they are tried.
   - **switch codes as checkboxes** instead of a comma-separated string.
+  - **Exponential backoff** — repeated failures on the same key double its cooldown (base → ×2 → ×4 → cap ×8), so a dead key is not retried every window.
+  - **Reset cooldown** — a *Reset cooldown* button in the card clears a provider's cooldown immediately (also via `POST /dsh-key-rotation/reset`).
+  - **Env bootstrap** — if a pool ref (e.g. `MYPROVIDER_API_KEY`) is already set in `process.env`, it is treated as a transient credential without needing a DSH credential first.
+  - **Per-provider cooldown** — override `cooldownMs` (and `maxCooldownMs`) per provider, fallback to the global values.
+  - **Exhaustion warning** — when every key is cooling, a red warning appears in the card and `lastExhaustionAt`/`exhaustionCount` are exposed via `GET /dsh-key-rotation/status`.
+  - **Failure log** — last 20 failures per provider (`at`, `ref`, `reason`, `cooldownMs`) via `/status` and a collapsible *Recent failures* list.
+  - **Non-stream safety net** — an `agent/request-error` hook retries sync calls (embeddings, batch) with the next key when the error is switchable.
 
 ## Install
 
