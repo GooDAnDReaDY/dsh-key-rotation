@@ -24,6 +24,16 @@
   - **Exhaustion warning** — when every key is cooling, a red warning appears in the card and `lastExhaustionAt`/`exhaustionCount` are exposed via `GET /dsh-key-rotation/status`.
   - **Failure log** — last 20 failures per provider (`at`, `ref`, `reason`, `cooldownMs`) via `/status` and a collapsible *Recent failures* list.
   - **Non-stream safety net** — an `agent/request-error` hook retries sync calls (embeddings, batch) with the next key when the error is switchable.
+  - **Search/filter providers** — a search box above the list filters providers by id.
+  - **Bulk edit cooldown** — checkboxes per provider + a cooldown input + *Apply to selected*.
+  - **Undo delete** — after removing a key or provider, an *Undo* bar appears for 5 seconds.
+  - **Per-key last used** — `lastUsedAt` shown as "ago" next to each key.
+  - **Total requests badge** — sum of usage across a provider's keys, shown in its header.
+  - **Export single provider** — ⬇ button exports just that provider's entry.
+  - **Import from .env** — pick a `.env` file; `KEY=val` names are added to the first pool.
+  - **Copy key name** — click a *Key N* label to copy its ref name.
+  - **Sort by usage** — ⇅ sorts a provider's keys by usage (desc).
+  - **Probe history** — health-probe events appear greyed in *Recent failures*.
 
 ## Install
 
