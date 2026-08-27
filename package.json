@@ -53,6 +53,6 @@
     "@deepseek-ai/dsh-llm": "^0.1.0-rc.6"
   },
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js test/*.test.mjs"
   }
 }
