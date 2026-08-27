@@ -1,6 +1,6 @@
 {
   "name": "@goodandready/dsh-key-rotation",
-  "version": "0.7.20",
+  "version": "0.7.22",
   "description": "Per-provider API key rotation for DeepSeek Harness: a key pool per provider, auto-created clone routes, and switching to the next key on quota/rate-limit errors. Includes a Settings section (Key Rotation) to edit the key pools, cooldown and switch codes.",
   "keywords": [
     "deepseek-harness",
@@ -53,6 +53,6 @@
     "@deepseek-ai/dsh-llm": "^0.1.0-rc.6"
   },
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js test/*.test.mjs"
   }
 }
