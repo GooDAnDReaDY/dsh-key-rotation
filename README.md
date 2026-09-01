@@ -49,6 +49,11 @@
   - **Budget action buttons** (added in 0.7.29) — when `webhookActionToken` is set, budget notifications carry *Pause 1h* / *Reset cooldown* buttons (same callback route as exhaustion alerts).
   - **Config snapshot export/restore** (added in 0.7.29) — *Snapshot ⬇* downloads the whole config as one JSON (token fields exported empty, keys are credential names only); *Restore* imports it back — empty token fields never wipe existing secrets, and a live-looking credential in the file is rejected.
   - **Last probe result per key** (added in 0.7.29) — the card polls `/sandbox-cache` and shows the most recent probe outcome (✓/✕ + latency) next to each key, greyed out when older than 24 h.
+  - **Pre-exhaustion alert** (added in 0.7.30) — `warnBelowHealthy` (0 = off): while fewer keys than the threshold are healthy, a webhook fires (once per day per pool) with a *Reset cooldown* button, so the pool never silently dries up.
+  - **Telegram-native callbacks** (added in 0.7.30) — `/webhook-action` parses Telegram update envelopes (`callback_query.data`), so interactive buttons work natively; `POST {"setWebhook": {"botToken": …}}` registers the bot webhook in one call (the token is not stored).
+  - **Broken-key review** (added in 0.7.30) — keys quarantined for repeated AUTH failures get a *Re-test* button: a live probe (models list) that automatically lifts the 30-day quarantine when the key answers again.
+  - **7-day switches chart** (added in 0.7.30) — a second bar chart under the 24 h sparkline shows switches per day over the last week (client-side, no new server state).
+  - **Latency SLO alert** (added in 0.7.30) — `latencySloMs` (0 = off): when a key's p95 latency exceeds the threshold, a webhook fires (once per day per key); the card shows `p95 / SLO` per provider.
 
 ## Install
 
@@ -96,6 +101,8 @@ dsh-key-rotation:
 | `expiryWarnDays` | `7` | Pre-warning horizon (days) for keys with `expiresAt`: webhook + card badge. |
 | `switchNotify` | `false` | Send a webhook on every key switch (opt-in — can be chatty). |
 | `switchNotifyThrottleMs` | `60000` | Minimum gap between switch notifications for the same provider. |
+| `warnBelowHealthy` | `0` | Webhook "pool running low" while healthy keys < N (0 = off). |
+| `latencySloMs` | `0` | Latency SLO per key: webhook when p95 exceeds it (0 = off). |
 | `providers[].weights` | `[]` | Positional round-robin weights per key (editable in the card, 0.7.29). |
 | `providers[].costBudgetDaily` / `.costBudgetWeekly` | `0` | Daily / weekly spend budget per provider (0 = off). Warn webhook from 80%. |
 | `providers[].pauseOnBudget` | `false` | Pause the whole pool for 24 h when a budget is exceeded. |
