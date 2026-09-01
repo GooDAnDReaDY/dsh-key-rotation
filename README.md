@@ -34,6 +34,11 @@
   - **Copy key name** — click a *Key N* label to copy its ref name.
   - **Sort by usage** — ⇅ sorts a provider's keys by usage (desc).
   - **Probe history** — health-probe events appear greyed in *Recent failures*.
+  - **RPM token bucket** (added in 0.7.27) — optional `rpmLimit` caps requests per minute **per key**: a key that hit the cap is skipped pre-emptively (before a real request is sent) and returns when its sliding 60s window frees up. `0` (default) disables it.
+  - **Tier/model-aware routing** (added in 0.7.27) — a pool defined for a model also serves model versions in its family: an exact model pool wins, then the longest name-prefix match (a pool for `gpt-4o` serves `gpt-4o-mini-2024`), then the provider base pool. Provider `tags` are free-form labels surfaced in `/status` for grouping.
+  - **Interactive webhooks** (added in 0.7.27) — set `webhookActionToken` and exhaustion notifications gain action buttons on Telegram (`inline_keyboard`), Discord (buttons) and Slack (actions block): *Reset cooldown* and *Pause 1h* per pool. Buttons call back to `POST /dsh-key-rotation/webhook-action` with a bearer token; actions `reset-<provider>`, `pause-<provider>` (1 h), `disable-rotation`, `enable-rotation`.
+  - **Token leak detector** (added in 0.7.27) — recognizes live key shapes (OpenAI `sk-`, Anthropic `sk-ant-`, Google `AIza…`, GitHub `ghp_…`, AWS `AKIA…`, Slack `xox…`, Telegram bot tokens, Stripe, PEM blocks). Saving the config section with a real key pasted into a wrong field is rejected (`400 secret-in-config`); the key-save response carries `looksLikeSecret`, and the card hints when the value does not look like an API key.
+  - **Header status chip** (added in 0.7.27) — a small chip in the session header shows one dot for all pools (green = all keys healthy, amber = some cooling, red = a pool fully exhausted) plus a `healthy/total` counter; polls every 4 s.
 
 ## Install
 
@@ -76,6 +81,22 @@ dsh-key-rotation:
 | `switchCodes` | `[QUOTA, RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT, EMPTY_RESPONSE, UNKNOWN_MODEL]` | Error codes that trigger a key switch. |
 | `cooldownMs` | `60000` | How long an exhausted key stays out of rotation. |
 | `providers` | — | `[{ provider, keys: [envName, ...] }]`. `keys` are credential/env **names**, not the key values themselves. |
+| `rpmLimit` | `0` | Requests-per-minute cap **per key** (0 = off). A capped key is skipped pre-emptively until its 60 s window frees up. |
+| `webhookActionToken` | `''` | Bearer token for the interactive webhook callback route. When set, exhaustion webhooks carry action buttons; empty disables them. |
+| `providers[].tags` | `[]` | Free-form labels for a provider pool, surfaced in `GET /status`. |
+
+### Interactive webhook actions (added in 0.7.27)
+
+When `webhookActionToken` is set, the exhaustion webhook payload is formatted per platform (Telegram / Discord / Slack, detected from the URL) with two buttons. A button POSTs to the plugin route:
+
+```bash
+curl -X POST http://127.0.0.1:3080/dsh-key-rotation/webhook-action \
+  -H "Authorization: Bearer <webhookActionToken>" \
+  -H "content-type: application/json" \
+  -d '{"action": "reset-my-provider"}'
+```
+
+Actions: `reset-<provider>` (clear cooldowns), `pause-<provider>` (pause the whole pool for 1 hour), `disable-rotation` / `enable-rotation` (global). Platform callback payloads (`callback_data`, Discord `custom_id`, Slack button `value`) are accepted too. Without the correct bearer token the route answers `401`; without a configured token — `503`.
 
 ### How keys are stored
 
@@ -112,6 +133,7 @@ dsh-key-rotation/
 
 - Key **values** never leave your Credentials store; the plugin config only holds env/credential **names**.
 - `switchCodes` are error classification strings, not expressions — no secrets involved.
+- The leak detector (0.7.27) rejects config saves that carry a live-looking key outside the credential fields; only the credential **type** and a short preview are ever reported, never the value.
 
 ## License
 
