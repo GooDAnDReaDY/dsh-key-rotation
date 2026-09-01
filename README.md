@@ -76,6 +76,14 @@ graph LR
 * **Token Leak Detector**: recognizes live key shapes (OpenAI `sk-`, Anthropic `sk-ant-`, Google `AIza…`, GitHub `ghp_…`, AWS `AKIA…`, Slack `xox…`, Telegram bot tokens, Stripe, PEM blocks). Saving the config section with a real key pasted into a wrong field is rejected (`400 secret-in-config`); the key-save response carries `looksLikeSecret`, and the card hints when the value does not look like an API key.
 * **Header Status Chip**: a small chip in the session header shows one dot for all pools (green = all keys healthy, amber = some cooling, red = a pool fully exhausted) plus a `healthy/total` counter; polls every 4 s.
 
+### 🚀 Added in 0.7.28
+
+* **Key Expiry Pre-Warning**: `expiryWarnDays` (default 7) — keys expiring within the horizon send one webhook notification per key per day and show a yellow *expires in Nd* badge in the card.
+* **Provider Cost Budget**: per-provider `costBudgetDaily` / `costBudgetWeekly` (0 = off) — warn webhook from 80% spend, optional `pauseOnBudget` pauses the whole pool for 24 h at 100%. Live budget line in the card with warn/red coloring.
+* **Usage Report + CSV Export**: `GET /dsh-key-rotation/usage?days=N[&provider=…][&format=csv]` — per-key requests/cost over the window; *Export CSV* button in the card.
+* **RPM Capacity Indicator**: `/status` carries `rpm: {used, remaining, resetMs}` per key; the card shows a ⏱ counter next to the active key.
+* **Real Key Test Probe**: the per-key *Test* button sends `probe=models` through the existing `/test` route — validates the key against the live API (models list + latency), not just credential presence.
+
 ---
 
 ### 🖥️ Rich Web GUI Features (**Settings → Key Rotation**)
@@ -146,6 +154,9 @@ dsh-key-rotation:
 | `providers` | `[]` | List of `{ provider, keys: [envName, ...] }` key pools per model provider. |
 | `rpmLimit` | `0` | Requests-per-minute cap **per key** (0 = off). A capped key is skipped pre-emptively until its 60 s window frees up. |
 | `webhookActionToken` | `''` | Bearer token for the interactive webhook callback route. When set, exhaustion webhooks carry action buttons; empty disables them. |
+| `expiryWarnDays` | `7` | Pre-warning horizon (days) for keys with `expiresAt`: webhook + card badge. |
+| `providers[].costBudgetDaily` / `.costBudgetWeekly` | `0` | Daily / weekly spend budget per provider (0 = off). Warn webhook from 80%. |
+| `providers[].pauseOnBudget` | `false` | Pause the whole pool for 24 h when a budget is exceeded. |
 | `providers[].tags` | `[]` | Free-form labels for a provider pool, surfaced in `GET /status`. |
 
 ### Interactive Webhook Actions (added in 0.7.27)
@@ -160,6 +171,15 @@ curl -X POST http://127.0.0.1:3080/dsh-key-rotation/webhook-action \
 ```
 
 Actions: `reset-<provider>` (clear cooldowns), `pause-<provider>` (pause the whole pool for 1 hour), `disable-rotation` / `enable-rotation` (global). Platform callback payloads (`callback_data`, Discord `custom_id`, Slack button `value`) are accepted too. Without the correct bearer token the route answers `401`; without a configured token — `503`.
+
+### Usage Report (added in 0.7.28)
+
+```bash
+curl "http://127.0.0.1:3080/dsh-key-rotation/usage?days=7"           # JSON
+curl "http://127.0.0.1:3080/dsh-key-rotation/usage?format=csv&days=30&provider=my-provider" > usage.csv
+```
+
+Per-key rows: `requests`, `cost`, `active`, and per-day counts over the window (1–90 days, default 7).
 
 ---
 

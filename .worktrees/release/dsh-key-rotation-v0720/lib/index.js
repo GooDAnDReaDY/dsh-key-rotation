@@ -33,7 +33,7 @@
 //    providers:  array       [{ provider, keys: [envName, ...] }]
 // ─────────────────────────────────────────────────────────────────────────────
 import Schema from '@deepseek-ai/schemastery';
-import { keyTail, isLoopbackAddress, isTrustedBridgeRequest, SWITCHABLE_MESSAGE_PATTERN, DEFAULT_SWITCH_CODES, isValidRef, pickNext, applyCooldown, recordFailure, recordSuccess, computeBackoff, envValue, sweepExpired, parseRetryAfter, computeHealthScore, extractRateLimit, isRateLimited, selectPool } from './pool.js';
+import { keyTail, isLoopbackAddress, isTrustedBridgeRequest, SWITCHABLE_MESSAGE_PATTERN, DEFAULT_SWITCH_CODES, isValidRef, pickNext, applyCooldown, recordFailure, recordSuccess, computeBackoff, envValue, sweepExpired, parseRetryAfter, computeHealthScore, extractRateLimit, isRateLimited } from './pool.js';
 
 export const name = 'dsh-key-rotation';
 export const inject = ['llm', 'webServer', 'settings', 'credentials'];
@@ -48,43 +48,12 @@ const KEY_PATH = '/dsh-key-rotation/key';
 const RESET_PATH = '/dsh-key-rotation/reset';
 const IMPORT_PATH = '/dsh-key-rotation/import';
 const HEALTH_PATH = '/dsh-key-rotation/health';
-const USAGE_PATH = '/dsh-key-rotation/usage';
 const TEST_PATH = '/dsh-key-rotation/test';
-const SANDBOX_CACHE_PATH = '/dsh-key-rotation/sandbox-cache';
-const AGENT_BUDGET_PATH = '/dsh-key-rotation/agent-budget';
-const REGIONS_PATH = '/dsh-key-rotation/regions';
-const INCIDENT_RESET_PATH = '/dsh-key-rotation/incident-reset';
-const SHADOW_PATH = '/dsh-key-rotation/shadow';
-const WEBHOOK_TEST_PATH = '/dsh-key-rotation/webhook-test';
-const TEST_MATRIX_PATH = '/dsh-key-rotation/test-matrix';
-import { LastTestCache, SandboxRunner } from './sandbox.js';
-import { healIdleCooldowns } from './heal.js';
-import { LatencyHistogram } from './histogram.js';
-import { pickCascadeFallback } from './cascade.js';
-import { ConcurrencyTracker } from './concurrency.js';
-import { nextQuotaReset } from './quota-window.js';
-import { CanaryProber } from './canary.js';
-import { QuotaStore } from './quota.js';
-import { AgentBudget } from './agent-budget.js';
-import { RegionMap } from './region.js';
-import { IncidentReporter } from './incident.js';
-import { ShadowRouter } from './shadow.js';
-import { WebhookSender } from './webhook.js';
-import { bucketAllow, bucketRetryMs, bucketSweep, bucketInfo } from './bucket.js';
-import { expiringSoon, shouldNotifyDaily, costForDay, budgetVerdict, costForWeek } from './maintenance.js';
-import { usageRows, usageCsv } from './usage-report.js';
-import { findSecrets, looksLikeApiSecret } from './keycheck.js';
 
 /** The llm-pi-ai namespace whose provider profiles map providers to pools. */
 const PIAI_NS = 'llm-pi-ai';
 /** Marker on internally re-dispatched requests so the interceptor does not loop. */
 const MARKER = '__dshKeyRotation';
-/** #199: set true via webhook action; checked in the llm/stream interceptor. */
-let rotationDisabled = false;
-// #207/#208 dedupe maps: one notification per key/window per day.
-const expiryNotifiedAt = new Map();
-const budgetNotifiedAt = new Map();
-const DAY_MS = 86400000;
 const MAX_EVENTS = 50;
 function pushEvent(pool, ref, reason, cooldownMs, type) {
   const ev = { at: Date.now(), ref, reason: String(reason ?? 'UNKNOWN'), cooldownMs, type: type ?? 'fail' };
@@ -101,58 +70,7 @@ function pushEvent(pool, ref, reason, cooldownMs, type) {
 // treat pre-content failures whose message matches these patterns as
 // switchable even when the code is not in `switchCodes`.
 
-// Sandbox-test infrastructure (sandbox.js): in-memory cache + runner.
-let lastTestCacheRunnerCtx = null;
-const lastTestCache = new LastTestCache();
-const latencyHistogram = new LatencyHistogram();
-const quotaStore = new QuotaStore();
-const agentBudget = new AgentBudget();
-const regionMap = new RegionMap();
-// IncidentReporter: lazily built when Config provides incidentGitHubToken + incidentGitHubBaseUrl.
-// ponytail: never bake the token into source; repo is hardcoded (this plugin's home repo) but token is per-deploy.
-let incidentReporter = null;
-function ensureIncidentReporter() {
-  if (incidentReporter) return incidentReporter;
-  const cfg = getConfig();
-  const token = cfg ? cfg.incidentGitHubToken : '';
-  const baseUrl = cfg ? cfg.incidentGitHubBaseUrl : '';
-  if (!token || !baseUrl) return null;
-  incidentReporter = new IncidentReporter({ token, baseUrl, repo: 'goodandready/dsh-key-rotation', fetchImpl: globalThis.fetch });
-  return incidentReporter;
-}
-const shadowRouter = new ShadowRouter({ primary: '', secondary: '', percent: 0 });let sandboxRunner = null;
-const webhookSender = new WebhookSender({ fetchImpl: globalThis.fetch });
-const concurrencyTracker = new ConcurrencyTracker();
-let canaryProber = null;
-function ensureSandboxRunner(ctx) {
-  if (sandboxRunner) return sandboxRunner;
-  // provider id -> baseUrl (stripped of trailing /) for fetch /models probe
-  function resolveBaseUrl(provider) {
-    try {
-      const ns = ctx.get(PIAI_NS);
-      const list = ns && (ns.providers || (ns.config && ns.config.providers) || []);
-      if (!Array.isArray(list)) return null;
-      // ponytail: match by id OR name OR alias; pick first hit
-      const hit = list.find((p) => p && (p.id === provider || p.name === provider || (Array.isArray(p.aliases) && p.aliases.includes(provider))));
-      const base = hit && (hit.baseUrl || hit.endpoint || hit.url);
-      return base ? String(base) : null;
-    } catch (e) {
-      return null;
-    }
-  }
-  sandboxRunner = new SandboxRunner({ fetchImpl: globalThis.fetch, resolveBaseUrl });
-  return sandboxRunner;
-}
-async function probeRef(ref, key) {
-  // ref may be like "PROVIDER/KEY_NAME" — for sandbox we only care about the credential ref
-  // (the resolveBaseUrl uses the full provider id; ref can carry any string)
-  const runner = ensureSandboxRunner(lastTestCacheRunnerCtx);
-  const result = await runner.probeModels(ref, key);
-  lastTestCache.set(ref, { ...result, at: Date.now() });
-  return result;
-}
-
-// // Bootstrap key pools. The user configures them in the Settings GUI or via
+// Bootstrap key pools. The user configures them in the Settings GUI or via
 // the dsh profile bundle config; the plugin itself ships no provider defaults
 // so it does not bind to any specific installation. Empty array means: until
 // the user adds a pool, no rotation happens, and every provider falls back to
@@ -169,37 +87,12 @@ export const Config = Schema.object({
   backupIntervalMs: Schema.number().default(86400000),
   backupKeep: Schema.number().default(7),
   rotationScheduleDays: Schema.number().default(0),
-  selfHealCooldown: Schema.boolean().default(true),
-  selfHealIdleMs: Schema.number().default(3600000),
-  latencyEnabled: Schema.boolean().default(true),
-  latencyWindow: Schema.number().default(200),
-  incidentGitHubToken: Schema.string().default(''),
-  incidentGitHubBaseUrl: Schema.string().default(''),
-  incidentThreshold: Schema.number().default(5),
-  concurrencyLimit: Schema.number().default(0),
-  canaryProbingEnabled: Schema.boolean().default(false),
-  canaryIntervalMs: Schema.number().default(30000),
-  cascade: Schema.array(Schema.object({
-    provider: Schema.string().required(),
-    model: Schema.string(),
-  })).default([]),
-  quotaResetWindow: Schema.object({
-    type: Schema.string().default('midnight_utc'),
-    hour: Schema.number().default(0),
-  }),
   rateLimitThreshold: Schema.number().default(0.1),
-  rpmLimit: Schema.number().default(0),
-  webhookActionToken: Schema.string().default(''),
-  expiryWarnDays: Schema.number().default(7),
   providers: Schema.array(Schema.object({
     provider: Schema.string().required(),
     keys: Schema.array(Schema.string()).default([]),
     weights: Schema.array(Schema.number()).default([]),
     expiresAt: Schema.array(Schema.union([Schema.number(), Schema.string()])).default([]),
-    tags: Schema.array(Schema.string()).default([]),
-    costBudgetDaily: Schema.number(),
-    costBudgetWeekly: Schema.number(),
-    pauseOnBudget: Schema.boolean().default(false),
     models: Schema.dict(Schema.object({
       keys: Schema.array(Schema.string()).default([]),
       weights: Schema.array(Schema.number()).default([]),
@@ -336,30 +229,6 @@ async function handleConfigBridge(ctx, request, res, getCloneIds) {
       }
       section = body.section;
       expectedRevision = typeof body.expectedRevision === 'number' ? body.expectedRevision : void 0;
-      // #200 leak detector: a live secret pasted into the config section is
-      // almost always a mistake (real key values belong in PUT /key). The two
-      // fields that legitimately hold tokens are masked before scanning.
-      try {
-        const masked = structuredClone(section);
-        if (masked.incidentGitHubToken) masked.incidentGitHubToken = '***';
-        if (masked.webhookActionToken) masked.webhookActionToken = '***';
-        // notifyWebhook legitimately carries bot tokens inside URLs
-        // (api.telegram.org/bot<token>/...) - scan it for nothing.
-        if (masked.notifyWebhook) masked.notifyWebhook = '***';
-        const findings = findSecrets(JSON.stringify(masked));
-        if (findings.length > 0) {
-          json(res, 400, {
-            error: {
-              code: 'secret-in-config',
-              message: `dsh-key-rotation: value looks like a live credential (${findings[0].type}); store key values via the key field, not the config section`,
-              findings,
-            },
-          });
-          return;
-        }
-      } catch {
-        /* scanning must never block a valid save */
-      }
     } else {
       section = {};
     }
@@ -386,65 +255,6 @@ export function apply(ctx, config = {}) {
   // profile does not need a second copy of that package.)
   let getConfig = () => config;
   registerConfigBridge(ctx, () => buildRuntime().cloneIds);
-  lastTestCacheRunnerCtx = ctx;
-  // Cache should not survive profile restarts (apply is called per reload).
-  // We deliberately do NOT clear on every apply — that would wipe badges when
-  // the user is just typing in the settings card. Re-init only on true reload.
-  ensureSandboxRunner(ctx);
-
-  // Self-healing idle cooldowns: every 60s, lift expired cooldowns for keys
-  // that have been idle for selfHealIdleMs (default 1h). ponytail: small
-  // interval, low cost; skipped when selfHealCooldown is disabled in config.
-  // ponytail: keep handle on the same ctx via closure so buildRuntime() reads
-  // fresh config on every tick. Naive but correct: 60s cadence is cheap.
-  // #196: canary probing before key release from cooldown.
-  // Every canaryIntervalMs, probe refs that are in cooldown and close to expiry.
-  let canaryTimer = null;
-  const startCanary = () => {
-    const cfg = getConfig();
-    if (!cfg || !cfg.canaryProbingEnabled) return;
-    if (canaryTimer) return;
-    canaryTimer = setInterval(() => {
-      try {
-        const c = getConfig();
-        if (!c || !c.canaryProbingEnabled) return;
-        const runner = ensureSandboxRunner();
-        if (!runner) return;
-        if (!canaryProber) {
-          canaryProber = new CanaryProber({ sandboxRunner: runner, intervalMs: c.canaryIntervalMs });
-        }
-        const providers = Array.isArray(c.providers) ? c.providers : [];
-        for (const p of providers) {
-          const pool = buildRuntime().providerToPool.get(p.provider);
-          if (!pool) continue;
-          for (const ref of pool.refs) {
-            const until = pool.state.failedUntil.get(ref) ?? 0;
-            const now = Date.now();
-            // Probe refs in cooldown whose expiry is within canaryIntervalMs of now
-            if (until > now && until - now < (c.canaryIntervalMs ?? 30000)) {
-              canaryProber.probe(ref, ref);
-            }
-          }
-        }
-      } catch (_) { /* ponytail: never crash the timer */ }
-    }, cfg.canaryIntervalMs ?? 30000);
-    if (typeof canaryTimer.unref === 'function') canaryTimer.unref();
-  };
-  startCanary();
-
-  const selfHealTimer = setInterval(() => {
-    const cfg = getConfig();
-    if (!cfg || cfg.selfHealCooldown === false) return;
-    try {
-      const idle = Number.isFinite(cfg.selfHealIdleMs) && cfg.selfHealIdleMs > 0 ? cfg.selfHealIdleMs : 3600000;
-      const providers = Array.isArray(cfg.providers) ? cfg.providers : [];
-      const pools = providers
-        .map((p) => buildRuntime().providerToPool.get(p.provider))
-        .filter(Boolean);
-      healIdleCooldowns(pools, idle);
-    } catch (_) { /* ponytail: never crash the timer */ }
-  }, 60000);
-  if (typeof selfHealTimer.unref === 'function') selfHealTimer.unref();
 
   // Dashboard widget now lives in client.js (mountDashboard, see issue #152).
   const DASH_HTML = '';
@@ -553,56 +363,6 @@ export function apply(ctx, config = {}) {
       }
       const n = sweepExpired(poolState, now);
       if (n > 0) console.warn(`[dsh-key-rotation] sweep: cleared ${n} expired cooldown(s)`);
-      // #207 expiry pre-warning + #208 cost budget - piggybacked on this timer,
-      // deduped to one notification per key/window per day (shouldNotifyDaily).
-      try {
-        const runtime = buildRuntime();
-        const seen = new Set();
-        for (const pool of runtime.poolByRef.values()) {
-          if (seen.has(pool.base)) continue;
-          seen.add(pool.base);
-          // #207: keys expiring within expiryWarnDays -> one webhook per key/day
-          for (const { ref, expiresInDays } of expiringSoon(pool, runtime.expiryWarnDays, now)) {
-            if (!shouldNotifyDaily(expiryNotifiedAt, pool.base + ':' + ref, now)) continue;
-            console.warn(`[dsh-key-rotation] ${pool.base}: key ${ref} expires in ~${expiresInDays}d`);
-            if (runtime.notifyWebhook) {
-              webhookSender.send(runtime.notifyWebhook, {
-                title: `Key expiring soon: ${pool.base}`,
-                text: `${ref} expires in ~${expiresInDays} day(s)`,
-                provider: pool.base,
-                kind: 'expiry',
-                keys: [ref],
-              });
-            }
-          }
-          // #208: daily/weekly budget -> warn webhook, optional 1-day pause at 100%
-          const budget = runtime.providerBudgets.get(pool.base);
-          if (!budget) continue;
-          const daily = costForDay(pool.state.costDays);
-          const weekly = costForWeek(pool.state.costDays, now);
-          const verdict = budgetVerdict(daily, budget.costBudgetDaily);
-          const wVerdict = budgetVerdict(weekly, budget.costBudgetWeekly);
-          const hit = verdict.warn || wVerdict.warn;
-          if (hit && shouldNotifyDaily(budgetNotifiedAt, pool.base + ':budget', now)) {
-            console.warn(`[dsh-key-rotation] ${pool.base}: cost budget - day $${daily.toFixed(2)}/$${budget.costBudgetDaily} week $${weekly.toFixed(2)}/$${budget.costBudgetWeekly}`);
-            if (runtime.notifyWebhook) {
-              webhookSender.send(runtime.notifyWebhook, {
-                title: `Cost budget: ${pool.base}`,
-                text: `day $${daily.toFixed(2)} of $${budget.costBudgetDaily} · week $${weekly.toFixed(2)} of $${budget.costBudgetWeekly}` + (verdict.exceeded || wVerdict.exceeded ? ' · EXCEEDED' : ''),
-                provider: pool.base,
-                kind: 'budget',
-                spend: { daily, weekly },
-              });
-            }
-          }
-          if ((verdict.exceeded || wVerdict.exceeded) && budget.pauseOnBudget) {
-            const until = now + DAY_MS;
-            for (const ref of pool.refs) {
-              if ((pool.state.failedUntil.get(ref) ?? 0) < until) pool.state.failedUntil.set(ref, until);
-            }
-          }
-        }
-      } catch (_) { /* maintenance must never crash the sweep */ }
     }, 30000);
     return () => clearInterval(id);
   }, 'dsh-key-rotation: sweep expired cooldowns');
@@ -622,14 +382,6 @@ export function apply(ctx, config = {}) {
     const backupKeep = cfg.backupKeep ?? 7;
     const rotationScheduleDays = cfg.rotationScheduleDays ?? 0;
     const rateLimitThreshold = cfg.rateLimitThreshold ?? 0.1;
-    const rpmLimit = cfg.rpmLimit ?? 0;
-    const webhookActionToken = cfg.webhookActionToken ?? '';
-    const incidentThreshold = cfg.incidentThreshold ?? 5;
-    const concurrencyLimit = cfg.concurrencyLimit ?? 0;
-    const canaryProbingEnabled = cfg.canaryProbingEnabled ?? false;
-    const canaryIntervalMs = cfg.canaryIntervalMs ?? 30000;
-    const cascade = Array.isArray(cfg.cascade) ? cfg.cascade : [];
-    const quotaResetWindow = cfg.quotaResetWindow || null;
 
     // ref -> pool (every key env of every configured provider)
     const poolByRef = new Map();
@@ -644,24 +396,9 @@ export function apply(ctx, config = {}) {
       let st = poolState.get(base);
       if (!st) {
         st = {
-          failedUntil: new Map(),
-          failCounts: new Map(),
-          authFailCounts: new Map(),
-          brokenUntil: new Map(),
-          costPerKey: new Map(),
-          lastUsedAt: new Map(),
-          usageCounts: new Map(),
-          byModel: new Map(),
-          usageDays: new Map(),
-          quotaWindows: new Map(),
-          pointer: 0,
-          lastUsed: undefined,
-          switches: 0,
-          lastReason: undefined,
-          lastSwitchAt: undefined,
-          lastExhaustionAt: undefined,
-          exhaustionCount: 0,
-          events: [],
+          failedUntil: new Map(), failCounts: new Map(), pointer: 0, lastUsed: undefined,
+          switches: 0, lastReason: undefined, lastSwitchAt: undefined,
+          lastExhaustionAt: undefined, exhaustionCount: 0, events: [], usageCounts: new Map(), byModel: new Map(), usageDays: new Map(),
         };
         poolState.set(base, st);
       }
@@ -689,7 +426,7 @@ export function apply(ctx, config = {}) {
         }
       }
       return { base, refs, weightedRefs: weightedRefs.length > 0 ? weightedRefs : refs,
-               state: makeState(base), cooldownMs: poolCooldown, maxCooldownMs: poolMax, expiresAt: parsedExpiry, rpmLimit };
+               state: makeState(base), cooldownMs: poolCooldown, maxCooldownMs: poolMax, expiresAt: parsedExpiry };
     };
     for (const p of cfg.providers ?? []) {
       const poolCooldown = typeof p.cooldownMs === 'number' ? p.cooldownMs : (cfg.cooldownMs ?? 60000);
@@ -729,21 +466,7 @@ export function apply(ctx, config = {}) {
     for (const key of [...poolState.keys()]) {
       if (![...poolByRef.values()].some((p) => p.base === key)) poolState.delete(key);
     }
-    // #192: drop RPM windows for refs that no longer belong to any pool
-    for (const st of poolState.values()) {
-      if (st.rpmWindows) bucketSweep(st.rpmWindows, new Set(poolByRef.keys()));
-    }
-    // #195: provider -> tags (metadata, surfaced in status)
-    const providerTags = new Map();
-    // #208: provider -> { costBudgetDaily, costBudgetWeekly, pauseOnBudget }
-    const providerBudgets = new Map();
-    for (const p of cfg.providers ?? []) {
-      if (Array.isArray(p.tags) && p.tags.length > 0) providerTags.set(p.provider, p.tags);
-      const daily = typeof p.costBudgetDaily === 'number' ? p.costBudgetDaily : 0;
-      const weekly = typeof p.costBudgetWeekly === 'number' ? p.costBudgetWeekly : 0;
-      if (daily > 0 || weekly > 0) providerBudgets.set(p.provider, { costBudgetDaily: daily, costBudgetWeekly: weekly, pauseOnBudget: p.pauseOnBudget ?? false });
-    }
-    return { switchCodes, cooldownMs, maxCooldownMs, notifyWebhook, notifyThreshold, incidentThreshold, concurrencyLimit, canaryProbingEnabled, canaryIntervalMs, cascade, quotaResetWindow, backupDir, backupIntervalMs, backupKeep, rotationScheduleDays, rateLimitThreshold, rpmLimit, webhookActionToken, expiryWarnDays: cfg.expiryWarnDays ?? 7, providerTags, providerBudgets, poolByRef, providerToPool, modelPoolByProvider, cloneIds };
+    return { switchCodes, cooldownMs, maxCooldownMs, notifyWebhook, notifyThreshold, backupDir, backupIntervalMs, backupKeep, rotationScheduleDays, rateLimitThreshold, poolByRef, providerToPool, modelPoolByProvider, cloneIds };
   }
 
   // ── patch credentials.resolve: pool refs resolve to the next healthy key ──
@@ -768,18 +491,7 @@ export function apply(ctx, config = {}) {
         const until = pool.state.failedUntil.get(candidate);
         if (until !== undefined && until > now) continue;
         if (pool.expiresAt?.[candidate] !== undefined && now >= pool.expiresAt[candidate]) continue;
-        // #192 RPM token bucket: skip a key that already hit its requests/min cap
-        const rpmLimit = pool.rpmLimit ?? 0;
-        if (rpmLimit > 0) {
-          if (!pool.state.rpmWindows) pool.state.rpmWindows = new Map();
-          if (!bucketAllow(pool.state.rpmWindows, candidate, rpmLimit, now)) {
-            const waitMs = bucketRetryMs(pool.state.rpmWindows, candidate, rpmLimit, now);
-            if ((pool.state.failedUntil.get(candidate) ?? 0) < now + waitMs) {
-              pool.state.failedUntil.set(candidate, now + waitMs);
-            }
-            continue;
-          }
-        }
+        // perHour quota check
         if (pool.perHour) {
           if (!pool.state.quotaWindows) pool.state.quotaWindows = new Map();
           let win = pool.state.quotaWindows.get(candidate);
@@ -840,21 +552,6 @@ export function apply(ctx, config = {}) {
     reason: { kind: 'error', failure: Object.freeze({ code, message }) },
   });
 
-  // Latency recording (#6): record successful llm/stream latency per ref.
-  // ponytail: only the true success path (finish-chunk). Failures are not recorded.
-  let _rotateStartMs = Date.now();
-  function recordLatency(pool) {
-    try {
-      const cfg = getConfig();
-      if (!cfg || cfg.latencyEnabled === false) return;
-      const ref = pool && pool.state && pool.state.lastUsed;
-      if (!ref) return;
-      const elapsed = Date.now() - _rotateStartMs;
-      if (!Number.isFinite(elapsed) || elapsed < 0) return;
-      latencyHistogram.record(ref, elapsed);
-    } catch (_) { /* ponytail: never crash */ }
-  }
-
   // Retry one request on the next pool key when the current key fails with a
   // switchable error before any content chunk. The provider never changes —
   // the resolve patch hands out the next key on each dispatch.
@@ -862,27 +559,7 @@ export function apply(ctx, config = {}) {
     return (async function* () {
       const { switchCodes, cooldownMs, maxCooldownMs } = buildRuntime();
       let lastFailure = null;
-      _rotateStartMs = Date.now();
 
-      const runtime0 = buildRuntime();
-      if (runtime0.concurrencyLimit > 0 && concurrencyTracker.isEnabled()) {
-        // #193: prefer least-loaded key within limit
-        const available = (pool.weightedRefs ?? pool.refs).filter((r) => {
-          const fu = pool.state.failedUntil.get(r) ?? 0;
-          if (fu > Date.now()) return false;
-          const exp = pool.expiresAt ? pool.expiresAt[r] : undefined;
-          if (exp !== undefined && Date.now() >= exp) return false;
-          return true;
-        });
-        const preferred = concurrencyTracker.pickLeastLoaded(available);
-        if (preferred && (pool.weightedRefs ?? pool.refs)[0] !== preferred) {
-          // Move preferred to front of the attempt list
-          const list = (pool.weightedRefs ?? pool.refs).slice();
-          const i = list.indexOf(preferred);
-          if (i > 0) { list.splice(i, 1); list.unshift(preferred); }
-          pool.weightedRefs = list;
-        }
-      }
       for (let attempt = 0; attempt < (pool.weightedRefs ?? pool.refs).length; attempt++) {
         let yielded = false;
         let switching = false;
@@ -898,8 +575,6 @@ export function apply(ctx, config = {}) {
           continue;
         }
 
-        const _pickedRef = pool.state.lastUsed;
-        if (_pickedRef && runtime0.concurrencyLimit > 0) concurrencyTracker.acquire(_pickedRef);
         try {
           for await (const chunk of inner) {
             // Only actual content deltas lock the stream (no more rotation).
@@ -918,28 +593,7 @@ export function apply(ctx, config = {}) {
               const switchable = !yielded && kind === 'error' &&
                 (effectiveSwitchCodes.has(code) || SWITCHABLE_MESSAGE_PATTERN.test(message));
               if (switchable) {
-                if (pool.state.lastUsed) {
-                  const _retry = parseRetryAfter(message);
-                  const _base = pool.cooldownMs ?? cooldownMs;
-                  const _max = pool.maxCooldownMs ?? maxCooldownMs;
-                  const _effBase = _retry !== undefined ? Math.max(_base, Math.min(_retry, _max ?? _base * 8)) : _base;
-                  const _b = recordFailure(pool, pool.state.lastUsed, Date.now(), _effBase, _max);
-                  pushEvent(pool, pool.state.lastUsed, code ?? 'UNKNOWN', _b);
-                  // authFailCounts/brokenUntil: lazy-init if state was created by an older plugin version
-                  if (!pool.state.authFailCounts) pool.state.authFailCounts = new Map();
-                  if (!pool.state.brokenUntil) pool.state.brokenUntil = new Map();
-                  const _code2 = String(code ?? '');
-                  if (_code2 === 'AUTH' || /auth/i.test(message)) {
-                    const _c2 = (pool.state.authFailCounts.get(pool.state.lastUsed) ?? 0) + 1;
-                    pool.state.authFailCounts.set(pool.state.lastUsed, _c2);
-                    if (_c2 >= 3) {
-                      pool.state.brokenUntil.set(pool.state.lastUsed, Date.now() + 86400000*30);
-                      pool.state.failedUntil.set(pool.state.lastUsed, Date.now() + 86400000*30);
-                    }
-                  } else {
-                    pool.state.authFailCounts.delete(pool.state.lastUsed);
-                  }
-                }
+                if (pool.state.lastUsed) { const _retry = parseRetryAfter(message); const _base = pool.cooldownMs ?? cooldownMs; const _max = pool.maxCooldownMs ?? maxCooldownMs; const _effBase = _retry !== undefined ? Math.max(_base, Math.min(_retry, _max ?? _base * 8)) : _base; const _b = recordFailure(pool, pool.state.lastUsed, Date.now(), _effBase, _max); pushEvent(pool, pool.state.lastUsed, code ?? 'UNKNOWN', _b); const _code2 = String(code ?? ''); if (_code2 === 'AUTH' || /auth/i.test(message)) { const _c2 = (pool.state.authFailCounts.get(pool.state.lastUsed) ?? 0) + 1; pool.state.authFailCounts.set(pool.state.lastUsed, _c2); if (_c2 >= 3) { pool.state.brokenUntil.set(pool.state.lastUsed, Date.now() + 86400000*30); pool.state.failedUntil.set(pool.state.lastUsed, Date.now() + 86400000*30); } } else { pool.state.authFailCounts.delete(pool.state.lastUsed); } }
                 pool.state.switches = (pool.state.switches ?? 0) + 1;
                 pool.state.lastReason = String(code ?? 'UNKNOWN');
                 pool.state.lastSwitchAt = Date.now();
@@ -951,16 +605,7 @@ export function apply(ctx, config = {}) {
               // cost tracking if provider returns usage.cost
               if (chunk.usage?.cost != null && pool.state.lastUsed) {
                 const c = Number(chunk.usage.cost);
-                if (!isNaN(c)) {
-                  if (!pool.state.costPerKey) pool.state.costPerKey = new Map();
-                  pool.state.costPerKey.set(pool.state.lastUsed, (pool.state.costPerKey.get(pool.state.lastUsed) ?? 0) + c);
-                  // #208: cost per day per key (mirrors usageDays) for budget checks
-                  if (!pool.state.costDays) pool.state.costDays = new Map();
-                  const cday = new Date().toISOString().slice(0, 10);
-                  const cMap = pool.state.costDays.get(pool.state.lastUsed) || new Map();
-                  cMap.set(cday, (cMap.get(cday) ?? 0) + c);
-                  pool.state.costDays.set(pool.state.lastUsed, cMap);
-                }
+                if (!isNaN(c)) pool.state.costPerKey.set(pool.state.lastUsed, (pool.state.costPerKey.get(pool.state.lastUsed) ?? 0) + c);
               }
               // Usage by day (#119)
               if (pool.state.lastUsed) {
@@ -990,23 +635,16 @@ export function apply(ctx, config = {}) {
                   console.warn(`[dsh-key-rotation] ${options.provider}: key ${pool.state.lastUsed} near quota (remaining ${String(rate.remaining)}/${String(rate.limit)}) — next request will rotate`);
                 }
               }
-              // #7: persist quota snapshot regardless of threshold (so dashboard widget can show it).
-              if (rate && pool.state.lastUsed && Number.isFinite(rate.remaining)) {
-                quotaStore.set(pool.state.lastUsed, { remaining: rate.remaining, limit: rate.limit, reset: rate.reset, at: Date.now() });
-              }
               yield chunk;
-              recordLatency(pool);
               return;
             }
             yield chunk;
           }
         } catch (e) {
-          if (_pickedRef && runtime0.concurrencyLimit > 0) concurrencyTracker.release(_pickedRef);
           yield finishError(e?.code ?? 'TRANSPORT', String(e?.message ?? e));
           return;
         }
 
-        if (_pickedRef && runtime0.concurrencyLimit > 0) concurrencyTracker.release(_pickedRef);
         if (switching) continue; // try the next key
         return; // clean end — served
       }
@@ -1015,26 +653,14 @@ export function apply(ctx, config = {}) {
       pool.state.lastExhaustionAt = Date.now();
       pool.state.exhaustionCount = (pool.state.exhaustionCount ?? 0) + 1;
       console.warn(`[dsh-key-rotation] ${options.provider}: pool exhausted — all ${pool.refs.length} keys cooling`);
-      // notify via extracted helper (see notifyExhaustion above)
-      notifyExhaustion(buildRuntime(), pool, { provider: options.provider });
-
-      // #194: cross-provider cascade failover
-      const runtime = buildRuntime();
-      if (Array.isArray(runtime.cascade) && runtime.cascade.length > 0) {
-        const pools = runtime.providerToPool;
-        const fb = pickCascadeFallback(options.provider, runtime, pools);
-        if (fb && fb.pool && fb.pool !== pool) {
-          console.warn(`[dsh-key-rotation] ${options.provider}: pool exhausted — cascading to ${fb.provider}`);
-          pool.state.lastReason = 'CASCADE';
-          pool.state.lastSwitchAt = Date.now();
-          // Re-dispatch on the fallback pool (depth-1 via marker check)
-          const innerCascade = rotate({ ...options, provider: fb.provider }, fb.pool);
-          for await (const chunk of innerCascade) {
-            yield chunk;
-          }
-          return;
+      // notify webhook if configured and threshold reached
+      try {
+        const { notifyWebhook, notifyThreshold } = buildRuntime();
+        if (notifyWebhook && pool.state.exhaustionCount >= notifyThreshold) {
+          const payload = JSON.stringify({ provider: options.provider, exhaustionCount: pool.state.exhaustionCount, at: pool.state.lastExhaustionAt, keys: pool.refs });
+          fetch(notifyWebhook, { method: 'POST', headers: { 'content-type': 'application/json' }, body: payload }).catch(()=>{});
         }
-      }
+      } catch {}
 
       yield lastFailure ?? finishError('TRANSPORT', 'dsh-key-rotation: all keys failed');
     })();
@@ -1059,7 +685,7 @@ export function apply(ctx, config = {}) {
         json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: status is local-only' } });
         return;
       }
-      const { poolByRef, providerTags, providerBudgets } = buildRuntime();
+      const { poolByRef } = buildRuntime();
       const base = ctx.get('credentials');
       const now = Date.now();
       const seen = new Set();
@@ -1067,7 +693,6 @@ export function apply(ctx, config = {}) {
       for (const pool of poolByRef.values()) {
         if (seen.has(pool.base)) continue;
         seen.add(pool.base);
-        try {
         const keys = [];
         for (const ref of pool.refs) {
           let present = false;
@@ -1105,8 +730,6 @@ export function apply(ctx, config = {}) {
             writable,
             active: pool.state.lastUsed === ref,
             cooldownMsLeft: until !== undefined && until > now ? until - now : 0,
-            // #210: RPM capacity snapshot (null when rpmLimit is off)
-            rpm: bucketInfo(pool.state.rpmWindows, ref, pool.rpmLimit, now),
             usage: pool.state.usageCounts?.get(ref) ?? 0,
             byModel: pool.state.byModel?.get(ref) ? Object.fromEntries(pool.state.byModel.get(ref)) : {},
             usageDays: pool.state.usageDays?.get(ref) ? Object.fromEntries(pool.state.usageDays.get(ref)) : {},
@@ -1120,7 +743,6 @@ export function apply(ctx, config = {}) {
         providers.push({
           provider: pool.base,
           keys,
-          tags: providerTags.get(pool.base) ?? [],
           switches: pool.state.switches ?? 0,
           lastReason: pool.state.lastReason ?? null,
           lastSwitchAt: pool.state.lastSwitchAt ?? null,
@@ -1129,58 +751,11 @@ export function apply(ctx, config = {}) {
           totalUsage: [...(pool.state.usageCounts?.values() ?? [])].reduce((a, b) => a + b, 0),
           events: (pool.state.events ?? []).slice(-50),
           healthScore: computeHealthScore(pool.state),
-          // #208: today/week spend + configured budget for the card
-          todayCost: costForDay(pool.state.costDays),
-          weeklyCost: costForWeek(pool.state.costDays, now),
-          budgetDaily: providerBudgets.get(pool.base)?.costBudgetDaily ?? 0,
-          budgetWeekly: providerBudgets.get(pool.base)?.costBudgetWeekly ?? 0,
-          pauseOnBudget: providerBudgets.get(pool.base)?.pauseOnBudget ?? false,
         });
-        } catch (e) {
-          console.warn(`[dsh-key-rotation] status: pool ${pool.base} failed: ${String(e?.message ?? e)} ${e?.stack ?? ''}`);
-          providers.push({ provider: pool.base, keys: [], statusError: String(e?.message ?? e) });
-        }
       }
       json(res, 200, { providers });
     },
   }), 'dsh-key-rotation: status route');
-
-  // #209: usage report - per-key requests/cost over the last N days.
-  // ?format=csv returns text/csv; ?days=N window (1..90, default 7).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: USAGE_PATH,
-    handler: (req, res) => {
-      if (req.method !== 'GET') { json(res, 405, { error: { code: 'method', message: 'GET only' } }); return; }
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: usage is local-only' } }); return; }
-      const url = new URL(req.url ?? USAGE_PATH, 'http://localhost');
-      const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 7));
-      const csv = url.searchParams.get('format') === 'csv';
-      const provider = url.searchParams.get('provider') ?? '';
-      const runtime = buildRuntime();
-      const now = Date.now();
-      const seen = new Set();
-      const report = [];
-      for (const pool of runtime.poolByRef.values()) {
-        if (seen.has(pool.base)) continue;
-        seen.add(pool.base);
-        if (provider && pool.base !== provider) continue;
-        report.push({ provider: pool.base, rows: usageRows(pool, days, now) });
-      }
-      if (csv) {
-        res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="dsh-key-rotation-usage.csv"' });
-        const parts = [];
-        for (const p of report) {
-          if (parts.length > 0) parts.push('');
-          parts.push('# ' + p.provider);
-          parts.push(usageCsv(p.rows));
-        }
-        res.end(parts.join('\n') + '\n');
-        return;
-      }
-      json(res, 200, { at: now, days, providers: report });
-    },
-  }), 'dsh-key-rotation: usage route');
 
   // ── key route: store a key value without leaving the rotation card ──
   //
@@ -1230,9 +805,7 @@ export function apply(ctx, config = {}) {
           return;
         }
         await credentialsService.set(ref, value);
-        // #200: leak-detector hint - stored value should look like a credential
-        const secretShape = looksLikeApiSecret(value);
-        json(res, 200, { ok: true, ref, tail: keyTail(value), looksLikeSecret: secretShape });
+        json(res, 200, { ok: true, ref, tail: keyTail(value) });
       } catch (error) {
         // A ref supplied by the launching environment is read-only, and the
         // service says so in plain words — pass that through to the card.
@@ -1337,7 +910,7 @@ export function apply(ctx, config = {}) {
       const now = Date.now();
       const pools = {};
       let exhaustedAny = false;
-      const { poolByRef: pr, providerTags } = buildRuntime();
+      const { poolByRef: pr } = buildRuntime();
       const seenH = new Set();
       for (const pool of pr.values()) {
         if (seenH.has(pool.base)) continue;
@@ -1355,7 +928,7 @@ export function apply(ctx, config = {}) {
         if (exhausted) exhaustedAny = true;
         pools[pool.base] = { healthy, total, exhausted, healthScore: computeHealthScore(pool.state) };
       }
-      json(res, 200, { status: exhaustedAny ? 'degraded' : 'ok', pools, exhaustedAny, latency: latencyHistogram.snapshotAll(), quota: quotaStore.snapshot() });
+      json(res, 200, { status: exhaustedAny ? 'degraded' : 'ok', pools, exhaustedAny });
     },
   }), 'dsh-key-rotation: health');
 
@@ -1371,11 +944,11 @@ export function apply(ctx, config = {}) {
       if (!isValidRef(ref)) { json(res, 400, { error: { code: 'bad-ref', message: 'dsh-key-rotation: ref must be an environment variable name' } }); return; }
       // Optional value for pre-save validation (issue #118)
       const testValue = typeof body?.value === 'string' && body.value.length > 0 ? body.value : undefined;
-      const probe = body?.probe === 'models' || body?.probe === 'chat' ? body.probe : undefined;
       const base = ctx.get('credentials');
       try {
         let hit = await (base?.__dshKeyRotationOriginalResolve ?? base?.resolve)?.call(base, ref);
         let present = Boolean(hit && typeof hit.value === 'string' && hit.value.length > 0);
+        // Pre-save validation: check the provided value directly (issue #118)
         const effectiveValue = testValue || hit?.value;
         const valid = present ? Boolean(effectiveValue && typeof effectiveValue === 'string' && effectiveValue.length > 0) : Boolean(testValue);
         const tail = valid ? keyTail(effectiveValue) : '';
@@ -1387,16 +960,6 @@ export function apply(ctx, config = {}) {
           const ev = envValue(ref);
           if (ev !== undefined) { present = true; json(res, 200, { ok: true, ref, tail: keyTail(ev), source: 'env' }); return; }
         }
-        // sandbox probe (models is free; chat is hook-only, see sandbox.js)
-        if (probe) {
-          const keyForProbe = effectiveValue;
-          const runner = ensureSandboxRunner(ctx);
-          const result = probe === 'chat' ? await runner.probeChat(ref, keyForProbe) : await runner.probeModels(ref, keyForProbe);
-          const cached = { ...result, at: Date.now() };
-          lastTestCache.set(ref, cached);
-          json(res, 200, { ok: cached.ok, ref, tail, source, probe, code: cached.code, latencyMs: cached.latencyMs, modelsCount: cached.modelsCount });
-          return;
-        }
         json(res, 200, { ok: true, ref, tail, source });
       } catch (e) {
         json(res, 200, { ok: false, ref, code: 'error', message: String(e?.message ?? e) });
@@ -1407,177 +970,11 @@ export function apply(ctx, config = {}) {
   // Intercept the llm/stream waterfall: rotate any request whose provider maps
   // to a configured key pool; pass everything else (and internal dispatches)
   // straight through.
-  // Read-only cache snapshot for clients (badge polling).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: SANDBOX_CACHE_PATH,
-    handler: (req, res) => {
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: cache is local-only' } }); return; }
-      json(res, 200, lastTestCache.snapshot());
-    },
-  }), 'dsh-key-rotation: sandbox cache');
-
-  // Auto-incident reset (#8).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: INCIDENT_RESET_PATH,
-    handler: (req, res) => {
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: incident-reset is local-only' } }); return; }
-      if (req.method !== 'POST') { json(res, 405, { error: { code: 'method', message: 'POST only' } }); return; }
-      readJson(req).then((body) => {
-        const provider = typeof body?.provider === 'string' ? body.provider : '';
-        if (provider) incidentReporter.resetCooldown(provider);
-        else incidentReporter.resetCooldown();
-        json(res, 200, { ok: true, reset: provider || 'all' });
-      }).catch((e) => json(res, 400, { error: { code: 'bad-request', message: String(e?.message ?? e) } }));
-    },
-  }), 'dsh-key-rotation: incident-reset');
-
-  // #198: 1-click Health Matrix — parallel probe of all configured keys.
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: TEST_MATRIX_PATH,
-    handler: async (req, res) => {
-      if (req.method !== 'POST') { json(res, 405, { error: { code: 'method', message: 'POST only' } }); return; }
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: matrix is local-only' } }); return; }
-      const cfg = getConfig();
-      const runner = ensureSandboxRunner();
-      if (!runner) { json(res, 500, { error: { code: 'no-runner', message: 'sandbox runner unavailable' } }); return; }
-      const providers = Array.isArray(cfg?.providers) ? cfg.providers : [];
-      const jobs = [];
-      for (const p of providers) {
-        for (const ref of (p.keys ?? [])) {
-          if (typeof ref !== 'string' || !ref) continue;
-          jobs.push((async () => {
-            try {
-              const probeResult = await runner.probeModels(ref, ref);
-              return { provider: p.provider, ref, ok: probeResult.ok, code: probeResult.code, latencyMs: probeResult.latencyMs, modelsCount: probeResult.modelsCount ?? 0 };
-            } catch (e) {
-              return { provider: p.provider, ref, ok: false, code: 'error', latencyMs: 0, modelsCount: 0 };
-            }
-          })());
-        }
-      }
-      const results = await Promise.all(jobs);
-      json(res, 200, { at: Date.now(), total: results.length, ok: results.filter(r => r.ok).length, results });
-    },
-  }), 'dsh-key-rotation: test-matrix');
-
-  // Webhook test endpoint (#10): dry-run that validates webhookSender setup.
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: WEBHOOK_TEST_PATH,
-    handler: (req, res) => {
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: webhook-test is local-only' } }); return; }
-      json(res, 200, { ok: true, snapshot: webhookSender.snapshot() });
-    },
-  }), 'dsh-key-rotation: webhook-test');
-
-  // #199 webhook-action: interactive webhook buttons call back here.
-  // Auth: bearer token from Config (external services like Telegram/Discord
-  // cannot be same-origin, so a shared secret is the gate).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: '/dsh-key-rotation/webhook-action',
-    handler: async (req, res) => {
-      if (req.method !== 'POST') { json(res, 405, { error: { code: 'method', message: 'POST only' } }); return; }
-      const runtime = buildRuntime();
-      const expected = runtime.webhookActionToken;
-      if (!expected) { json(res, 503, { error: { code: 'no-token', message: 'dsh-key-rotation: webhookActionToken is not configured' } }); return; }
-      const auth = String(req.headers.authorization ?? '');
-      if (auth !== `Bearer ${expected}`) { json(res, 401, { error: { code: 'unauthorized', message: 'dsh-key-rotation: bad webhook action token' } }); return; }
-      let body;
-      try { body = await readJson(req); } catch (e) { json(res, 400, { error: { code: 'bad-request', message: String(e?.message ?? e) } }); return; }
-      // Accept callback payloads from formatInteractive (Telegram/Discord/Slack) or plain {action}
-      let action = typeof body?.action === 'string' ? body.action : '';
-      if (!action && typeof body?.data === 'string') {
-        try { action = String(JSON.parse(body.data)?.id ?? ''); } catch { action = ''; }
-      }
-      if (!action && typeof body?.callback_data === 'string') {
-        try { action = String(JSON.parse(body.callback_data)?.id ?? ''); } catch { action = ''; }
-      }
-      if (!action) { json(res, 400, { error: { code: 'bad-action', message: 'dsh-key-rotation: no action in payload' } }); return; }
-      const provider = action.startsWith('pause-') || action.startsWith('reset-') ? action.replace(/^(pause|reset)-/, '') : '';
-      try {
-        if (action === 'disable-rotation') {
-          rotationDisabled = true;
-          console.warn('[dsh-key-rotation] rotation DISABLED via webhook action');
-          json(res, 200, { ok: true, action });
-          return;
-        }
-        if (action === 'enable-rotation') {
-          rotationDisabled = false;
-          json(res, 200, { ok: true, action });
-          return;
-        }
-        if (action.startsWith('pause-') || action.startsWith('reset-')) {
-          const st = poolState.get(provider);
-          if (!st) { json(res, 404, { error: { code: 'not-found', message: `dsh-key-rotation: no pool for '${provider}'` } }); return; }
-          if (action.startsWith('pause-')) {
-            const until = Date.now() + 3600000; // 1h pause
-            for (const ref of (st.failedUntil ? [...st.failedUntil.keys()] : [])) st.failedUntil.set(ref, Math.max(st.failedUntil.get(ref) ?? 0, until));
-            // also pause every key currently healthy
-            for (const p of buildRuntime().poolByRef.values()) {
-              if (p.base !== provider) continue;
-              for (const ref of p.refs) st.failedUntil.set(ref, Math.max(st.failedUntil.get(ref) ?? 0, until));
-            }
-            console.warn(`[dsh-key-rotation] pool ${provider} PAUSED 1h via webhook action`);
-            json(res, 200, { ok: true, action, provider, until: Date.now() + 3600000 });
-            return;
-          }
-          const cleared = st.failedUntil.size;
-          st.failedUntil.clear(); st.failCounts?.clear(); st.brokenUntil?.clear();
-          console.warn(`[dsh-key-rotation] pool ${provider} RESET via webhook action`);
-          json(res, 200, { ok: true, action, provider, cleared });
-          return;
-        }
-        json(res, 400, { error: { code: 'unknown-action', message: `dsh-key-rotation: unknown action '${action}'` } });
-      } catch (e) {
-        json(res, 500, { error: { code: 'action-failed', message: String(e?.message ?? e) } });
-      }
-    },
-  }), 'dsh-key-rotation: webhook-action');
-
-  // Shadow A/B sampling snapshot (#9).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: SHADOW_PATH,
-    handler: (req, res) => {
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: shadow is local-only' } }); return; }
-      json(res, 200, shadowRouter.snapshot());
-    },
-  }), 'dsh-key-rotation: shadow');
-
-  // Region tags + failover chain (#4).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: REGIONS_PATH,
-    handler: (req, res) => {
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: regions is local-only' } }); return; }
-      const body = regionMap.snapshot();
-      // Add pickFallback hints per provider for inspection.
-      const out = {};
-      for (const p of Object.keys(body)) out[p] = { region: body[p], fallback: regionMap.pickFallback(p) };
-      json(res, 200, out);
-    },
-  }), 'dsh-key-rotation: regions');
-
-  // Per-agent rate budget snapshot (#3).
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'exact',
-    path: AGENT_BUDGET_PATH,
-    handler: (req, res) => {
-      if (!isTrustedBridgeRequest(req)) { json(res, 403, { error: { code: 'forbidden', message: 'dsh-key-rotation: agent-budget is local-only' } }); return; }
-      json(res, 200, { enabled: agentBudget.isEnabled(), agents: agentBudget.snapshot() });
-    },
-  }), 'dsh-key-rotation: agent-budget');
-
   ctx.on('llm/stream', (options, next) => {
     if (options[MARKER]) return next();
-    if (rotationDisabled) return next(); // #199: disabled via webhook action
     const { providerToPool, modelPoolByProvider } = buildRuntime();
-    // #195: exact model pool -> longest model-family prefix -> provider pool
-    const pool = selectPool(modelPoolByProvider, providerToPool, options.provider, options.model);
+    const byModel = modelPoolByProvider.get(options.provider);
+    const pool = (byModel && byModel.get(options.model)) || providerToPool.get(options.provider);
     if (!pool) return next();
     console.warn(`[dsh-key-rotation] rotating ${options.provider}/${options.model} across ${(pool.weightedRefs ?? pool.refs).length} slots (${pool.refs.length} keys)`);
     return rotate(options, pool);
@@ -1592,8 +989,8 @@ export function apply(ctx, config = {}) {
     if (!provider) return next();
     const { providerToPool, modelPoolByProvider, switchCodes } = buildRuntime();
     const model = payload?.model || payload?.failure?.model || '';
-    // #195: same tier-aware selection as llm/stream
-    const pool = selectPool(modelPoolByProvider, providerToPool, provider, model);
+    const byModel = modelPoolByProvider.get(provider);
+    const pool = (byModel && byModel.get(model)) || providerToPool.get(provider);
     if (!pool) return next();
     const code = String(payload?.failure?.code ?? payload?.code ?? '');
     const message = String(payload?.failure?.message ?? payload?.message ?? '');
@@ -1620,39 +1017,3 @@ export function apply(ctx, config = {}) {
     });
   });
 }
-
-// Notify on exhaustion: webhook + (optional) GitHub incident.
-// Extracted at module scope for testability. No I/O outside the injected hooks.
-// ponytail: thresholds and URLs are runtime-resolved per call, so changing Config is reflected immediately.
-export function notifyExhaustion(runtime, pool, options, hooks = { webhookSender, ensureIncidentReporter }) {
-  if (!runtime || !pool) return;
-  const count = pool.state ? (pool.state.exhaustionCount ?? 0) : 0;
-  if (count <= 0) return;
-  try {
-    if (runtime.notifyWebhook && count >= (runtime.notifyThreshold ?? 0)) {
-      // #199: interactive payload when an action token is configured - the
-      // platform formatter (webhook.js) turns `actions` into buttons whose
-      // callback carries the token back to /dsh-key-rotation/webhook-action.
-      const token = runtime.webhookActionToken ?? '';
-      const payload = {
-        title: `Key pool exhausted: ${options.provider}`,
-        text: `${count} exhaustion(s); keys: ${(pool.refs ?? []).join(', ')}`,
-        provider: options.provider,
-        exhaustionCount: count,
-        at: pool.state.lastExhaustionAt,
-        keys: pool.refs,
-        actionToken: token || undefined,
-        actions: token ? [
-          { id: `reset-${options.provider}`, label: 'Reset cooldown' },
-          { id: `pause-${options.provider}`, label: 'Pause 1h' },
-        ] : undefined,
-      };
-      hooks.webhookSender.send(runtime.notifyWebhook, payload);
-    }
-    if (runtime.incidentThreshold && count >= runtime.incidentThreshold) {
-      const reporter = hooks.ensureIncidentReporter();
-      if (reporter) reporter.open(options.provider, pool.state.lastExhaustionAt);
-    }
-  } catch (_) { /* ponytail: never crash rotate() */ }
-}
-
