@@ -2,17 +2,18 @@
 
 <div align="center">
 
-<h3>DeepSeek Harness Hermes 架构透明 API 密钥池轮换与 429 限流毫秒级容灾插件</h3>
+<h3>适用于 DeepSeek Harness 的企业级无感 API 密钥轮换、预判限流与跨提供商故障转移引擎</h3>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@goodandready/dsh-key-rotation"><img src="https://img.shields.io/npm/v/@goodandready/dsh-key-rotation.svg?style=for-the-badge&color=6366f1&labelColor=1e1b4b" alt="npm version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-10b981.svg?style=for-the-badge&color=10b981&labelColor=064e3b" alt="license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/GooDAnDReaDY/dsh-key-rotation.svg?style=for-the-badge&color=10b981&labelColor=064e3b" alt="license"></a>
   <a href="https://github.com/topics/dsh-plugin"><img src="https://img.shields.io/badge/DSH-Plugin-8b5cf6.svg?style=for-the-badge&labelColor=2e1065" alt="DSH Plugin"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-20%2B-f59e0b.svg?style=for-the-badge&labelColor=451a03" alt="Node version"></a>
 </p>
 
+<!-- 展厅链接 -->
 <p align="center">
-  <a href="https://goodandready.app/"><img src="https://img.shields.io/badge/作者全部项目-goodandready.app-ff4500.svg?style=for-the-badge&logo=rocket&logoColor=white&labelColor=1a1a2e" alt="作者全部项目"></a>
+  <a href="https://goodandready.app/"><img src="https://img.shields.io/badge/🌐_DSH_Hub-goodandready.app-ff4500.svg?style=for-the-badge&labelColor=1a1a2e" alt="GoodAndReady Showcase"></a>
 </p>
 
 <p align="center">
@@ -25,83 +26,169 @@
 
 ---
 
-## ⚡ 插件概览
+## ⚡ 概述与核心痛点
 
-**`dsh-key-rotation`** 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 提供 Hermes 风格的**透明多服务商 API 密钥池自动轮询与故障转移服务**。
+在高吞吐量自主智能体运行、多子智能体并行执行与多轮工具调用场景下，API 极易触发上游服务商的速率限制（HTTP 429 Too Many Requests、RPM/TPM 耗尽、每日配额限制或网络抖动）。在原生的 DeepSeek Harness 中，单个密钥耗尽会导致整个智能体执行链路崩溃，破坏会话的 Replay 状态并要求人工干预。
 
-当遇到配额耗尽或并发限流异常 (HTTP 429) 时，插件在首个 Token 传至前端前即刻静默重试，平滑切换至池中**下一个健康可用 Key**。
+**`dsh-key-rotation`** 基于 Cordis 微内核架构构建，提供了无缝透明的 **API 密钥池轮换、客户端预判限流（Token Bucket）与跨提供商故障转移（Failover Cascade）** 解决方案。
+
+与修改模型提供商 ID 的传统网关代理不同，`dsh-key-rotation` 通过运行时拦截 `ctx.credentials.resolve` 与 `llm/stream` 钩子工作：
+* **保持提供商身份一致**：仅切换底层解析的 API 密钥，维持 `pi-ai` 多轮会话与工具状态 100% 一致。
+* **令牌桶预判限流**：在发起网络请求前预先跳过已饱和的密钥，彻底消除重试网络延迟。
+* **最小连接数并发控制**：动态均衡各密钥的 In-Flight 并发流，防止并发突发拥塞。
+* **金丝雀自愈与级联**：通过轻量 Sandbox 探测探活冷却密钥，密钥全耗尽时自动级联到备用提供商。
+
+---
+
+## 🏗️ 架构与请求生命周期
 
 ```mermaid
 graph LR
-    subgraph Incoming [LLM 请求交互流]
-        User[用户 / 智能体多轮会话] --> Adapter[pi-ai 模型适配路由]
+    subgraph ClientLayer ["客户端与智能体层"]
+        UserMsg["用户 / 智能体消息"] --> Adapter["pi-ai 模型适配器"]
     end
 
-    subgraph Interception [密钥轮换调度引擎]
-        Adapter --> Hook[llm/stream 流式拦截器]
-        Hook --> Resolver{ctx.credentials.resolve}
-        Resolver -->|轮询分发| K1[Key 1: 活跃调用]
-        Resolver -.->|遇 429 / 额度耗尽 / 鉴权失效| K2[Key 2: 热备用]
-        Resolver -.->|遇故障| K3[Key 3: 热备用]
-        Resolver -.->|指数退避机制| CooldownPool[冷却隔离池]
+    subgraph RotationEngine ["dsh-key-rotation 核心引擎"]
+        Adapter --> StreamHook["llm/stream 拦截器"]
+        StreamHook --> BucketCheck{"Token Bucket\nRPM / TPM 校验"}
+        BucketCheck -->|未超限| ConcurrencyCheck{"并发跟踪器\n最小连接数"}
+        BucketCheck -->|已超限| NextKey1["选取下一可用密钥"]
+        ConcurrencyCheck -->|有空闲槽位| KeyResolver["ctx.credentials.resolve"]
+        ConcurrencyCheck -->|槽位已满| NextKey1
+        
+        KeyResolver --> ActiveKey["活跃密钥 (执行中)"]
+        
+        ActiveKey -.->|HTTP 429 / Quota / 错误| Failover["即时故障转移"]
+        Failover --> BackoffCalc["指数退避与隔离"]
+        Failover --> NextKey2["重试下一密钥 (零 Token 丢失)"]
+        Failover -.->|所有密钥均在冷却中| CascadeEngine["跨提供商级联"]
+        
+        BackoffCalc --> QuotaWindow["日历重置 / 午夜对齐窗口"]
+        BackoffCalc --> CanaryProbe["金丝雀探针 (Sandbox Ping)"]
+        CanaryProbe -->|探活成功| PoolReady["恢复至就绪池"]
     end
 
-    subgraph Upstream [大模型服务商 API]
-        K1 --> ProviderAPI[OpenAI / Claude / DeepSeek / Groq]
-        K2 --> ProviderAPI
-        K3 --> ProviderAPI
+    subgraph UpstreamLayer ["上游服务商端点"]
+        ActiveKey --> UpstreamAPI["主要提供商 API"]
+        CascadeEngine --> FallbackAPI["备用提供商 API"]
     end
 
-    style Incoming fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
-    style Interception fill:#181825,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
-    style Upstream fill:#11111b,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style ClientLayer fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style RotationEngine fill:#181825,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style UpstreamLayer fill:#11111b,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 ```
 
 ---
 
-## ✨ 核心亮点全景
+## ✨ 核心功能详解
 
-### 🔄 透明密钥池调度
-* **服务商身份完全一致**：全程保持模型路由与会话状态不变，保障多步工具调用与 Replay 上下文 100% 稳定。
-* **瞬间容灾故障切换**：拦截可切换错误码（`QUOTA`、`RATE_LIMIT`、`SERVER`、`TIMEOUT`、`AUTH`/`INVALID` 等），毫秒级顺位选用下一个可用 Key。
-* **智能冷却与指数退避**：耗尽 Key 暂停调用 `cooldownMs`。连续失败时冷却期自动翻倍（基础 → ×2 → ×4 → 上限 ×8）。
-* **非流式调用安全托底**：通过 `agent/request-error` 钩子全面防护 Embedding 与 Batch 等同步调用。
+### 🔄 1. 透明轮换与即时故障转移
+* **维持提供商标识一致**：轮换仅替换底层解析的凭证引用，不改变 Provider ID，彻底避免 `INVALID_REPLAY_STATE` 异常。
+* **零 Token 丢失重试**：在首个内容块发出前发生错误时，无感重试并切换至池中下一个健康密钥。
+* **全状态码支持**：支持 `QUOTA`、`RATE_LIMIT`、`SERVER`、`TIMEOUT`、`TRANSPORT`、`EMPTY_RESPONSE`、`UNKNOWN_MODEL`、`AUTH` 等。
+* **正则消息模式分类**：内置 `SWITCHABLE_MESSAGE_PATTERN` 正则引擎，自动识别 SDK 抛出的非结构化配额与限流异常。
+* **非流式安全防护**：通过 `agent/request-error` 生命周期钩子保护 Embeddings 及 Batch 调用。
+
+### ⏱️ 2. 预判限流与并发控制
+* **Token Bucket 令牌桶 (`lib/bucket.js`)**：滑动窗口跟踪每分钟请求数 (`rpmLimit`) 与 Token 数 (`tpmLimit`)，预先拦截超限密钥。
+* **最小连接负载均衡 (`lib/concurrency.js`)**：实时追踪每把密钥的活跃流数量 (`inFlight`)，执行 `maxConcurrency` 限制。
+* **死锁自动释放**：针对网络异常中断连接，超时 5 分钟自动清理占用计数。
+
+### 🛡️ 3. 自动愈合与跨提供商级联
+* **跨提供商故障转移级联 (`lib/cascade.js`)**：主提供商密钥全部冷却时，自动级联路由到备用提供商池。
+* **金丝雀探针探活 (`lib/canary.js`)**：密钥出冷却期前，自动发起轻量探测验证上游可用性，避免影响用户真实请求。
+* **配额日历重置对齐 (`lib/quota-window.js`)**：支持 `midnight_utc`、`midnight_pst` 与 `rolling_24h` 配额刷新窗口。
+* **自适应指数退避 (`lib/pool.js`)**：连续失败使冷却时间呈指数递增（基准 → ×2 → ×4 → 上限 ×8）。
+
+### 📊 4. 统计分析与多平台交互式 Webhook
+* **交互式 Webhook (`lib/webhook.js`)**：向 **Telegram**、**Discord**、**Slack** 推送带交互按钮的富文本警报，可在移动聊天中一键重置冷却或暂停提供商。
+* **使用量与成本报表 (`lib/usage-report.js`)**：按日统计各密钥请求数与预估成本，支持一键导出 CSV/JSON (`GET /dsh-key-rotation/usage-report`)。
+* **延迟 SLO 监控 (`lib/histogram.js`)**：记录首字延迟（TTFT）与健康度评分 (`0..100`)。
+* **影子流量测试 (`lib/shadow.js`)**：支持配置百分比的流量镜像复制以评估次要提供商。
 
 ---
 
-### 🖥️ Web 可视化面板功能 (**设置 → 密钥轮换**)
+## 🖥️ Web GUI 控制台 (**设置 → 密钥轮换**)
 
-| 交互功能 | 详细说明 |
+| 功能 | 说明 |
 |---|---|
-| **一键添加 Key** | 点击 *Add key* 粘贴明文，自动生成标准凭证名（`<PROVIDER>_API_KEY`、`_2` 等）。 |
-| **实时健康指示灯** | 精准显示状态：`使用中`、`就绪`、`冷却倒计时` 及 `凭据不存在`（快速发现拼写手误）。 |
-| **优先级自由排序** | <kbd>↑</kbd> 与 <kbd>↓</kbd> 按钮自由调整轮换顺序。 |
-| **切换错误码复选** | 摒弃生硬字符串，采用复选框可视化勾选触发条件。 |
-| **一键清空冷却** | 提供 *Reset cooldown* 按钮瞬间恢复所有 Key (`POST /dsh-key-rotation/reset`)。 |
-| **全池耗尽告警** | 当某服务商所有 Key 均冷却时，面板呈现醒目红色警示。 |
-| **错误日志追踪** | 展开 *Recent failures* 查看最近 20 次切换失败详情（时间、Key、原因、冷却时长）。 |
-| **服务商即时检索** | 支持在搜索框按名称或模型 ID 毫秒级筛选卡片。 |
-| **从 `.env` 批量导入** | 支持导入 `.env` 配置文件一键解析并填充密钥池。 |
-| **按调用频次排序** | 点击 <kbd>⇅</kbd> 按历史累计请求量降序排列 Key。 |
+| **顶部状态栏微件** | DSH 顶栏实时健康徽章：🟢 正常 \| 🟡 存在冷却 \| 🔴 密钥池耗尽，点击弹出快速操作面板。 |
+| **一键健康矩阵** | 运行全量密钥与模型并行沙箱测试，直观展示 HTTP 状态码与 TTFT 首字延迟。 |
+| **一键凭证录入** | 点击添加自动生成规范名称（`<PROVIDER>_API_KEY`, `_2`, `_3`），悬停显示尾号。 |
+| **实时状态徽章** | 实时显示：`使用中`、`就绪`、`冷却中`（带倒计时）以及 `凭证未找到`。 |
+| **拖拽与顺序调整** | 使用 <kbd>↑</kbd> 和 <kbd>↓</kbd> 按钮调整轮换优先级。 |
+| **密钥泄漏探测器** | 实时校验输入格式（`sk-...` 等），防止误贴私钥或无关 Token。 |
+| **批量 `.env` 导入** | 支持文件导入解析并自动填充至对应提供商池。 |
+| **5 秒撤销栏** | 误删密钥或提供商时提供 5 秒快速撤销操作。 |
 
 ---
 
-## 🔒 密钥安全与存储规范
+## 🔒 安全性与凭证存储
 
-* **配置零明文泄露**：配置文件中仅保存凭据**变量名称**（如 `OPENAI_API_KEY`）。
-* **服务端安全落盘**：密钥保存在 `$DSH_HOME/.credentials.yaml` 与 DSH `Credentials` 服务中。
-* **前端 5 位字符脱敏**：前端界面仅回显**末尾 5 位字符**用于视觉辨别，绝不向浏览器回传明文。
+* **配置零明文**：插件配置仅保存环境变量引用名（如 `MY_PROVIDER_API_KEY`）。
+* **宿主安全存储**：真实密钥持久化保存在 `$DSH_HOME/.credentials.yaml`。
+* **前台 5 字符脱敏**：前端仅展示密钥后 5 位字符进行视觉区分。
+* **环回安全隔离**：管理接口严格限制来自本地同源请求 (`isTrustedBridgeRequest`)。
 
 ---
 
 ## 📦 安装指南
 
 ```bash
+# 通过 DSH 插件管理器安装 (Web Profile):
 dsh plugin --profile web add @goodandready/dsh-key-rotation
+
+# 或直接从 GitHub 安装:
+dsh plugin --profile web add github:GooDAnDReaDY/dsh-key-rotation
+```
+
+> [!IMPORTANT]
+> 安装后请重启 DSH Web 服务并刷新浏览器页面：
+> ```bash
+> systemctl --user restart dsh-web
+> ```
+
+---
+
+## ⚙️ 配置示例 (`settings.yaml`)
+
+```yaml
+dsh-key-rotation:
+  switchCodes:
+    - QUOTA
+    - RATE_LIMIT
+    - SERVER
+    - TIMEOUT
+    - TRANSPORT
+    - EMPTY_RESPONSE
+    - UNKNOWN_MODEL
+    - AUTH
+  cooldownMs: 60000
+  canaryProbing: true
+  concurrencyLimit: 5
+  quotaResetWindow:
+    type: midnight_utc
+    hour: 0
+  cascade:
+    - provider: backup-provider-id
+      model: your-backup-model-id
+  webhookUrl: "https://api.telegram.org/bot<TOKEN>/sendMessage?chat_id=<CHAT_ID>"
+  providers:
+    - provider: your-primary-provider
+      rpmLimit: 60
+      tpmLimit: 100000
+      keys:
+        - PRIMARY_API_KEY
+        - PRIMARY_API_KEY_2
+        - PRIMARY_API_KEY_BACKUP
+    - provider: secondary-provider
+      keys:
+        - SECONDARY_API_KEY
+        - SECONDARY_API_KEY_2
 ```
 
 ---
 
-## 📄 开源协议
+## 📄 开源许可
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
