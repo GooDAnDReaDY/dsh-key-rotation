@@ -84,6 +84,14 @@ graph LR
 * **RPM Capacity Indicator**: `/status` carries `rpm: {used, remaining, resetMs}` per key; the card shows a ⏱ counter next to the active key.
 * **Real Key Test Probe**: the per-key *Test* button sends `probe=models` through the existing `/test` route — validates the key against the live API (models list + latency), not just credential presence.
 
+### 🚀 Added in 0.7.29
+
+* **Per-Key Weights in the GUI**: a small number input per key edits its round-robin weight (1 = equal share); reorder/remove/add keep the positional `weights` array in sync.
+* **Switch Notifications**: opt-in `switchNotify: true` sends a webhook on every key switch (who failed, why, when), deduped to at most one message per provider per `switchNotifyThrottleMs` (default 60 s).
+* **Budget Action Buttons**: when `webhookActionToken` is set, budget notifications carry *Pause 1h* / *Reset cooldown* buttons (same callback route as exhaustion alerts).
+* **Config Snapshot Export/Restore**: *Snapshot ⬇* downloads the whole config as one JSON (token fields exported empty, keys are credential names only); *Restore* imports it back — empty token fields never wipe existing secrets, and a live-looking credential in the file is rejected.
+* **Last Probe Result per Key**: the card polls `/sandbox-cache` and shows the most recent probe outcome (✓/✕ + latency) next to each key, greyed out when older than 24 h.
+
 ---
 
 ### 🖥️ Rich Web GUI Features (**Settings → Key Rotation**)
@@ -155,6 +163,9 @@ dsh-key-rotation:
 | `rpmLimit` | `0` | Requests-per-minute cap **per key** (0 = off). A capped key is skipped pre-emptively until its 60 s window frees up. |
 | `webhookActionToken` | `''` | Bearer token for the interactive webhook callback route. When set, exhaustion webhooks carry action buttons; empty disables them. |
 | `expiryWarnDays` | `7` | Pre-warning horizon (days) for keys with `expiresAt`: webhook + card badge. |
+| `switchNotify` | `false` | Send a webhook on every key switch (opt-in — can be chatty). |
+| `switchNotifyThrottleMs` | `60000` | Minimum gap between switch notifications for the same provider. |
+| `providers[].weights` | `[]` | Positional round-robin weights per key (editable in the card, 0.7.29). |
 | `providers[].costBudgetDaily` / `.costBudgetWeekly` | `0` | Daily / weekly spend budget per provider (0 = off). Warn webhook from 80%. |
 | `providers[].pauseOnBudget` | `false` | Pause the whole pool for 24 h when a budget is exceeded. |
 | `providers[].tags` | `[]` | Free-form labels for a provider pool, surfaced in `GET /status`. |
