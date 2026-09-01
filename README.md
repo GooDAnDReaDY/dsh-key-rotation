@@ -39,6 +39,11 @@
   - **Interactive webhooks** (added in 0.7.27) — set `webhookActionToken` and exhaustion notifications gain action buttons on Telegram (`inline_keyboard`), Discord (buttons) and Slack (actions block): *Reset cooldown* and *Pause 1h* per pool. Buttons call back to `POST /dsh-key-rotation/webhook-action` with a bearer token; actions `reset-<provider>`, `pause-<provider>` (1 h), `disable-rotation`, `enable-rotation`.
   - **Token leak detector** (added in 0.7.27) — recognizes live key shapes (OpenAI `sk-`, Anthropic `sk-ant-`, Google `AIza…`, GitHub `ghp_…`, AWS `AKIA…`, Slack `xox…`, Telegram bot tokens, Stripe, PEM blocks). Saving the config section with a real key pasted into a wrong field is rejected (`400 secret-in-config`); the key-save response carries `looksLikeSecret`, and the card hints when the value does not look like an API key.
   - **Header status chip** (added in 0.7.27) — a small chip in the session header shows one dot for all pools (green = all keys healthy, amber = some cooling, red = a pool fully exhausted) plus a `healthy/total` counter; polls every 4 s.
+  - **Key expiry pre-warning** (added in 0.7.28) — `expiryWarnDays` (default 7): keys expiring within that horizon send one webhook notification per key per day and show a yellow *expires in Nd* badge in the card.
+  - **Provider cost budget** (added in 0.7.28) — per-provider `costBudgetDaily` / `costBudgetWeekly` (0 = off): a warn webhook fires from 80% spend, and with `pauseOnBudget: true` the whole pool is paused for 24 h at 100%. The card shows a live budget line with warn/red coloring.
+  - **Usage report + CSV export** (added in 0.7.28) — `GET /dsh-key-rotation/usage?days=N[&provider=…][&format=csv]` returns per-key requests/cost over the window; an *Export CSV* button in the card downloads the same data for one provider.
+  - **RPM capacity indicator** (added in 0.7.28) — `/status` carries `rpm: {used, remaining, resetMs}` per key; the card shows a ⏱ counter next to the active key.
+  - **Real key test probe** (added in 0.7.28) — the per-key *Test* button now sends `probe=models` through the existing `/test` route, so it validates the key against the live API (models list + latency), not just credential presence.
 
 ## Install
 
@@ -83,6 +88,9 @@ dsh-key-rotation:
 | `providers` | — | `[{ provider, keys: [envName, ...] }]`. `keys` are credential/env **names**, not the key values themselves. |
 | `rpmLimit` | `0` | Requests-per-minute cap **per key** (0 = off). A capped key is skipped pre-emptively until its 60 s window frees up. |
 | `webhookActionToken` | `''` | Bearer token for the interactive webhook callback route. When set, exhaustion webhooks carry action buttons; empty disables them. |
+| `expiryWarnDays` | `7` | Pre-warning horizon (days) for keys with `expiresAt`: webhook + card badge. |
+| `providers[].costBudgetDaily` / `.costBudgetWeekly` | `0` | Daily / weekly spend budget per provider (0 = off). Warn webhook from 80%. |
+| `providers[].pauseOnBudget` | `false` | Pause the whole pool for 24 h when a budget is exceeded. |
 | `providers[].tags` | `[]` | Free-form labels for a provider pool, surfaced in `GET /status`. |
 
 ### Interactive webhook actions (added in 0.7.27)
@@ -97,6 +105,15 @@ curl -X POST http://127.0.0.1:3080/dsh-key-rotation/webhook-action \
 ```
 
 Actions: `reset-<provider>` (clear cooldowns), `pause-<provider>` (pause the whole pool for 1 hour), `disable-rotation` / `enable-rotation` (global). Platform callback payloads (`callback_data`, Discord `custom_id`, Slack button `value`) are accepted too. Without the correct bearer token the route answers `401`; without a configured token — `503`.
+
+### Usage report (added in 0.7.28)
+
+```bash
+curl "http://127.0.0.1:3080/dsh-key-rotation/usage?days=7"           # JSON
+curl "http://127.0.0.1:3080/dsh-key-rotation/usage?format=csv&days=30&provider=my-provider" > usage.csv
+```
+
+Per-key rows: `requests`, `cost`, `active`, and per-day counts over the window (1–90 days, default 7).
 
 ### How keys are stored
 
