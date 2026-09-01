@@ -18,6 +18,7 @@ build/
 .cache/
 *.log
 coverage/
+*.tgz
 
 # OS / editor
 .DS_Store
