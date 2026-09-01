@@ -20,6 +20,10 @@ build/
 coverage/
 *.tgz
 
+# dev-zone internals: never part of the published repo
+.worktrees/
+docs/superpowers/
+
 # OS / editor
 .DS_Store
 Thumbs.db
