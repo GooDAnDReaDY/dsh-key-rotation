@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bucketAllow, bucketHit, bucketRetryMs, bucketSweep } from '../lib/bucket.js';
+import { bucketAllow, bucketHit, bucketRetryMs, bucketSweep, bucketInfo } from '../lib/bucket.js';
 
 test('bucket: disabled when limit <= 0', () => {
   const w = new Map();
@@ -47,4 +47,9 @@ test('bucketSweep drops dead refs', () => {
   bucketSweep(w, new Set(['A']));
   assert.ok(w.has('A'));
   assert.ok(!w.has('B'));
+});
+
+test('bucketInfo: safe when windows never initialized (#210)', () => {
+  assert.deepEqual(bucketInfo(undefined, 'K', 5, 1000), { used: 0, remaining: 5, resetMs: 0 });
+  assert.equal(bucketInfo(undefined, 'K', 0, 1000), null);
 });
