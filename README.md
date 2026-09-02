@@ -28,7 +28,7 @@
 
 ## ⚡ Overview & The Problem
 
-### 🛠️ What's New in v0.7.32 (Stability & Bugfix Release)
+### 🛠️ What's New in v0.7.33 (Stability & Bugfix Release)
 - **🔍 Resolved Key Probing BaseURL**: Fixed `resolveBaseUrl` to map key credential refs to owning provider pools, restoring live `probeModels` testing.
 - **🛡️ Guarded Cascade Recursion**: Prevented call stack overflow in cross-provider failover when circular cascade chains occur.
 - **🕒 Accurate Midnight PST Resets**: Corrected UTC-8 timezone calculation offset sign for calendar quota reset windows.
