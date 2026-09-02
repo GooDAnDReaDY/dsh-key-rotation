@@ -28,6 +28,15 @@
 
 ## ⚡ Overview & The Problem
 
+### 🛠️ What's New in v0.7.32 (Stability & Bugfix Release)
+- **🔍 Resolved Key Probing BaseURL**: Fixed `resolveBaseUrl` to map key credential refs to owning provider pools, restoring live `probeModels` testing.
+- **🛡️ Guarded Cascade Recursion**: Prevented call stack overflow in cross-provider failover when circular cascade chains occur.
+- **🕒 Accurate Midnight PST Resets**: Corrected UTC-8 timezone calculation offset sign for calendar quota reset windows.
+- **🧹 Lifecycle Timer Cleanup**: Wrapped `canaryTimer` and `selfHealTimer` in Cordis effect scopes, eliminating background orphaned intervals on hot reload.
+- **⚡ Stale Lock Recovery in Load Balancer**: Added expired lock detection to `pickLeastLoaded` for uninterrupted least-connections routing.
+- **🌐 Full Chinese Localization**: Added complete `zh` locale dictionary to the React settings dashboard for comprehensive 3-language parity.
+
+
 ### 🚀 What's New in v0.7.31
 - **⚡ O(1) TokenBucket Accumulator**: Upgraded rate limiting math to O(1) time and zero-allocation memory with adaptive header synchronization.
 - **🛡️ Soft vs Hard Backoff**: Differentiates transient infrastructure drops (502/503/timeouts: 10s flat cooldown) from hard quota errors (progressive doubling).

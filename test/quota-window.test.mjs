@@ -18,9 +18,12 @@ test('nextQuotaReset: midnight_utc — same day if before reset hour', () => {
 });
 
 test('nextQuotaReset: midnight_pst — approx UTC-8', () => {
-  const now = Date.UTC(2026, 7, 31, 20, 0, 0);  // 12:00 PST
+  const now = Date.UTC(2026, 7, 31, 20, 0, 0);  // 12:00 PST (noon)
   const next = nextQuotaReset({ type: 'midnight_pst' }, now);
   assert.ok(next > now, 'next reset should be in future');
+  // Midnight PST = 00:00 PST next day = 08:00 UTC next day (exactly 12 hours from 20:00 UTC)
+  const expected = Date.UTC(2026, 8, 1, 8, 0, 0);
+  assert.equal(next, expected);
 });
 
 test('nextQuotaReset: rolling_24h — next hour boundary', () => {
