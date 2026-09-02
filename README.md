@@ -28,6 +28,18 @@
 
 ## ⚡ Overview & The Problem
 
+### 🚀 What's New in v0.7.31
+- **⚡ O(1) TokenBucket Accumulator**: Upgraded rate limiting math to O(1) time and zero-allocation memory with adaptive header synchronization.
+- **🛡️ Soft vs Hard Backoff**: Differentiates transient infrastructure drops (502/503/timeouts: 10s flat cooldown) from hard quota errors (progressive doubling).
+- **⏳ Penalty Decay**: Stable keys that operate cleanly automatically decay their failure penalty multiplier every hour.
+- **🎲 Cooldown Jitter**: Adds ±12.5% random dispersion to recovery timers, eliminating thundering herd stampedes.
+- **🎯 Addressable Canary Probing**: Support for probing target pool models with lightweight single-token verification pings.
+- **📊 TTFT Percentiles (p50 / p95 / p99)**: Sub-second high-resolution latency percentile tracking across all key pools.
+- **🔔 Webhook Alert Digest**: Aggregates multiple rapid switch/cooldown events into consolidated incident digests for Telegram, Discord, and Slack.
+- **🧹 30-Day Usage Compaction**: Automatic bounded memory management with 30-day rolling window data pruning.
+- **✨ Optimistic UI & Filter Pills**: Instant zero-latency UI updates on reset, plus `All`, `Ready`, `In Cooldown`, and `With Errors` quick filter chips.
+
+
 High-throughput autonomous agent workflows, parallel subagent swarms, and multi-turn tool loops inevitably hit upstream API rate limits (HTTP 429, RPM/TPM exhaustion, daily quotas, or sudden provider outages). In standard DeepSeek Harness deployments, a single exhausted API key breaks the entire agent execution chain, requiring manual intervention and destroying the session's replay state.
 
 **`dsh-key-rotation`** provides a seamless, enterprise-ready **transparent API key pooling, pre-emptive rate-limiting, and cross-provider failover engine** built natively on the Cordis microkernel architecture.
