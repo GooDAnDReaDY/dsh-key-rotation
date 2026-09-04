@@ -1,0 +1,70 @@
+name: Publish public npm package
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing immutable GitHub tag to publish, for example v0.7.34
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Recheck and publish with provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm-production
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+      - name: Enable pinned package manager
+        run: corepack enable
+      - name: Verify immutable release tag and package version
+        run: |
+          test "$(git tag --points-at HEAD | grep -Fx "${{ inputs.release_tag }}")" = "${{ inputs.release_tag }}"
+          expected_version="${{ inputs.release_tag }}"
+          expected_version="${expected_version#v}"
+          actual_version="$(node -p "require('./package.json').version")"
+          test "$actual_version" = "$expected_version"
+      - name: Install immutable dependency graph
+        run: pnpm install --frozen-lockfile
+      - name: Run declared static checks
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process')
+          const scripts = require('./package.json').scripts ?? {}
+          for (const name of ['lint', 'typecheck', 'build']) {
+            if (scripts[name]) execFileSync('pnpm', ['run', name], { stdio: 'inherit' })
+            else console.log(`No ${name} script declared; skipped.`)
+          }
+          NODE
+      - name: Run test suite
+        run: pnpm test
+      - name: Audit production dependency graph
+        run: pnpm audit --prod --audit-level=high
+      - name: Verify npm distribution archive
+        run: npm pack --dry-run
+      - name: Refuse to overwrite an npm version
+        run: |
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          if npm view "$name@$version" version >/dev/null 2>&1; then
+            echo "Refusing to publish already existing $name@$version."
+            exit 1
+          fi
+      - name: Publish immutable public package with provenance
+        run: npm publish --provenance --access public

@@ -1,0 +1,61 @@
+name: Package CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Enable pinned package manager
+        run: corepack enable
+      - name: Install immutable dependency graph
+        run: pnpm install --frozen-lockfile
+      - name: Verify public package metadata
+        run: |
+          node <<'NODE'
+          const pkg = require('./package.json')
+          const fail = (message) => { throw new Error(message) }
+          if (!pkg.name?.startsWith('@goodandready/')) fail('public npm scope must be @goodandready/')
+          if (!/^\d+\.\d+\.\d+$/.test(pkg.version ?? '')) fail('package version must be x.y.z')
+          if (pkg.private === true) fail('public package must not set private: true')
+          const url = typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url
+          if (url !== 'https://github.com/GooDAnDReaDY/dsh-key-rotation.git') fail('repository URL must match the public GitHub repository')
+          NODE
+      - name: Run declared static checks
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process')
+          const scripts = require('./package.json').scripts ?? {}
+          for (const name of ['lint', 'typecheck', 'build']) {
+            if (scripts[name]) execFileSync('pnpm', ['run', name], { stdio: 'inherit' })
+            else console.log(`No ${name} script declared; skipped.`)
+          }
+          NODE
+      - name: Run test suite
+        run: pnpm test
+      - name: Audit production dependency graph
+        run: pnpm audit --prod --audit-level=high
+      - name: Verify npm distribution archive
+        run: npm pack --dry-run
