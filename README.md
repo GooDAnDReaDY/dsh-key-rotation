@@ -252,3 +252,10 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 ## 📄 License
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
+
+### v0.7.35
+- **Lifecycle Cleanups**: Wrapped `credentials.resolve` patch and `ctx.on` event handlers (`llm/stream`, `agent/request-error`) in `ctx.effect` scopes with guaranteed unmount cleanup (#238, #239).
+- **Settings & Secret Roles**: Added `.role('secret')` to `incidentGitHubToken` and `webhookActionToken` in `Config` schema for automatic UI masking (#237).
+- **Settings Architecture & UI**: Added native `settingsScope` snapshot reading/saving in settings card with graceful bridge fallback (#235).
+- **Localization**: Localized `settings.section` sidebar fallback label via `t('title')` and registered `zh` dictionary in `ctx.locale` alongside `en` and `ru` (#236).
+- **Dead Code Purge**: Removed obsolete `mountDashboard` routine after header-chip migration (#240).
