@@ -14,13 +14,10 @@ try { mod = await import('../lib/index.js'); } catch { mod = null; }
 test('Config secret tokens have role secret (#237)', (t) => {
   if (!mod) {
     // Static analysis when schemastery peer is absent
-    assert.match(INDEX_SRC, /incidentGitHubToken:\s*Schema\.string\(\)\.role\('secret'\)/, 'incidentGitHubToken must have role secret');
     assert.match(INDEX_SRC, /webhookActionToken:\s*Schema\.string\(\)\.role\('secret'\)/, 'webhookActionToken must have role secret');
     return;
   }
-  const incidentDef = mod.Config?.dict?.incidentGitHubToken;
   const webhookDef = mod.Config?.dict?.webhookActionToken;
-  assert.equal(incidentDef?.meta?.role, 'secret', 'incidentGitHubToken must have role secret');
   assert.equal(webhookDef?.meta?.role, 'secret', 'webhookActionToken must have role secret');
 });
 

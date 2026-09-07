@@ -214,6 +214,14 @@ dsh-key-rotation:
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.36
+- **架构精简与稳定性加固**：移除 6 个过度设计的模块（`shadow`、`incident`、`agent-budget`、`region`、`canary`、`maintenance`）与废弃端点。
+- **buildRuntime 高性能记忆化**：消除每个流式 token/chunk 上的深拷贝与模式重解析开销。
+- **原子轮询指针推进**：并发请求在选定候选密钥时立即推进指针，消除并发工具调用中的竞争条件。
+- **增强的可切换错误检测**：直接解析 HTTP 状态码（`429`, `401`, `403`, `5xx`）与 gRPC 状态码（`RESOURCE_EXHAUSTED`, `UNAVAILABLE`）。
+- **用户友好的耗尽提示**：密钥池耗尽时返回带恢复倒计时的清晰通知。
+- **智能轮询（Smart Polling）**：标签页不活动时暂停客户端后台轮询。
+
 ### v0.7.35
 - **生命周期清理**: 将 `credentials.resolve` 猴子补丁和 `ctx.on` 事件监听器 (`llm/stream`, `agent/request-error`) 封装在 `ctx.effect` 作用域内，确保卸载时自动注销并恢复原始方法 (#238, #239)。
 - **配置密钥角色**: 在 `Config` Schema 中为 `incidentGitHubToken` 和 `webhookActionToken` 增加 `.role('secret')`，避免明文泄露并在 UI 中掩码显示 (#237)。

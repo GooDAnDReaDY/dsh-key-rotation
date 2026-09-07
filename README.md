@@ -253,6 +253,14 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.36
+- **Architecture de-bloat & hardening**: Removed 6 unused/overengineered modules (`shadow`, `incident`, `agent-budget`, `region`, `canary`, `maintenance`) and dead route registrations.
+- **High-throughput buildRuntime memoization**: Eliminates per-token deep-cloning and schema validation on every streaming chunk.
+- **Atomic round-robin pointer rotation**: Concurrent requests advance pointer immediately on candidate selection, eliminating race conditions on simultaneous tool calls.
+- **Enhanced switchable error detection**: Direct parsing of HTTP status codes (`429`, `401`, `403`, `5xx`) and gRPC codes (`RESOURCE_EXHAUSTED`, `UNAVAILABLE`) alongside regex fallback.
+- **Informative user exhaustion messaging**: Clear countdown notice with next key recovery ETA when all keys in a pool are cooling down.
+- **Smart polling**: Client background polling paused when browser tab is inactive (`document.visibilityState`).
+
 ### v0.7.35
 - **Lifecycle Cleanups**: Wrapped `credentials.resolve` patch and `ctx.on` event handlers (`llm/stream`, `agent/request-error`) in `ctx.effect` scopes with guaranteed unmount cleanup (#238, #239).
 - **Settings & Secret Roles**: Added `.role('secret')` to `incidentGitHubToken` and `webhookActionToken` in `Config` schema for automatic UI masking (#237).
