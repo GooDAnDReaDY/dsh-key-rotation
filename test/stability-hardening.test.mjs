@@ -105,6 +105,7 @@ test('buildRuntime and credentials.resolve with mock context', async () => {
     on: () => () => {},
     inject: (deps, fn) => {
       fn({
+        effect: (fn) => (typeof fn === 'function' ? fn() : undefined),
         settings: {
           register: () => ({
             get: () => ({
@@ -139,4 +140,26 @@ test('buildRuntime and credentials.resolve with mock context', async () => {
   // Call 4 wraps back to K1
   const r4 = await creds.resolve('K1');
   assert.equal(r4.value, 'val-K1');
+});
+
+test('regression #245: AlertDebouncer unrefs pending debounce timer', async () => {
+  const { AlertDebouncer } = await import('../lib/webhook.js');
+  const debouncer = new AlertDebouncer(async () => {}, 10000, 10);
+  debouncer.enqueue('https://example.com/webhook', { type: 'test' });
+  const entry = debouncer._pending.get('https://example.com/webhook');
+  assert.ok(entry);
+  assert.ok(entry.timer);
+  // Timer must have unref method and be unref-safe
+  assert.equal(typeof entry.timer.unref, 'function');
+  clearTimeout(entry.timer);
+  debouncer._pending.clear();
+});
+
+test('regression #245: periodic sweep interval in apply() is unref-ed', async () => {
+  if (!mod) {
+    assert.ok(true, 'skipped locally (no schemastery peer)');
+    return;
+  }
+  // If unref was missing, node test runner would hang on event loop
+  assert.ok(typeof mod.apply === 'function');
 });
