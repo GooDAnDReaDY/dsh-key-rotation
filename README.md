@@ -253,6 +253,11 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.39
+- **Self-Healing & lastUsedAt Accuracy**: Fixed key timestamp lookup in `healIdleCooldowns` to read from the modern `pool.state.lastUsedAt` map (with backwards-compatible fallback). `credentials.resolve` now properly records each key invocation timestamp in `lastUsedAt`, surfacing accurate "last used" indicators in the status dashboard and enabling background idle cooldown restoration.
+- **Hotpath & Runtime Memoization**: Eliminated redundant `buildRuntime()` calls across periodic sweeps, provider exhaustion handling, and `/status` query processing.
+- **Test Suite & CI Hardening**: Periodic interval sweep timers and debounce timers unref'ed to allow Node.js event loop natural exit without stalling CI runners. Purged obsolete incident test artifacts.
+
 ### v0.7.38
 - **Hot-Path Stream Optimization**: Eliminated 4 redundant `buildRuntime()` calls inside the `rotate()` finish chunk handler by reusing the request-scoped `runtime0` snapshot.
 - **Allocation-Free Rate Limit Header Parsing**: Optimized `extractRateLimit()` with single-pass header inspection and length guards, completely removing dynamic lowercase/uppercase string allocations on every response chunk.

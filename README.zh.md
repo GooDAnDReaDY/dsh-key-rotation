@@ -214,6 +214,11 @@ dsh-key-rotation:
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.39
+- **自动恢复与 lastUsedAt 修复**：修复了 `healIdleCooldowns` 中对密钥调用时间戳的读取逻辑，直接从 `lastUsedAt` 映射读取。在 `credentials.resolve` 中补充记录每次密钥调用的时间戳，使状态面板的最近使用时间生效并正确支持空闲密钥恢复。
+- **运行期快照缓存优化**：消除了定时维护清理、`/status` 路由及密钥池耗尽处理中重复调用 `buildRuntime()` 的开销。
+- **CI 测试稳定性提升**：对维护定时器与通知防抖定时器执行 `unref`，确保 Node.js 事件循环在测试完成后干净退出，彻底解决 CI 运行器假死问题。
+
 ### v0.7.38
 - **热路径流处理优化**：在 `rotate()` 结束块处理中消除 4 次多余的 `buildRuntime()` 重复调用，直接复用请求作用域内的 `runtime0` 快照。
 - **零额外字符串分配的限流头解析**：重构 `extractRateLimit()`，采用单次遍历结合键长度检查，彻底消除对每个响应头执行 `.toLowerCase()` / `.toUpperCase()` 的内存碎片分配。
