@@ -214,6 +214,13 @@ dsh-key-rotation:
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.38
+- **热路径流处理优化**：在 `rotate()` 结束块处理中消除 4 次多余的 `buildRuntime()` 重复调用，直接复用请求作用域内的 `runtime0` 快照。
+- **零额外字符串分配的限流头解析**：重构 `extractRateLimit()`，采用单次遍历结合键长度检查，彻底消除对每个响应头执行 `.toLowerCase()` / `.toUpperCase()` 的内存碎片分配。
+- **日期 ISO 字符串记忆化**：在统计 `costDays` 与 `usageDays` 时将 `todayIso` 计算收敛为单次，杜绝重复创建 `Date` 实例。
+- **状态统计零数组分配**：在 `/dsh-key-rotation/status` 中将 `totalUsage` 的计算由 `[...values()].reduce()` 改为直接迭代累加，避免频繁轮询引发的垃圾回收波动。
+- **孤立通知记录自动清理**：在配置移除提供商模型池时，自动清理关联的通知限频缓存。
+
 ### v0.7.37
 - **通过 AsyncLocalStorage 隔离请求上下文**：使用 Node.js 的 `node:async_hooks` 将解析后的密钥 (`pickedRef`)、启动时间和重试严格限定在单个请求上下文内，彻底消除并发请求间的竞态条件与误罚。
 - **流异常自动故障转移**：修复流在首个 token 返回前抛出传输异常（如 HTTP 429）直接终止的问题。若未发送内容块，现在会自动触发 `isSwitchableError` 并顺畅切换到备用密钥。

@@ -253,6 +253,13 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.38
+- **Hot-Path Stream Optimization**: Eliminated 4 redundant `buildRuntime()` calls inside the `rotate()` finish chunk handler by reusing the request-scoped `runtime0` snapshot.
+- **Allocation-Free Rate Limit Header Parsing**: Optimized `extractRateLimit()` with single-pass header inspection and length guards, completely removing dynamic lowercase/uppercase string allocations on every response chunk.
+- **Date ISO String Memoization**: Memoized `todayIso` string calculation once per finishing request instead of creating multiple `Date` instances for `costDays` and `usageDays`.
+- **Zero-Allocation Metrics Aggregation**: Replaced intermediate array allocation `[...values()].reduce()` with iterative summation for `totalUsage` in the `/dsh-key-rotation/status` endpoint.
+- **Stale Notification Cleanup**: Automatically purge stale entries in notification throttling maps (`budgetNotifiedAt`, `lowHealthNotifiedAt`) when provider pools are deleted.
+
 ### v0.7.37
 - **Request Context Isolation via AsyncLocalStorage**: Scoped active key resolution (`pickedRef`), start timestamps, and retry counts strictly to each async dispatch context using Node's `node:async_hooks`. Eliminates race conditions where concurrent streaming requests could penalize healthy keys.
 - **Failover on Pre-Yield Stream Exceptions**: Fixed fatal stream termination where transport errors (e.g. HTTP 429 thrown before headers, socket hang-up) aborted the generator. The catch block now inspects `isSwitchableError` and cascades seamlessly to the next key if no content tokens have been yielded.
