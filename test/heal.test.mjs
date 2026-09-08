@@ -117,3 +117,19 @@ test('healIdleCooldowns: events cap to 50', () => {
   // last event must be one of the new heal events
   assert.equal(pool.state.events[49].type, 'heal');
 });
+
+test('healIdleCooldowns: works with modern lastUsedAt Map state', () => {
+  const now = 1_000_000;
+  const fu = new Map([['K1', now - 100], ['K2', now - 100]]);
+  const lua = new Map([['K1', now - 7200_000], ['K2', now - 60_000]]);
+  const pool = {
+    base: 'deepseek',
+    refs: ['K1', 'K2'],
+    state: { failedUntil: fu, lastUsedAt: lua, lastUsed: 'K2', events: [] },
+  };
+  const healed = healIdleCooldowns([pool], 3600_000, now);
+  assert.equal(healed.length, 1);
+  assert.equal(healed[0].ref, 'K1');
+  assert.equal(pool.state.failedUntil.has('K1'), false);
+  assert.equal(pool.state.failedUntil.has('K2'), true);
+});

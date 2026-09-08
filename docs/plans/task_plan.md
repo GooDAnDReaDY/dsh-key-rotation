@@ -1,19 +1,19 @@
-# task_plan.md — Задача #245: Устранение зависания CI в runner
+# task_plan.md — Задача #249: Оптимизация hotpath, исправление lastUsedAt и релиз v0.7.39
 
 ## Цель
-Устранить зависание test-runner'а (`node --test`) в общем Gitea-runner (`maxParallel=1`), блокирующее очередь выполнения CI. Добавить явные таймауты, устранить утечки открытых ресурсов (таймеры, сокеты, неразрешенные промисы) и обеспечить чистое завершение процесса тестов.
+Устранить дефект в `lib/heal.js` (чтение `lastUsedAt`), связать сохранение меток времени в `credentials.resolve`, устранить избыточные вызовы `buildRuntime()`, обновить документацию и выпустить проверенный релиз v0.7.39 через MiniPC test server и MiniAI production.
 
 ## Текущий статус
-- **Статус**: in_progress (готово к коммиту и PR)
-- **Ветка**: `fix/ci-runner-hang-245`
-- **Worktree**: `.worktrees/fix-ci-runner-hang`
+- **Статус**: in_progress
+- **Ветка**: `fix/heal-perf-optimization-249`
+- **Worktree**: `.worktrees/fix-heal-perf-optimization`
 
 ## Фазы выполнения
-- [x] Фаза 1: Анализ проблемы и выявление причин зависания (активный 30s `setInterval` в `lib/index.js:563` без `unref()`, отсутствие `sctx.effect` в mock context в `test/stability-hardening.test.mjs`, таймер debounce в `lib/webhook.js`)
-- [x] Фаза 2: Добавление глобальных и локальных таймаутов, unref таймеров (`id.unref()` в sweep interval, `entry.timer.unref()` в `AlertDebouncer`, `--test-timeout=10000` в `package.json`, mock `sctx.effect` в `test/stability-hardening.test.mjs`)
-- [x] Фаза 3: Локальная верификация с эмуляцией runner-окружения (прогон 266 тестов с peer dependencies, проверка естественного освобождения event loop без `process.exit()`)
-- [ ] Фаза 4: Коммит, пуш, создание PR и проверка в Gitea Actions
-- [ ] Фаза 5: Merge в main, закрытие issue #245 и очистка worktree
-
-## Следующий шаг
-Коммит изменений с conventional commit сообщением, пуш в Gitea, создание PR и запуск Gitea Actions.
+- [x] Фаза 1: Создание issue #249 и изолированного worktree
+- [ ] Фаза 2: Исправление `lib/heal.js`, `lib/index.js`, устранение повторных вызовов `buildRuntime()`, обновление `package.json` до 0.7.39
+- [ ] Фаза 3: Добавление юнит-тестов для `lastUsedAt` и регрессий
+- [ ] Фаза 4: Обновление документации (README.md, README.ru.md, README.zh.md)
+- [ ] Фаза 5: Локальное тестирование и push в Gitea, создание PR #250 и прохождение CI
+- [ ] Фаза 6: Merge в main, упаковка `.tgz` и приёмка на изолированном MiniPC test server (`192.168.1.123`)
+- [ ] Фаза 7: Приёмка на MiniAI production (`dsh-web.service`)
+- [ ] Фаза 8: Запрос разрешения владельца на публикацию в npm/GitHub

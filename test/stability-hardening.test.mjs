@@ -163,3 +163,16 @@ test('regression #245: periodic sweep interval in apply() is unref-ed', async ()
   // If unref was missing, node test runner would hang on event loop
   assert.ok(typeof mod.apply === 'function');
 });
+
+test('credentials.resolve records lastUsedAt in pool state', async () => {
+  if (!mod) {
+    assert.ok(true, 'skipped locally (no schemastery peer)');
+    return;
+  }
+  const pool = mod.getRuntime().providerToPool.get('multi-prov');
+  if (pool) {
+    assert.ok(pool.state.lastUsedAt instanceof Map);
+    assert.ok(pool.state.lastUsedAt.has('K1'));
+    assert.ok(typeof pool.state.lastUsedAt.get('K1') === 'number');
+  }
+});
