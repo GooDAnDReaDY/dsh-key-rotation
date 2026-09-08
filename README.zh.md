@@ -214,6 +214,14 @@ dsh-key-rotation:
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.37
+- **通过 AsyncLocalStorage 隔离请求上下文**：使用 Node.js 的 `node:async_hooks` 将解析后的密钥 (`pickedRef`)、启动时间和重试严格限定在单个请求上下文内，彻底消除并发请求间的竞态条件与误罚。
+- **流异常自动故障转移**：修复流在首个 token 返回前抛出传输异常（如 HTTP 429）直接终止的问题。若未发送内容块，现在会自动触发 `isSwitchableError` 并顺畅切换到备用密钥。
+- **避免在 rotate() 中直接修改共享状态**：遍历候选列表改用纯净的局部切片，不再直接覆盖修改 `pool.weightedRefs`。
+- **测试成功后自动解除隔离**：在设置界面通过沙箱成功验证密钥有效性后，自动清除 `failedUntil` 和 `brokenUntil` 惩罚标记。
+- **定期内存压缩清理**：将 `compactUsage(pool, 30, now)` 接入 30 秒后台巡检定时器，杜绝超长运行环境下的内存增长。
+- **并发环境下的精确延迟统计**：为每个请求独立计时，避免全局变量被并发请求覆盖导致 p50/p95 延迟失真。
+
 ### v0.7.36
 - **架构精简与稳定性加固**：移除 6 个过度设计的模块（`shadow`、`incident`、`agent-budget`、`region`、`canary`、`maintenance`）与废弃端点。
 - **buildRuntime 高性能记忆化**：消除每个流式 token/chunk 上的深拷贝与模式重解析开销。

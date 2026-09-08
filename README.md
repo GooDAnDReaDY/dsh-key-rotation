@@ -253,6 +253,14 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 
 MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 
+### v0.7.37
+- **Request Context Isolation via AsyncLocalStorage**: Scoped active key resolution (`pickedRef`), start timestamps, and retry counts strictly to each async dispatch context using Node's `node:async_hooks`. Eliminates race conditions where concurrent streaming requests could penalize healthy keys.
+- **Failover on Pre-Yield Stream Exceptions**: Fixed fatal stream termination where transport errors (e.g. HTTP 429 thrown before headers, socket hang-up) aborted the generator. The catch block now inspects `isSwitchableError` and cascades seamlessly to the next key if no content tokens have been yielded.
+- **Pure Local Candidate List in rotate()**: Generator uses an isolated local slice of keys (`attemptList`), eliminating shared mutations on `pool.weightedRefs`.
+- **Automatic Quarantine Release on Probe Success**: Successful sandbox model tests via Settings UI (`/dsh-key-rotation/test`) automatically lift `failedUntil` and `brokenUntil` quarantine flags.
+- **Long-Term Memory Compaction**: Wired `compactUsage(pool, 30, now)` into the periodic 30-second maintenance sweep to prevent memory growth on high-uptime servers.
+- **Request-Scoped Latency Recording**: Replaced module-global start timestamp with context-scoped `startMs` for accurate p50/p95 latency metrics under concurrent load.
+
 ### v0.7.36
 - **Architecture de-bloat & hardening**: Removed 6 unused/overengineered modules (`shadow`, `incident`, `agent-budget`, `region`, `canary`, `maintenance`) and dead route registrations.
 - **High-throughput buildRuntime memoization**: Eliminates per-token deep-cloning and schema validation on every streaming chunk.
