@@ -6,7 +6,8 @@ Transparent per-provider API key rotation for DeepSeek Harness: key pools, pre-e
 ## Status
 - Package: `@goodandready/dsh-key-rotation`
 - Version: 0.7.39 (see `package.json`)
-- Verified: 2026-08 — `node --test` 267 pass / 1 skip (schemastery peer absent locally)
+- Verified: 2026-08 — `node --test test/stability-080.test.mjs test/smoke-rotation-080.test.mjs
+node --test` 267 pass / 1 skip (schemastery peer absent locally)
 
 ## Paths
 - DEV (worktree): `/mnt/external/Project/DEV/dhsplugins/dsh-key-rotation`

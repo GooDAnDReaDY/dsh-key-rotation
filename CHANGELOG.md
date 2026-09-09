@@ -3,6 +3,22 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.0 - 2026-09-09
+
+Stability block (#260–#270). Changed in v0.8.0.
+
+- feat: per-provider **circuit breaker** (`circuitBreakerEnabled`, threshold/openMs/halfOpenProbes) — fail fast while a provider is down (#260)
+- fix: **monotonic process clock** (`performance.timeOrigin + performance.now`) for cooldowns/durations so NTP jumps do not corrupt remaining times (#261)
+- perf: **BoundedMap** (max + TTL + LRU) foundation for usage/notify maps (#262)
+- fix: **non-blocking webhook notify** via bounded NotifyQueue with backoff — rotate() never awaits webhook I/O (#263)
+- feat: **atomic file I/O helpers** (`atomicWriteFile`/`safeReadJson`/`safeParseJson`) — corrupt JSON never wipes previous state (#264)
+- fix: in-stream failover remains safe across reload; `quotaStore` properly injected into rotate (#265)
+- feat: **clone-route GC** — `expectedClones` computed from live providers; orphans dropped from runtime set (#266)
+- test: **error taxonomy table** — 408/425/429/5xx, ECONNRESET/ETIMEDOUT, gRPC codes classified switch|surface|cooldown (#267)
+- fix: status API returns **single snapshot** with `circuit`, `meta.expectedClones`, `meta.notifyQueue` (#268)
+- test: **smoke harness** `test/smoke-rotation-080.test.mjs` — mock 429 → key switch → success (#269)
+- docs: full 0.8.0 documentation package (README en/ru/zh config tables, DESIGN taxonomy, index test matrix) (#270)
+
 ## 0.7.40 - 2026-09-09
 
 - docs: align README en/ru/zh and DESIGN.md with shipped surface after v0.7.36 de-bloat (#251)

@@ -68,3 +68,34 @@
   - Зашивать абсолютные URL или IP-адреса в код клиента или сервера.
   - Использовать хардкод английских строк при наличии словарей `en`, `ru`, `zh`.
   - Использовать plain-text поля в схеме настроек для чувствительных токенов.
+
+## Stability (Changed in v0.8.0)
+
+### Error taxonomy (#267)
+
+| Class | Examples | Action |
+|---|---|---|
+| Quota / rate limit | HTTP 429, RESOURCE_EXHAUSTED, QUOTA | switch (hard backoff) |
+| Transient server | 500/502/503/504, UNAVAILABLE, INTERNAL | switch (soft backoff) |
+| Timeout / transport | 408, 425, TIMEOUT, ECONNRESET, ETIMEDOUT | switch (soft) |
+| Auth | 401/403, UNAUTHENTICATED | switch + auth-fail counting |
+| Client error | 400, 404, 422, INVALID_ARGUMENT | surface to caller |
+
+Classifier: `lib/error-taxonomy.js` → `classifyFailure()` / `shouldSwitch()`.
+
+### Circuit breaker (#260)
+
+Per-provider state machine: `closed → open → half_open → closed`. Stored on module `CircuitBreaker`; exposed in status as `providers[].circuit`.
+
+### Clock (#261)
+
+Durations (cooldown remaining, breaker open window) use `nowMono()` = `performance.timeOrigin + performance.now()`. Wall clock only for calendar buckets (usageDays, budget day).
+
+### Notify queue (#263)
+
+`NotifyQueue` — bounded depth, fire-and-forget, exponential backoff per URL. `rotate()` never awaits webhook HTTP.
+
+### Atomic I/O (#264)
+
+`atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
+

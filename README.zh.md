@@ -28,6 +28,17 @@
 
 ## ⚡ 概述与核心痛点
 
+### 🛠️ v0.8.0 版本新特性（稳定性）
+- **🔌 熔断器**：连续失败后快速失败（`CIRCUIT_OPEN`），半开探测自动恢复。
+- **🕒 单调时钟**：冷却/熔断使用进程单调时间，NTP 校时不会颠倒剩余时间。
+- **📮 非阻塞 Webhook**：有界队列 + backoff，轮换不等待 HTTP。
+- **🧱 原子写文件**：损坏 JSON 不会覆盖既有状态。
+- **🧹 克隆路由 GC**：清理孤儿自动路由。
+- **🧭 错误分类**：408/425/429/5xx、套接字与 gRPC 的 switch/surface/soft。
+- **📡 Status**：提供商 `circuit` + `meta`。
+- **🧪 Smoke**：429 → 切换密钥 → 成功。
+
+
 ### 🛠️ v0.7.33 版本新特性 (稳定性与问题修复)
 - **🔍 修复密钥探测 BaseURL 解析**：`resolveBaseUrl` 现已支持从密钥 ref 反查归属提供商池，恢复在线模型连通性探测。
 - **🛡️ 防御级联无限递归**：在跨提供商故障转移中增加递归深度防护，彻底杜绝循环级联导致的堆栈溢出。
@@ -184,6 +195,10 @@ dsh-key-rotation:
     - UNKNOWN_MODEL
     - AUTH
   cooldownMs: 60000
+  circuitBreakerEnabled: true
+  circuitBreakerThreshold: 5
+  circuitBreakerOpenMs: 30000
+  circuitBreakerHalfOpenProbes: 1
   concurrencyLimit: 5
   quotaResetWindow:
     type: midnight_utc
@@ -246,3 +261,13 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 - **设置架构与状态**: 在设置卡片中增加原生 `settingsScope` 绑定支持，保留 HTTP 桥接安全回退机制 (#235)。
 - **本地化与文案**: 侧边栏备用项 `settings.section` 标签支持本地化 `t('title')` 并配置 `locale: NS`，并在 `ctx.locale` 中注册 `zh` 中文字典 (#236)。
 - **死代码清理**: 移除 header-chip 迁移后残留的废弃 `mountDashboard` 函数 (#240)。
+
+
+### 熔断器参数（v0.8.0）
+
+| 参数 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `circuitBreakerEnabled` | boolean | `true` | 启用熔断 |
+| `circuitBreakerThreshold` | number | `5` | 连续失败阈值 |
+| `circuitBreakerOpenMs` | number | `30000` | 打开时长 ms |
+| `circuitBreakerHalfOpenProbes` | number | `1` | 半开探测次数 |
