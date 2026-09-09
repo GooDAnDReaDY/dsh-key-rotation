@@ -117,7 +117,7 @@ graph LR
 
 ### 🛡️ 3. 自动愈合与跨提供商级联
 * **跨提供商故障转移级联 (`lib/cascade.js`)**：主提供商密钥全部冷却时，自动级联路由到备用提供商池。
-* **金丝雀探针探活 (`lib/canary.js`)**：密钥出冷却期前，自动发起轻量探测验证上游可用性，避免影响用户真实请求。
+* **沙箱密钥探测 (`lib/sandbox.js`)**：按需对密钥执行 `/models` 探测后再回到轮换；空闲冷却由 self-heal sweep 解除。
 * **配额日历重置对齐 (`lib/quota-window.js`)**：支持 `midnight_utc`、`midnight_pst` 与 `rolling_24h` 配额刷新窗口。
 * **自适应指数退避 (`lib/pool.js`)**：连续失败使冷却时间呈指数递增（基准 → ×2 → ×4 → 上限 ×8）。
 
@@ -125,7 +125,6 @@ graph LR
 * **交互式 Webhook (`lib/webhook.js`)**：向 **Telegram**、**Discord**、**Slack** 推送带交互按钮的富文本警报，可在移动聊天中一键重置冷却或暂停提供商。
 * **使用量与成本报表 (`lib/usage-report.js`)**：按日统计各密钥请求数与预估成本，支持一键导出 CSV/JSON (`GET /dsh-key-rotation/usage-report`)。
 * **延迟 SLO 监控 (`lib/histogram.js`)**：记录首字延迟（TTFT）与健康度评分 (`0..100`)。
-* **影子流量测试 (`lib/shadow.js`)**：支持配置百分比的流量镜像复制以评估次要提供商。
 
 ---
 
@@ -185,7 +184,6 @@ dsh-key-rotation:
     - UNKNOWN_MODEL
     - AUTH
   cooldownMs: 60000
-  canaryProbing: true
   concurrencyLimit: 5
   quotaResetWindow:
     type: midnight_utc

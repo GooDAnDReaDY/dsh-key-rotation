@@ -57,7 +57,7 @@ Unlike naive routing proxies that alter provider identifiers, `dsh-key-rotation`
 * **The provider identity never changes**: Agent replay states, multi-call turns, and tool schemas remain 100% consistent.
 * **Pre-emptive Token Bucket**: Throttled keys are skipped *before* issuing network calls, eliminating retry latency.
 * **Least-Connections Concurrency Control**: Balances in-flight streams across keys to prevent burst saturation.
-* **Autonomous Self-Healing & Cascades**: Proactively tests quarantined keys via canary probes and smoothly escalates to fallback providers if an entire pool is exhausted.
+* **Autonomous Self-Healing & Cascades**: Lifts expired quarantines on idle keys and smoothly escalates to fallback providers if an entire pool is exhausted.
 
 ---
 
@@ -85,8 +85,8 @@ graph LR
         Failover -.->|All Pool Keys Exhausted| CascadeEngine["Cross-Provider Cascade"]
         
         BackoffCalc --> QuotaWindow["Calendar Reset / Midnight Window"]
-        BackoffCalc --> CanaryProbe["Active Canary Prober (Sandbox Ping)"]
-        CanaryProbe -->|Verified Healthy| PoolReady["Restored to Ready Pool"]
+        BackoffCalc --> SelfHeal["Self-Heal Idle Sweep"]
+        SelfHeal -->|Cooldown Expired| PoolReady["Restored to Ready Pool"]
     end
 
     subgraph UpstreamLayer ["Model Provider Endpoints"]
@@ -117,21 +117,18 @@ graph LR
 
 ### 🛡️ 3. Autonomous Healing & Cascade Escalation
 * **Cross-Provider Failover Cascade (`lib/cascade.js`)**: If all keys for a selected provider are in cooldown, requests automatically cascade to an alternative fallback provider pool (e.g., primary provider → fallback proxy / secondary provider).
-* **Active Canary Prober (`lib/canary.js`)**: Before releasing a key from quarantine, a lightweight background probe (`/models` probe or single-token check via `SandboxRunner`) validates upstream availability without exposing real user traffic to risk.
+* **Sandbox Key Probes (`lib/sandbox.js`)**: On-demand `/models` probes validate a key before returning it to rotation; idle cooldowns are lifted by the self-heal sweep.
 * **Calendar & Rolling Quota Reset Windows (`lib/quota-window.js`)**: Supports scheduled quota reset alignments (`midnight_utc`, `midnight_pst`, and `rolling_24h`) so daily free/tier quotas unfreeze exactly when upstream resets them.
 * **Adaptive Exponential Backoff (`lib/pool.js`)**: Successive failures on a key double its quarantine duration (base → ×2 → ×4 → cap ×8). Successful requests gradually restore healthy status.
 
-### 🎯 4. Model-Aware & Geolocation Routing
+### 🎯 4. Model-Aware Routing
 * **Model Sub-Pools (`lib/pool.js`)**: Configure dedicated key pools for specific model tiers (e.g. reasoning/heavy models vs fast/cheap utility models).
 * **Tag-Based Routing**: Assign operational tags (`production`, `background`, `eval`) to match key usage with workload priorities.
-* **Region Mapping (`lib/region.js`)**: Route queries through geographically optimal credentials and endpoints.
 
 ### 📊 5. Observability, Telemetry & Webhooks
 * **Interactive Multi-Platform Webhooks (`lib/webhook.js`)**: Dispatches rich notifications with HMAC-signed action buttons for **Telegram** (Inline Keyboards), **Discord** (Action Rows), and **Slack** (Block Kit). Administrators can click buttons to reset cooldowns or pause providers directly from their mobile chat.
 * **Usage & Cost Reporting (`lib/usage-report.js`)**: Per-key daily request counters and estimated cost breakdown with one-click CSV/JSON export (`GET /dsh-key-rotation/usage-report`).
 * **Latency SLO & Histogram (`lib/histogram.js`)**: Tracks Time-To-First-Token (TTFT) and stream durations with health score degradation scoring (`0..100`).
-* **Automated Incident Reporting (`lib/incident.js`)**: Lazily creates structured GitHub Issues on sustained upstream outages.
-* **Shadow Traffic Routing (`lib/shadow.js`)**: Fork a configurable percentage of live requests to evaluate secondary providers in shadow mode.
 
 ---
 
@@ -195,7 +192,6 @@ dsh-key-rotation:
     - UNKNOWN_MODEL
     - AUTH
   cooldownMs: 60000
-  canaryProbing: true
   concurrencyLimit: 5
   quotaResetWindow:
     type: midnight_utc
@@ -224,7 +220,6 @@ dsh-key-rotation:
 |---|---|---|---|
 | `switchCodes` | `string[]` | `[QUOTA, RATE_LIMIT, ...]` | List of error codes that immediately trigger failover. |
 | `cooldownMs` | `number` | `60000` (1 min) | Base penalty duration (in ms) for quarantined keys. |
-| `canaryProbing` | `boolean` | `true` | Runs background ping probe before restoring quarantined keys. |
 | `concurrencyLimit` | `number` | `0` (disabled) | Max concurrent in-flight streams per key (0 = unlimited). |
 | `quotaResetWindow` | `object` | `null` | Calendar reset alignment (`midnight_utc`, `midnight_pst`, `rolling_24h`). |
 | `cascade` | `array` | `[]` | Fallback provider chain when primary pool is completely exhausted. |
