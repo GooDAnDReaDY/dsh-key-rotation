@@ -1,5 +1,7 @@
 # dsh-key-rotation
 
+Current release line: **0.8.0** (stability block #260–#270).
+
 ## Purpose
 Transparent per-provider API key rotation for DeepSeek Harness: key pools, pre-emptive rate-limit buckets, stream failover, cascade, interactive webhooks, and a Settings card.
 

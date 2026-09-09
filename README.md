@@ -255,7 +255,7 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 
 | Route | Method | Description |
 |---|---|---|
-| `/dsh-key-rotation/status` | `GET` | Returns real-time health snapshots, active keys, and cooldown states. |
+| `/dsh-key-rotation/status` | `GET` | Real-time health, keys, cooldowns. Since v0.8.0 also `providers[].circuit` and `meta` (`expectedClones`, `notifyQueue`). |
 | `/dsh-key-rotation/config` | `GET` / `PUT` | Read and update active key rotation settings and provider pools. |
 | `/dsh-key-rotation/key` | `PUT` / `DELETE` | Add, update, or remove credentials in host storage and pool. |
 | `/dsh-key-rotation/reset` | `POST` | Instantly resets all cooldowns and restores all keys to `ready`. |

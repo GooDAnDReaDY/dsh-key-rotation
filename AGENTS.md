@@ -42,3 +42,14 @@ node --test --test-timeout=10000 test/*.test.js test/*.test.mjs
 - Update README.en + ru + zh together when user-facing behavior changes
 - Keep `docs/design/DESIGN.md` aligned with real Config keys and slots
 - Keep this `index.md` map current after structure changes
+
+## 0.8.0 stability modules
+
+- `lib/clock.js` — monotonic process clock (`nowMono`) for durations
+- `lib/circuit-breaker.js` — per-provider breaker
+- `lib/error-taxonomy.js` — `classifyFailure` / `shouldSwitch`
+- `lib/notify-queue.js` — non-blocking webhook queue
+- `lib/atomic-io.js` — atomic write + safe JSON load
+- `lib/bounded-map.js` — max+TTL+LRU map
+
+Status extras: `providers[].circuit`, `meta.expectedClones`, `meta.notifyQueue`.
