@@ -27,9 +27,6 @@ Stability block (#260–#270). Changed in v0.8.0.
 - feat: `verboseLogging` config (default false) gates per-request rotation logs (#254)
 - docs: CHANGELOG history and task_plan hygiene (#255)
 
-All notable changes to `@goodandready/dsh-key-rotation` are documented here.
-User-facing feature notes also appear in README (en is source of truth).
-
 ## 0.7.39 - 2026-08-28
 
 - fix(heal): wire `lastUsedAt` into `credentials.resolve` and idle self-heal sweep; cache sweep runtime (issue #249, PR #250)

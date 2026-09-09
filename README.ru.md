@@ -297,3 +297,16 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 - **Архитектура настроек**: Добавлена нативная интеграция со снимками `settingsScope` в карточке настроек с безопасным фоллбеком на HTTP-мост (#235).
 - **Локализация**: Фоллбек секции настроек `settings.section` переведён на локализованную метку `t('title')` со слотом `locale: NS`, а китайский словарь `zh` зарегистрирован в `ctx.locale` наряду с `en` и `ru` (#236).
 - **Удаление мёртвого кода**: Удалена неиспользуемая функция `mountDashboard` после перехода на header chip (#240).
+
+### Параметры circuit breaker (Changed in v0.8.0)
+
+| Параметр | Тип | По умолчанию | Описание |
+|---|---|---|---|
+| `circuitBreakerEnabled` | boolean | `true` | Включить/выключить breaker |
+| `circuitBreakerThreshold` | number | `5` | Число подряд ошибок до открытия |
+| `circuitBreakerOpenMs` | number | `30000` | Длительность open, мс |
+| `circuitBreakerHalfOpenProbes` | number | `1` | Проб в half-open |
+| `verboseLogging` | boolean | `false` | Подробные логи rotation (шумно) |
+
+Status API (v0.8.0): у каждого провайдера `circuit`, в корне ответа `meta.expectedClones` и `meta.notifyQueue`.
+
