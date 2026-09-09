@@ -28,6 +28,17 @@
 
 ## ⚡ Overview & The Problem
 
+### 🛠️ What's New in v0.8.0 (Stability)
+- **🔌 Circuit breaker**: after N consecutive provider failures the circuit opens and requests fail fast (`CIRCUIT_OPEN`) until a cool-down; half-open probes recover automatically.
+- **🕒 Monotonic clock**: cooldown/breaker durations use process monotonic time so NTP steps cannot invert remaining times.
+- **📮 Non-blocking webhooks**: alerts go through a bounded queue with backoff — stream rotation never waits on webhook HTTP.
+- **🧱 Atomic I/O helpers**: crash-safe writes; corrupt JSON never overwrites previous in-memory state.
+- **🧹 Clone-route GC**: orphaned auto-created clone routes are dropped from the runtime set.
+- **🧭 Error taxonomy**: explicit switch/surface/soft classification for 408/425/429/5xx, sockets and gRPC codes.
+- **📡 Status extras**: per-provider `circuit` plus `meta.expectedClones` / `meta.notifyQueue`.
+- **🧪 Smoke harness**: scripted 429 → next-key → success path in `test/smoke-rotation-080.test.mjs`.
+
+
 ### 🛠️ What's New in v0.7.33 (Stability & Bugfix Release)
 - **🔍 Resolved Key Probing BaseURL**: Fixed `resolveBaseUrl` to map key credential refs to owning provider pools, restoring live `probeModels` testing.
 - **🛡️ Guarded Cascade Recursion**: Prevented call stack overflow in cross-provider failover when circular cascade chains occur.
@@ -192,6 +203,11 @@ dsh-key-rotation:
     - UNKNOWN_MODEL
     - AUTH
   cooldownMs: 60000
+  # v0.8.0 circuit breaker
+  circuitBreakerEnabled: true
+  circuitBreakerThreshold: 5
+  circuitBreakerOpenMs: 30000
+  circuitBreakerHalfOpenProbes: 1
   concurrencyLimit: 5
   quotaResetWindow:
     type: midnight_utc
@@ -220,6 +236,11 @@ dsh-key-rotation:
 |---|---|---|---|
 | `switchCodes` | `string[]` | `[QUOTA, RATE_LIMIT, ...]` | List of error codes that immediately trigger failover. |
 | `cooldownMs` | `number` | `60000` (1 min) | Base penalty duration (in ms) for quarantined keys. |
+| `circuitBreakerEnabled` | `boolean` | `true` | Enable per-provider circuit breaker (v0.8.0). |
+| `circuitBreakerThreshold` | `number` | `5` | Consecutive failures before opening the circuit. |
+| `circuitBreakerOpenMs` | `number` | `30000` | How long the circuit stays open (ms). |
+| `circuitBreakerHalfOpenProbes` | `number` | `1` | Probe requests allowed in half-open state. |
+| `verboseLogging` | `boolean` | `false` | Per-request rotation logs (noisy; off by default). |
 | `concurrencyLimit` | `number` | `0` (disabled) | Max concurrent in-flight streams per key (0 = unlimited). |
 | `quotaResetWindow` | `object` | `null` | Calendar reset alignment (`midnight_utc`, `midnight_pst`, `rolling_24h`). |
 | `cascade` | `array` | `[]` | Fallback provider chain when primary pool is completely exhausted. |
