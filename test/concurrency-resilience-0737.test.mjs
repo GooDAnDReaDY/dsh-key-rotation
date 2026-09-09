@@ -4,35 +4,38 @@ import fs from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 const INDEX_SRC = fs.readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8');
+const ROTATE_SRC = fs.readFileSync(new URL('../lib/rotate.js', import.meta.url), 'utf8');
+const OPS_SRC = fs.readFileSync(new URL('../lib/routes-ops.js', import.meta.url), 'utf8');
+const ALL_SRC = INDEX_SRC + '\n' + ROTATE_SRC + '\n' + OPS_SRC;
 
 test('AsyncLocalStorage is imported from node:async_hooks and used for request isolation', () => {
-  assert.match(INDEX_SRC, /import\s*\{[^}]*AsyncLocalStorage[^}]*\}\s*from\s*['"]node:async_hooks['"]/, 'must import AsyncLocalStorage');
-  assert.match(INDEX_SRC, /const dispatchStorage = new AsyncLocalStorage\(\);/, 'must instantiate dispatchStorage');
-  assert.match(INDEX_SRC, /dispatchStorage\.run\(reqStore,\s*\(\)\s*=>\s*ctx\.llm\.stream/, 'must wrap stream dispatch in dispatchStorage.run');
+  assert.match(ALL_SRC, /import\s*\{[^}]*AsyncLocalStorage[^}]*\}\s*from\s*['"]node:async_hooks['"]/, 'must import AsyncLocalStorage');
+  assert.match(ALL_SRC, /const dispatchStorage = new AsyncLocalStorage\(\);/, 'must instantiate dispatchStorage');
+  assert.match(ALL_SRC, /dispatchStorage\.run\(reqStore,\s*\(\)\s*=>\s*ctx\.llm\.stream/, 'must wrap stream dispatch in dispatchStorage.run');
 });
 
 test('compactUsage is imported and wired into 30s sweep effect', () => {
-  assert.match(INDEX_SRC, /import\s*\{[^}]*compactUsage[^}]*\}\s*from\s*['"]\.\/usage-report\.js['"]/, 'must import compactUsage');
-  assert.match(INDEX_SRC, /compactUsage\(pool,\s*30,\s*now\)/, 'must call compactUsage on pools during periodic sweep');
+  assert.match(ALL_SRC, /import\s*\{[^}]*compactUsage[^}]*\}\s*from\s*['"]\.\/usage-report\.js['"]/, 'must import compactUsage');
+  assert.match(ALL_SRC, /compactUsage\(pool,\s*30,\s*now\)/, 'must call compactUsage on pools during periodic sweep');
 });
 
 test('rotate() does not mutate pool.weightedRefs in place', () => {
-  assert.doesNotMatch(INDEX_SRC, /pool\.weightedRefs\s*=\s*list;/, 'must not mutate pool.weightedRefs');
-  assert.match(INDEX_SRC, /let attemptList = \(pool\.weightedRefs \?\? pool\.refs\)\.slice\(\);/, 'must copy candidates to local attemptList');
+  assert.doesNotMatch(ALL_SRC, /pool\.weightedRefs\s*=\s*list;/, 'must not mutate pool.weightedRefs');
+  assert.match(ALL_SRC, /let attemptList = \(pool\.weightedRefs \?\? pool\.refs\)\.slice\(\);/, 'must copy candidates to local attemptList');
 });
 
 test('rotate() handles stream exception before content chunk with failover', () => {
-  assert.match(INDEX_SRC, /if \(!yielded && isSwitchableError\(e, effectiveSwitchCodes\)\)/, 'must check isSwitchableError on stream exception');
-  assert.match(INDEX_SRC, /continue;\s*\/\/\s*Failover to next key!/, 'must continue to next key on switchable stream exception');
+  assert.match(ALL_SRC, /if \(!yielded && isSwitchableError\(e, effectiveSwitchCodes\)\)/, 'must check isSwitchableError on stream exception');
+  assert.match(ALL_SRC, /continue;\s*\/\/\s*Failover to next key!/, 'must continue to next key on switchable stream exception');
 });
 
 test('recordLatency supports request-scoped startMs and pickedRef', () => {
-  assert.match(INDEX_SRC, /function recordLatency\(pool,\s*reqStore\)/, 'recordLatency must accept reqStore');
-  assert.match(INDEX_SRC, /const ref = reqStore\?\.pickedRef \?\? pool\?\.state\?\.lastUsed;/, 'recordLatency must prefer reqStore.pickedRef');
+  assert.match(ALL_SRC, /function recordLatency\(pool,\s*reqStore\)/, 'recordLatency must accept reqStore');
+  assert.match(ALL_SRC, /const ref = reqStore\?\.pickedRef \?\? pool\?\.state\?\.lastUsed;/, 'recordLatency must prefer reqStore.pickedRef');
 });
 
 test('TEST_PATH auto-clears quarantine when probe succeeds', () => {
-  assert.match(INDEX_SRC, /if \(cached\.ok\) \{[\s\S]*?st\.failedUntil\?\.delete\(ref\)[\s\S]*?st\.brokenUntil\?\.delete\(ref\)/, 'successful probe must clear quarantine');
+  assert.match(ALL_SRC, /if \(cached\.ok\) \{[\s\S]*?st\.failedUntil\?\.delete\(ref\)[\s\S]*?st\.brokenUntil\?\.delete\(ref\)/, 'successful probe must clear quarantine');
 });
 
 test('AsyncLocalStorage scopes pickedRef cleanly across concurrent dispatches', async () => {
