@@ -3,6 +3,17 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.7.40 - 2026-09-09
+
+- docs: align README en/ru/zh and DESIGN.md with shipped surface after v0.7.36 de-bloat (#251)
+- docs: add project `index.md` and `AGENTS.md` (#252)
+- refactor: split `lib/index.js` into `rotate.js`, `http-bridge.js`, `routes-ops.js` (#253)
+- feat: `verboseLogging` config (default false) gates per-request rotation logs (#254)
+- docs: CHANGELOG history and task_plan hygiene (#255)
+
+All notable changes to `@goodandready/dsh-key-rotation` are documented here.
+User-facing feature notes also appear in README (en is source of truth).
+
 ## 0.7.39 - 2026-08-28
 
 - fix(heal): wire `lastUsedAt` into `credentials.resolve` and idle self-heal sweep; cache sweep runtime (issue #249, PR #250)
