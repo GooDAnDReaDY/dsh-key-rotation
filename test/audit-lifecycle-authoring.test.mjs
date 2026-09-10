@@ -38,10 +38,11 @@ test('client.js dead mountDashboard is removed (#240)', () => {
   assert.ok(!CLIENT_SRC.includes('mountDashboard()'), 'mountDashboard call must be removed');
 });
 
-test('client.js fallback settings.section has localized label and locale: NS (#236)', () => {
+test('client.js settings card has localized label and locale: NS (#236, #275)', () => {
   assert.ok(!CLIENT_SRC.includes("label: () => 'Key Rotation'"), 'Hardcoded English label must be removed');
-  assert.ok(CLIENT_SRC.includes("t('title')"), 'Settings section must use t(title)');
-  assert.ok(CLIENT_SRC.includes("locale: NS"), 'Settings section must include locale: NS');
+  assert.ok(CLIENT_SRC.includes("t('title')"), 'Card must use t(title)');
+  assert.ok(CLIENT_SRC.includes("locale: NS"), 'Card must include locale: NS');
+  assert.ok(!CLIENT_SRC.includes("name: 'settings.section'"), 'No settings.section registration (#275)');
 });
 
 test('client.js registers en, ru, and zh dictionaries', () => {
