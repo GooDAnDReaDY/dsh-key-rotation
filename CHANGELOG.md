@@ -3,6 +3,13 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.3 - 2026-09-10
+
+- feat(ui): unify settings card styling with `dsh-clinebot` design baseline (`.krot-section-card`, `.krot-stat-box`, `.krot-badge-ok/warn/bad`, `.krot-btn-primary/danger`, 36px inputs with brand focus, `data-dsh-plugin="dsh-key-rotation"` style isolation) (#281, #282)
+- feat(ui): add live pool health telemetry stat boxes (configured pools, total keys, healthy/ready keys) (#281)
+- feat(ui): replace hardcoded hex colors with semantic DSH design system tokens (`--dsw-alias-state-*`, `--dsw-alias-bg-*`) for full dark/light theme fidelity (#281)
+- test: add comprehensive stability coverage test suite (`test/stability-coverage-281.test.mjs`, 18 new unit tests covering quota windows, clock monotonicity, sandbox cache, pool network guards, and http bridge helpers) (#281)
+
 ## 0.8.2 - 2026-09-10
 
 - fix(ui): settings live only as `settings.plugin.item` card — fallback `settings.section` sidebar row removed (#275)
