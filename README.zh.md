@@ -259,7 +259,7 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 - **生命周期清理**: 将 `credentials.resolve` 猴子补丁和 `ctx.on` 事件监听器 (`llm/stream`, `agent/request-error`) 封装在 `ctx.effect` 作用域内，确保卸载时自动注销并恢复原始方法 (#238, #239)。
 - **配置密钥角色**: 在 `Config` Schema 中为 `incidentGitHubToken` 和 `webhookActionToken` 增加 `.role('secret')`，避免明文泄露并在 UI 中掩码显示 (#237)。
 - **设置架构与状态**: 在设置卡片中增加原生 `settingsScope` 绑定支持，保留 HTTP 桥接安全回退机制 (#235)。
-- **本地化与文案**: 侧边栏备用项 `settings.section` 标签支持本地化 `t('title')` 并配置 `locale: NS`，并在 `ctx.locale` 中注册 `zh` 中文字典 (#236)。
+- **本地化与文案 (Changed in v0.8.2)**: 插件仅注册英文源字符串 `en`；俄文/中文由 DSH 核心 locale 与 translation 插件通过 `props.t` 提供。活动语言回退：snapshot → 首个 `navigator.languages` → `en`。已移除 `settings.section` 回退与内置 `ru`/`zh` 表 (#236, #275, #277)。
 - **死代码清理**: 移除 header-chip 迁移后残留的废弃 `mountDashboard` 函数 (#240)。
 
 

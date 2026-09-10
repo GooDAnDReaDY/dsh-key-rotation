@@ -45,7 +45,7 @@
 - **🕒 Accurate Midnight PST Resets**: Corrected UTC-8 timezone calculation offset sign for calendar quota reset windows.
 - **🧹 Lifecycle Timer Cleanup**: Wrapped `canaryTimer` and `selfHealTimer` in Cordis effect scopes, eliminating background orphaned intervals on hot reload.
 - **⚡ Stale Lock Recovery in Load Balancer**: Added expired lock detection to `pickLeastLoaded` for uninterrupted least-connections routing.
-- **🌐 Full Chinese Localization**: Added complete `zh` locale dictionary to the React settings dashboard for comprehensive 3-language parity.
+- **🌐 Localization (Changed in v0.8.2)**: Source strings are English-only. Russian/Chinese UI comes from the DSH core locale service and translation plugins (`props.t`). Active locale: host snapshot → first `navigator.languages` entry → `en` (#277).
 
 
 ### 🚀 What's New in v0.7.31
@@ -301,5 +301,5 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 - **Lifecycle Cleanups**: Wrapped `credentials.resolve` patch and `ctx.on` event handlers (`llm/stream`, `agent/request-error`) in `ctx.effect` scopes with guaranteed unmount cleanup (#238, #239).
 - **Settings & Secret Roles**: Added `.role('secret')` to `incidentGitHubToken` and `webhookActionToken` in `Config` schema for automatic UI masking (#237).
 - **Settings Architecture & UI**: Added native `settingsScope` snapshot reading/saving in settings card with graceful bridge fallback (#235).
-- **Localization**: Localized `settings.section` sidebar fallback label via `t('title')` and registered `zh` dictionary in `ctx.locale` alongside `en` and `ru` (#236).
+- **Localization (Changed in v0.8.2)**: Card uses `props.t` with `locale: NS`; plugin registers only `en`; no `settings.section` fallback and no bundled `ru`/`zh` tables (#236, #275, #277).
 - **Dead Code Purge**: Removed obsolete `mountDashboard` routine after header-chip migration (#240).
