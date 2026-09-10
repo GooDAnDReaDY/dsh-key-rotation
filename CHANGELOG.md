@@ -3,6 +3,14 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.2 - 2026-09-10
+
+- fix(ui): settings live only as `settings.plugin.item` card — fallback `settings.section` sidebar row removed (#275)
+- fix: resolve DSH services via `ctx.get('llm')` / `sctx.get('settings')` instead of bare context properties that proxy to `undefined` (#275)
+- fix(locale): source strings are English-only (`ctx.locale.register(NS, { en })`); other languages come from host `props.t` / translation plugins (#277, GitHub #1)
+- fix(locale): active locale falls back `ctx.locale` snapshot → first `navigator.languages` entry → `en` (core-aligned) (#277)
+- test: card-only, `ctx.get` and full Cyrillic-in-literal locale gates
+
 ## 0.8.1 - 2026-09-09
 
 - fix(ui): settings card no longer disappears on open — ErrorBoundary around the section and referentially stable `settingsScope.getSnapshot()` (#273)
