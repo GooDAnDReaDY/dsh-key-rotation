@@ -3,6 +3,14 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.5 - 2026-09-10
+
+- feat(ui): add interactive key load distribution bar chart (`.krot-load-chart`, `.krot-load-bar`, `.krot-load-segment`) displaying proportional request volume per key (#283, #284)
+- feat(ui): add modal action confirmation dialog (`.krot-modal`, `.krot-modal-card`) for pool cooldown resets and provider/key deletions (#283, #284)
+- fix(ops): activate jitter (`applyJitter`) on 429 and 5xx backoff calculations in `lib/rotate.js` and `lib/index.js` to eliminate the thundering herd retry spike (#283, #284)
+- fix(ops): synchronously reset provider `circuitBreaker` on `POST /dsh-key-rotation/reset` ops route (#283, #284)
+- test: add dedicated Phase 2 test suite `test/stability-phase2-283.test.mjs` (313 total unit tests passing) (#283, #284)
+
 ## 0.8.4 - 2026-09-10
 
 - fix(ui): inject `settingsScope` in client manifest and safely guard context property access to prevent ErrorBoundary crash on card mount (#281)
