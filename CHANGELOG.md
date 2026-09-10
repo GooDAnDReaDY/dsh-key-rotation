@@ -3,6 +3,10 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.1 - 2026-09-09
+
+- fix(ui): settings card no longer disappears on open — ErrorBoundary around the section and referentially stable `settingsScope.getSnapshot()` (#273)
+
 ## 0.8.0 - 2026-09-09
 
 Stability block (#260–#270). Changed in v0.8.0.
