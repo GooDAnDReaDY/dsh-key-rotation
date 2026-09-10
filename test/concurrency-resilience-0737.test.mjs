@@ -11,7 +11,7 @@ const ALL_SRC = INDEX_SRC + '\n' + ROTATE_SRC + '\n' + OPS_SRC;
 test('AsyncLocalStorage is imported from node:async_hooks and used for request isolation', () => {
   assert.match(ALL_SRC, /import\s*\{[^}]*AsyncLocalStorage[^}]*\}\s*from\s*['"]node:async_hooks['"]/, 'must import AsyncLocalStorage');
   assert.match(ALL_SRC, /const dispatchStorage = new AsyncLocalStorage\(\);/, 'must instantiate dispatchStorage');
-  assert.match(ALL_SRC, /dispatchStorage\.run\(reqStore,\s*\(\)\s*=>\s*ctx\.llm\.stream/, 'must wrap stream dispatch in dispatchStorage.run');
+  assert.match(ALL_SRC, /dispatchStorage\.run\(reqStore,\s*\(\)\s*=>\s*\{[\s\S]*?ctx\.get\('llm'\)/, 'must wrap stream dispatch in dispatchStorage.run and resolve llm via ctx.get');
 });
 
 test('compactUsage is imported and wired into 30s sweep effect', () => {
