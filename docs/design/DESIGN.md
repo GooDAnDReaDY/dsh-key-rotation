@@ -101,3 +101,4 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 
 ## Locked Design Decisions
 - 2026-09-10 — Настройки только карточкой `settings.plugin.item`; fallback на `settings.section` удалён (#275). Причина: боковой список ядра плоский, 11 плагинов заняли общие строки. Условие пересмотра: явное согласие владельца на отдельную подсистему с несколькими экранами.
+- 2026-09-10 — Исходная локаль только `en` (`ctx.locale.register(NS, { en })`); `ru`/`zh` не зашиваются в плагин. Переводы — translation-плагин / core `props.t`. Фолбек активной локали: `ctx.locale.getSnapshot().active` → первый `navigator.languages` → `en` (#277 / GitHub #1).
