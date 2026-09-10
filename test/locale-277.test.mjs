@@ -27,7 +27,16 @@ test('uses props.t via resolveT, no private ru/zh fork (#277)', () => {
 });
 
 test('no hardcoded Russian UI strings in client.js (#277)', () => {
-  assert.doesNotMatch(client, /Пулы ротации/);
-  assert.doesNotMatch(client, /Сохранить ключ/);
-  assert.doesNotMatch(client, /Задержка после сбоя/);
+  // Strip // and /* */ comments, then forbid Cyrillic inside string literals.
+  const noComments = client
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((line) => line.replace(/\/\/.*$/, ''))
+    .join('\n');
+  const cyrillicInStrings = [...noComments.matchAll(/(['"`])([^'"`\n]*[\u0400-\u04FF][^'"`\n]*)\1/g)];
+  assert.equal(
+    cyrillicInStrings.length,
+    0,
+    'Cyrillic string literals forbidden: ' + cyrillicInStrings.map((m) => m[2]).join(' | '),
+  );
 });
