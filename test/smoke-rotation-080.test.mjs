@@ -37,9 +37,8 @@ test('smoke: first key 429 then second succeeds', async () => {
       return fn();
     },
   };
-  const ctx = {
-    llm: {
-      stream() {
+  const llm = {
+    stream() {
         const isFail = calls === 1;
         return (async function* () {
           if (isFail) {
@@ -50,8 +49,8 @@ test('smoke: first key 429 then second succeeds', async () => {
           }
         })();
       },
-    },
   };
+  const ctx = { get: (name) => (name === 'llm' ? llm : undefined) };
   const breaker = new CircuitBreaker({ threshold: 10, openMs: 1000, halfOpenProbes: 1 });
   const rotate = createRotate({
     ctx,
@@ -93,7 +92,7 @@ test('smoke: circuit open skips dispatch', async () => {
   breaker.onFailure('smoke-prov'); // open immediately
   let dispatched = 0;
   const rotate = createRotate({
-    ctx: { llm: { stream: () => { dispatched++; return (async function* () { yield { type: 'finish', reason: { kind: 'stop' } }; })(); } } },
+    ctx: { get: (name) => (name === 'llm' ? { stream: () => { dispatched++; return (async function* () { yield { type: 'finish', reason: { kind: 'stop' } }; })(); } } : undefined) },
     dispatchStorage: { run: (_s, fn) => fn() },
     buildRuntime: () => ({ switchCodes: new Set(['RATE_LIMIT']), cooldownMs: 50, switchNotify: false, concurrencyLimit: 0, cascade: [] }),
     pushEvent: () => {}, notifySwitch: () => {}, notifyExhaustion: () => {}, recordLatency: () => {},

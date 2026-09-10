@@ -6,7 +6,7 @@
 - **Статус**: Production (активный релизный цикл, семантическое версионирование).
 
 ## User Surfaces
-- **Web/UI**: Карточка настроек плагина в DSH WebUI (`settings.plugin.item`, ключ `dsh-key-rotation`, fallback на `settings.section`), компактный чип статуса пула в шапке (`header.status`).
+- **Web/UI**: Карточка настроек плагина в DSH WebUI (`settings.plugin.item`, ключ `dsh-key-rotation`; собственной строки `settings.section` нет — #275), компактный чип статуса пула в шапке (`header.status`).
 - **DSH UI / settings / slots**:
   - Слот `settings.plugin.item`: key `dsh-key-rotation`, `locale: 'dsh-key-rotation'`.
   - Слот `header.status`: живой индикатор доступности ключей (зелёный/жёлтый/красный) с тултипом активного пула.
@@ -99,3 +99,5 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
+## Locked Design Decisions
+- 2026-09-10 — Настройки только карточкой `settings.plugin.item`; fallback на `settings.section` удалён (#275). Причина: боковой список ядра плоский, 11 плагинов заняли общие строки. Условие пересмотра: явное согласие владельца на отдельную подсистему с несколькими экранами.
