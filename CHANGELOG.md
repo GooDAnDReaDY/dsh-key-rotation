@@ -3,6 +3,21 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.6 - 2026-09-11
+
+- feat(ops): add e2e failover harness covering multi-key pool exhaustion and recovery (#285)
+- feat(ops): add chaos concurrency tests for parallel rotate/cooldown/reset races (#286)
+- feat(ops): persist pool and circuit-breaker state across restarts via `lib/persistence.js` (#287)
+- fix(ops): resolve persistence path from `persistencePath` → `DSH_HOME` → `cwd`; do not read `ctx.baseDir` (#287, #299)
+- feat(ops): sanitize status snapshots — key values never leave the host (#288)
+- feat(ui): accessible modal (dialog role, focus trap, Escape, focus restore) (#289)
+- feat(ui): loading/error/unavailable/empty card states (#290)
+- feat(ui): keyboard navigation and bulk key removal with confirmation (#291)
+- fix(locale): complete en locale coverage for new UI strings (#292)
+- docs: refresh `index.md` coverage matrix and pack policy (#293, #296)
+- docs: document ModuleLoader single-file client constraint and helper split (#294)
+- chore: branch/worktree hygiene audit recorded (#295)
+
 ## 0.8.5 - 2026-09-10
 
 - feat(ui): add interactive key load distribution bar chart (`.krot-load-chart`, `.krot-load-bar`, `.krot-load-segment`) displaying proportional request volume per key (#283, #284)
