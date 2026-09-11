@@ -100,6 +100,8 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
 ## Locked Design Decisions
+- 2026-09-11 — Phase 3 UI (#289–#291): confirm dialog `role="dialog"` + `aria-modal`, focus trap, Escape, restore focus, safe default focus; card states loading/error/unavailable/empty with `role=status|alert`; load chart text alternative; bulk remove via modal; bulk strings via `t()`.
+- 2026-09-11 — Phase 3 ops (#287–#288): status payload sanitized (NaN/negative clamp); optional atomic persistence of pool cooldowns/circuit across restarts (`persistenceEnabled`, default true).
 - 2026-09-10 — Настройки только карточкой `settings.plugin.item`; fallback на `settings.section` удалён (#275). Причина: боковой список ядра плоский, 11 плагинов заняли общие строки. Условие пересмотра: явное согласие владельца на отдельную подсистему с несколькими экранами.
 - 2026-09-10 — Исходная локаль только `en` (`ctx.locale.register(NS, { en })`); `ru`/`zh` не зашиваются в плагин. Переводы — translation-плагин / core `props.t`. Фолбек активной локали: `ctx.locale.getSnapshot().active` → первый `navigator.languages` → `en` (#277 / GitHub #1).
 - 2026-09-10 — Унификация визуального оформления с эталоном `dsh-clinebot` (#281): семантические карточки секций (`.krot-section-card`), статусные бейджи (`.krot-badge-ok/warn/bad`), панель сводной телеметрии (`.krot-stat-box`), эталонные кнопки (`.krot-btn-primary`, `.krot-btn-danger`), инпуты с радиусом 8px и фокусом на `--dsw-alias-state-brand-primary`, удаление всех хардкод hex-цветов, изоляция стилей через `data-dsh-plugin="dsh-key-rotation"` и `id="dsh-key-rotation-full-css"`.
