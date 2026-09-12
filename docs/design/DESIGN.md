@@ -100,6 +100,12 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
 ## Locked Design Decisions
+- 2026-09-12 — Phase 4 Quality & UI Alignment (#301):
+  - Топовый заголовок плагина `.krot-header` со статусной строкой живых бейджей (`.krot-page-title` + `.krot-badge` для активных пулов, числа ключей, состояния цепи и здоровья) и описанием (`.krot-page-sub`) в едином стиле с `dsh-clinebot`.
+  - Устранение критических `ReferenceError` (`quotaStore`, `isLoopbackAddress`) и `TypeError` (`lastTestCache.snapshot`) в операционных HTTP-маршрутах.
+  - Синхронизация сброса цепи и счетчиков ошибок авторизации в webhook-action с маршрутом `/reset`.
+  - Очистка состояния удаляемых ключей в `poolState` и кэше проверок.
+  - Повышение тестового покрытия операционных маршрутов (`routes-ops.js` и `http-bridge.js`) выше 82% (359 тестов).
 - 2026-09-11 — Phase 3 UI (#289–#291): confirm dialog `role="dialog"` + `aria-modal`, focus trap, Escape, restore focus, safe default focus; card states loading/error/unavailable/empty with `role=status|alert`; load chart text alternative; bulk remove via modal; bulk strings via `t()`.
 - 2026-09-11 — Phase 3 ops (#287–#288): status payload sanitized (NaN/negative clamp); optional atomic persistence of pool cooldowns/circuit across restarts (`persistenceEnabled`, default true).
 - 2026-09-10 — Настройки только карточкой `settings.plugin.item`; fallback на `settings.section` удалён (#275). Причина: боковой список ядра плоский, 11 плагинов заняли общие строки. Условие пересмотра: явное согласие владельца на отдельную подсистему с несколькими экранами.
