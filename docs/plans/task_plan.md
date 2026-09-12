@@ -1,33 +1,49 @@
-# Task Plan — Issue #283: Advanced Stability Hardening & Visual Load Distribution Charts
+# Task Plan: Code Quality Hardening & UI Alignment with dsh-clinebot
 
-## Current Objective
-Phase 2: Comprehensive stability audit & 429/5xx recovery hardening together with visual load distribution charts and confirmation modals for sensitive operations.
+## Phase 1: Research & Audit [DONE]
+- [x] Full codebase review of `lib/*.js` and `test/*.js`
+- [x] Run `--experimental-test-coverage` to identify coverage gaps
+- [x] Detailed audit of `lib/routes-ops.js`, `lib/rotate.js`, `lib/http-bridge.js`
+- [x] Side-by-side comparison of `dsh-clinebot/lib/client.js` and `dsh-key-rotation/lib/client.js`
+- [x] Identify critical ReferenceErrors and behavioral bugs
 
-## Status Overview
-- **Issue**: Gitea Issue #283 (Open)
-- **Worktree**: `.worktrees/feat/stability-phase2-and-charts`
-- **Current Phase**: Implementation Plan Created -> Waiting for User Approval
+## Phase 2: Implementation Plan & User Approval [CURRENT]
+- [x] Create `findings.md`, `task_plan.md`, `progress.md`
+- [x] Draft `implementation_plan.md` artifact
+- [ ] Wait for user approval before modifying code / branch
 
-## Phases
+## Phase 3: Git & Gitea Setup
+- [ ] Create Gitea Issue: `feat(quality): ops routes hardening, zero unhandled errors, and dsh-clinebot visual alignment`
+- [ ] Create clean git worktree: `.worktrees/feat/code-quality-and-clinebot-style`
+- [ ] Update `docs/design/DESIGN.md` per `project-design-contract` skill
 
-### Phase 1: Research & Planning [COMPLETED]
-- [x] Create Gitea Issue #283
-- [x] Create isolated git worktree `feat/stability-phase2-and-charts`
-- [x] Audit `lib/routes-ops.js`, `lib/rotate.js`, `lib/pool.js`, and `lib/client.js`
-- [x] Identify failure cases: absence of jitter by default (thundering herd risk on 429), unhandled circuit breaker reset on ops route, lack of visual load distribution per key, lack of action confirmation for pool resets.
-- [x] Formulate comprehensive implementation plan.
+## Phase 4: Backend Hardening (`lib/routes-ops.js`, `lib/index.js`, `lib/http-bridge.js`)
+- [ ] Fix `quotaStore` dependency passing and safe invocation in `HEALTH_PATH`
+- [ ] Fix `isLoopbackAddress` import in `lib/routes-ops.js`
+- [ ] Fix `lastTestCache.snapshot` defensive fallback in `SANDBOX_CACHE_PATH`
+- [ ] Unify `webhook-action` provider reset to clear `authFailCounts`, reset `switches`, and reset `circuitBreaker`
+- [ ] Fix single-ref reset in `RESET_PATH` to check and clear `brokenUntil` and `authFailCounts`
+- [ ] Clean up orphan `poolState` and `lastTestCache` on key deletion in `KEY_PATH`
 
-### Phase 2: Implementation [COMPLETED]
-- [x] Update `lib/pool.js`: jitter default, safe decay in `sweepExpired`, circuit reset helper.
-- [x] Update `lib/rotate.js`: jitter propagation in `penalizeRef`, safe retry-after backoff.
-- [x] Update `lib/routes-ops.js`: circuit breaker reset integration in `/dsh-key-rotation/reset`.
-- [x] Update `lib/index.js`: pass circuitBreaker to ops routes, enable jitter on agent error hook.
-- [x] Update `lib/client.js`: `.krot-load-chart` segmented load distribution bar, `.krot-modal` confirmation dialog, CSS tokens, English localization keys.
-- [x] Create `test/stability-phase2-283.test.mjs`: new unit test suite.
-- [x] Update `docs/design/DESIGN.md`: record Locked Design Decisions for Phase 2.
+## Phase 5: Client UI Alignment with `dsh-clinebot` (`lib/client.js`)
+- [ ] Add `.krot-header` inside `KeyRotationSection` matching `dsh-clinebot`:
+  - Icon + Title (`header.title`)
+  - Live badges: health/online, active pools count, total keys, circuit state
+  - Subtitle (`header.sub`)
+- [ ] Align CSS styles, borders, hover tokens, card padding with `dsh-clinebot`
+- [ ] Add Russian and English localization dictionaries for new header elements
+- [ ] Strict zero-Cyrillic in `lib/client.js` string literals (keep in `ru` dict / `test/locale-277.test.mjs` compliant)
 
-### Phase 3: Verification & Review [UPCOMING]
-- [x] Run `npm test` across all unit tests (313 pass / 0 fail / 1 skip) (target: ~320+ passing tests, 0 failures).
-- [x] Verify zero-Cyrillic string literals in `lib/client.js` (pass).
-- [x] Syntax check across all `lib/*.js` (pass).
-- [ ] Create PR on Gitea and present Walkthrough to user.
+## Phase 6: Automated Test Suite & Coverage Boost
+- [ ] Create `test/routes-ops-comprehensive.test.mjs` covering all 10 endpoints:
+  - `STATUS_PATH`, `USAGE_PATH`, `SNAPSHOT_PATH`, `KEY_PATH`, `RESET_PATH`, `IMPORT_PATH`, `HEALTH_PATH`, `TEST_PATH`, `SANDBOX_CACHE_PATH`, `webhook-action`
+- [ ] Create `test/http-bridge-config.test.mjs` for config bridge GET/PUT/DELETE
+- [ ] Run full test suite (`npm test`) -> Target: >360 tests passing, 0 failures, line coverage >85%
+
+## Phase 7: Verification, PR, Release & Deployment
+- [ ] Commit via `git-antigravity`
+- [ ] Push to Gitea and create Pull Request
+- [ ] Request user review / confirmation before merge and release
+- [ ] Merge PR, delete worktree
+- [ ] Release `v0.8.8`, publish to npm, deploy to `/home/vadim/.dsh/profiles/web` on MiniAI
+- [ ] Verify production service and test in browser
