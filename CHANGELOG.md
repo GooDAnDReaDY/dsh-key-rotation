@@ -3,6 +3,11 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.7 - 2026-09-12
+
+- fix(client): resolve `t is not defined` ReferenceError during client bundle factory loading (#285)
+- test: add automated VM execution test for client module loader factory and exports (`test/client-factory-import.test.mjs`)
+
 ## 0.8.6 - 2026-09-11
 
 - feat(ops): add e2e failover harness covering multi-key pool exhaustion and recovery (#285)
