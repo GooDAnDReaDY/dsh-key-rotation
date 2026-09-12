@@ -3,6 +3,17 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.8 - 2026-09-12
+
+- feat(ui): add dedicated `.krot-header` with live status badges (pools count, keys configured, circuit state, health score) and subtitle matching `dsh-clinebot` styling (#301, #302)
+- fix(ops): resolve `ReferenceError: quotaStore is not defined` in `GET /dsh-key-rotation/health` by passing dependency from `index.js` and adding defensive invocation (#301, #302)
+- fix(ops): import `isLoopbackAddress` in `routes-ops.js` for local loopback verification without Origin header (#301, #302)
+- fix(ops): guard `lastTestCache.snapshot` in `GET /dsh-key-rotation/sandbox-cache` against Map and mock instances (#301, #302)
+- fix(ops): synchronize provider reset in `POST /dsh-key-rotation/webhook-action` with `RESET_PATH` to clear `authFailCounts`, reset `switches`, and reset `circuitBreaker` (#301, #302)
+- fix(ops): single-key reset in `POST /dsh-key-rotation/reset` now checks and clears `brokenUntil` and `authFailCounts` even when cooldown has elapsed (#301, #302)
+- fix(ops): clean up orphan entries from `poolState` and `lastTestCache` upon key deletion via `DELETE /dsh-key-rotation/key` (#301, #302)
+- test: add comprehensive test suites `test/routes-ops-comprehensive.test.mjs` (12 tests) and `test/http-bridge-config.test.mjs` (5 tests), increasing overall test coverage to 89.40% (359 total unit tests) (#301, #302)
+
 ## 0.8.7 - 2026-09-12
 
 - fix(client): resolve `t is not defined` ReferenceError during client bundle factory loading (#285)
