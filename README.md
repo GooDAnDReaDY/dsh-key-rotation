@@ -22,6 +22,16 @@
   <a href="README.zh.md"><b>🇨🇳 中文说明</b></a>
 </p>
 
+<table align="center">
+  <tr>
+    <td align="center">
+      ⭐ <strong>If you like this plugin, please star it on GitHub</strong> — it shows me that the plugin is useful to you and motivates me to keep developing it.
+      <br><br>
+      🐛 <strong>If you find a bug or would like to request a feature</strong>, open a GitHub issue in any language — I will review your proposal and implement useful suggestions in a future plugin version.
+    </td>
+  </tr>
+</table>
+
 </div>
 
 ---
@@ -38,7 +48,6 @@
 - **📡 Status extras**: per-provider `circuit` plus `meta.expectedClones` / `meta.notifyQueue`.
 - **🧪 Smoke harness**: scripted 429 → next-key → success path in `test/smoke-rotation-080.test.mjs`.
 
-
 ### 🛠️ What's New in v0.7.33 (Stability & Bugfix Release)
 - **🔍 Resolved Key Probing BaseURL**: Fixed `resolveBaseUrl` to map key credential refs to owning provider pools, restoring live `probeModels` testing.
 - **🛡️ Guarded Cascade Recursion**: Prevented call stack overflow in cross-provider failover when circular cascade chains occur.
@@ -48,7 +57,6 @@
 - **📊 Load Distribution & Modals (Changed in v0.8.5)**: Interactive segmented load distribution charts per pool, modal action confirmation, and 429/5xx backoff jitter (#283, #284).
 - **🎨 Native Design System (Changed in v0.8.3)**: Unified with `dsh-clinebot` baseline: modular section cards, live pool telemetry stat boxes, pill badges, and complete semantic theme token styling (#281).
 - **🌐 Localization (Changed in v0.8.2)**: Source strings are English-only. Russian/Chinese UI comes from the DSH core locale service and translation plugins (`props.t`). Active locale: host snapshot → first `navigator.languages` entry → `en` (#277).
-
 
 ### 🚀 What's New in v0.7.31
 - **⚡ O(1) TokenBucket Accumulator**: Upgraded rate limiting math to O(1) time and zero-allocation memory with adaptive header synchronization.
@@ -60,7 +68,6 @@
 - **🔔 Webhook Alert Digest**: Aggregates multiple rapid switch/cooldown events into consolidated incident digests for Telegram, Discord, and Slack.
 - **🧹 30-Day Usage Compaction**: Automatic bounded memory management with 30-day rolling window data pruning.
 - **✨ Optimistic UI & Filter Pills**: Instant zero-latency UI updates on reset, plus `All`, `Ready`, `In Cooldown`, and `With Errors` quick filter chips.
-
 
 High-throughput autonomous agent workflows, parallel subagent swarms, and multi-turn tool loops inevitably hit upstream API rate limits (HTTP 429, RPM/TPM exhaustion, daily quotas, or sudden provider outages). In standard DeepSeek Harness deployments, a single exhausted API key breaks the entire agent execution chain, requiring manual intervention and destroying the session's replay state.
 
