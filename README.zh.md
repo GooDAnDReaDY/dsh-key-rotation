@@ -38,6 +38,13 @@
 
 ## ⚡ 概述与核心痛点
 
+### 🚀 v0.8.9 版本新特性（智能路由与界面升级）
+- **前瞻性限流防护 (Proactive Rate-Limit Guard)**：根据 `x-ratelimit-remaining-*` 和 `Retry-After` 响应头在触发 429 错误前自动预冷密钥。
+- **自愈恢复 (Self-Healing / Auto-Unbreak)**：通过免费的 `/models` 接口进行定期后台探测，自动恢复处于 `broken` 状态的密钥，无需消耗聊天代币。
+- **延迟感知路由 (Latency-Aware Routing)**：可选路由策略：`round-robin`（轮询）、`least-loaded`（并发负载最低）与 `lowest-latency`（p95 延迟最低）。
+- **`dsh-clinebot` 风格界面升级**：支持带进度提示的批量“测试所有密钥”（Test All Keys）、实时事件流折叠抽屉（Live Event Stream）及配额重置倒计时徽标。
+- **原生中英文双语支持**：内置英文（`en`）与中文（`zh`）用户界面词典。
+
 ### 🛠️ v0.8.0 版本新特性（稳定性）
 - **🔌 熔断器**：连续失败后快速失败（`CIRCUIT_OPEN`），半开探测自动恢复。
 - **🕒 单调时钟**：冷却/熔断使用进程单调时间，NTP 校时不会颠倒剩余时间。

@@ -38,6 +38,13 @@
 
 ## ⚡ Overview & The Problem
 
+### 🚀 What's New in v0.8.9 (Routing Evolution & UI)
+- **Proactive Rate-Limit Guard**: Automatic key pausing based on `x-ratelimit-remaining-*` and `Retry-After` headers before hitting 429 errors.
+- **Self-Healing / Auto-Unbreak**: Periodic background probe via free `/models` endpoint to automatically revive broken keys without token burn.
+- **Latency-Aware Routing**: Selectable strategies: `round-robin`, `least-loaded` (concurrency), and `lowest-latency` (p95 latency).
+- **UI Evolution in `dsh-clinebot` Style**: Sequential batch "Test All Keys" runner with live progress, Live Event Stream drawer, and Quota Reset countdown badge.
+- **Native Dual Language Support**: Native English (`en`) and Chinese (`zh`) UI dictionaries.
+
 ### 🛠️ What's New in v0.8.0 (Stability)
 - **🔌 Circuit breaker**: after N consecutive provider failures the circuit opens and requests fail fast (`CIRCUIT_OPEN`) until a cool-down; half-open probes recover automatically.
 - **🕒 Monotonic clock**: cooldown/breaker durations use process monotonic time so NTP steps cannot invert remaining times.

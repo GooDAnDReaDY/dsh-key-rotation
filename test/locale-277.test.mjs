@@ -8,10 +8,11 @@ import { fileURLToPath } from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const client = fs.readFileSync(path.join(root, 'lib/client.js'), 'utf8');
 
-test('registers English dictionary only (#277)', () => {
-  assert.match(client, /ctx\.locale\.register\(NS,\s*\{\s*en\s*\}\)/);
+test('registers English and Chinese dictionaries (#277 / authoring skill)', () => {
+  assert.match(client, /ctx\.locale\.register\(NS,\s*\{\s*en,\s*zh\s*\}\)/);
+  assert.match(client, /const en = \{/);
+  assert.match(client, /const zh = \{/);
   assert.doesNotMatch(client, /const ru = \{/);
-  assert.doesNotMatch(client, /const zh = \{/);
   assert.doesNotMatch(client, /locale === 'ru'/);
 });
 
