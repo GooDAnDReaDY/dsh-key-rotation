@@ -100,6 +100,12 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
 ## Locked Design Decisions
+- 2026-09-13 — v0.8.9 Core Evolutions (#303):
+  - Proactive Rate-Limit Guard (`proactiveRateLimitGuard: true` by default): pre-emptively pauses keys on `remaining <= 1`, `Retry-After` (seconds or HTTP date), or when quota drops below threshold before a 429 occurs.
+  - Self-Healing / Auto-Unbreak (`selfHealingIntervalMinutes: 30`, 0 = disabled): periodic lightweight background probe via free `/models` for broken keys (`brokenUntil`), clearing faults without chat token expenditure.
+  - Lowest-Latency / Latency-Aware Routing: strategy selection (`routingStrategy: 'round-robin' | 'least-loaded' | 'lowest-latency'`) using `LatencyHistogram` / p95 metrics.
+  - UI Evolution in `dsh-clinebot` style: sequential batch "Test All Keys" runner with live progress (`Testing 2/5...`), Live Event Stream drawer (`.krot-event-stream`) with color-coded status badges, and Quota Reset countdown badge.
+  - Multilingual Standard Alignment: built-in `en` and `zh` dictionaries in `lib/client.js` (`ctx.locale.register(NS, { en, zh })`), strict prohibition of Russian/Cyrillic string literals in plugin source (Russian supplied dynamically via `dsh-russian-lang`), and synchronized `README.md`, `README.zh.md`, `README.ru.md`.
 - 2026-09-12 — Phase 4 Quality & UI Alignment (#301):
   - Топовый заголовок плагина `.krot-header` со статусной строкой живых бейджей (`.krot-page-title` + `.krot-badge` для активных пулов, числа ключей, состояния цепи и здоровья) и описанием (`.krot-page-sub`) в едином стиле с `dsh-clinebot`.
   - Устранение критических `ReferenceError` (`quotaStore`, `isLoopbackAddress`) и `TypeError` (`lastTestCache.snapshot`) в операционных HTTP-маршрутах.
