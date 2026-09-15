@@ -38,6 +38,11 @@
 
 ## ⚡ Overview & The Problem
 
+### 🚀 What's New in v0.8.10 (Stream Concurrency Hardening & Auto-Pruning)
+- **Zero Concurrency Leaks**: Guaranteed release of stream concurrency slots via deterministic `try ... finally` block, preventing key starvation during clean finishes or client stream aborts.
+- **Robust Probe Retry**: Added transient network socket error retry (`PROBE_RETRY_DELAY_MS`) in `SandboxRunner.probeModels` before marking keys as broken.
+- **Memory & State Pruning**: Automated pruning of removed/stale keys from internal pool maps during periodic sweep cycles.
+
 ### 🚀 What's New in v0.8.9 (Routing Evolution & UI)
 - **Proactive Rate-Limit Guard**: Automatic key pausing based on `x-ratelimit-remaining-*` and `Retry-After` headers before hitting 429 errors.
 - **Self-Healing / Auto-Unbreak**: Periodic background probe via free `/models` endpoint to automatically revive broken keys without token burn.

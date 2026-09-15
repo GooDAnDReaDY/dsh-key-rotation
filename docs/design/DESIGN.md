@@ -100,6 +100,7 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
 ## Locked Design Decisions
+- 2026-09-15 — Гарантированное освобождение слотов concurrencyTracker через try...finally и 1-retry в probeModels (#305); устранение фантомных блокировок ключей при штатном завершении стрима или отмене клиентом; пересмотр при переходе на внешний распределённый трекер соединений.
 - 2026-09-13 — v0.8.9 Core Evolutions (#303):
   - Proactive Rate-Limit Guard (`proactiveRateLimitGuard: true` by default): pre-emptively pauses keys on `remaining <= 1`, `Retry-After` (seconds or HTTP date), or when quota drops below threshold before a 429 occurs.
   - Self-Healing / Auto-Unbreak (`selfHealingIntervalMinutes: 30`, 0 = disabled): periodic lightweight background probe via free `/models` for broken keys (`brokenUntil`), clearing faults without chat token expenditure.
