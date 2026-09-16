@@ -3,6 +3,27 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.12 - 2026-09-16
+
+### Changed
+- **Internal decompose (#312)**: operational HTTP routes split from a single `lib/routes-ops.js` facade into focused modules (`lib/ops-status.js`, `ops-telemetry.js`, `ops-keys.js`, `ops-test.js`, `ops-webhook.js`, shared `lib/ops-paths.js`). Public entry `registerOpsRoutes` is unchanged.
+- Notify helpers (`notifySwitch`, `pushEvent`, `notifyExhaustion`) extracted to `lib/notify-events.js`; `lib/index.js` re-exports the public pair.
+- `lib/client.js` intentionally remains a single ModuleLoader factory (no bundler contract); pure helpers stay in `lib/client-helpers.js`.
+
+### Fixed
+- `stability-hardening` inject mock now provides `sctx.get` so the settings registration path runs when the schemastery peer is present.
+
+### Notes
+- No user-facing behavior change: same HTTP paths, same rotation/notify semantics, same settings card.
+- `lib/index.js` `apply()` remains a single cordis wiring unit by design.
+
+### Packaging
+- New runtime modules under `lib/` are included via existing `files: ["lib", ...]`.
+
+### Verification
+- unit: 377 pass / 0 fail
+- PR #319 merged to main (`4d78853`)
+
 ## 0.8.11 - 2026-09-16
 
 ### Added
