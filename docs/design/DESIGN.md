@@ -129,3 +129,8 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 - 2026-09-16 — `lib/client.js` stays a single ModuleLoader factory (no bundler); pure helpers remain in `client-helpers.js` (#294/#312).
 - 2026-09-16 — `dsh.client.inject` declares `@deepseek-ai/dsh-client-locale` and `@deepseek-ai/dsh-client-ui-settings` (#313).
 - 2026-09-16 — Internal files (`AGENTS.md`, `index.md`, `docs/plans/`, `openwiki/`) stay in DEV/Gitea but are untracked for public GitHub (#308).
+
+## Locked Design Decisions (append)
+
+- 2026-09-16 — `export const name` stays the short cordis id `dsh-key-rotation` (same as `dsh-image-gen`); npm/loader identity remains the scoped name in `package.json`, `cordis.patch.yml` `name:`, and `load({ id })`. Preflight 4th-place FAIL is accepted family convention. Revisit only if a consumer injects the scoped name as a cordis service.
+- 2026-09-16 — Intentional best-effort side effects use `lib/best-effort.js` (`bestEffort(label, fn, logger?)`) instead of empty `catch {}`; client factory uses a local equivalent. Adds debug logging without failing the host.
