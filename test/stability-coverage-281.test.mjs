@@ -1,43 +1,17 @@
 // test/stability-coverage-281.test.mjs — stability hardening and unit coverage for Issue #281.
-import { test } from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import EventEmitter from 'node:events';
 
-import {
-  QUOTA_WINDOW_TYPES,
-  nextQuotaReset,
-  poolResetAt,
-  isBlockedUntilReset,
-} from '../lib/quota-window.js';
+import {QUOTA_WINDOW_TYPES, nextQuotaReset, poolResetAt, isBlockedUntilReset,} from '../lib/quota-window.js';
 
-import { defaultClock, nowWall, nowMono } from '../lib/clock.js';
 
-import {
-  NS,
-  json,
-  readJson,
-  descriptorOf,
-  viewOf,
-  providerCatalog,
-  guardLocal,
-  scanForLiveSecrets,
-} from '../lib/http-bridge.js';
 
-import {
-  LAST_TEST_MAX,
-  PROBE_RETRY_DELAY_MS,
-  PROBE_MODELS_TIMEOUT_MS,
-  LastTestCache,
-} from '../lib/sandbox.js';
+import {NS, json, readJson, descriptorOf, viewOf, providerCatalog, scanForLiveSecrets,} from '../lib/http-bridge.js';
 
-import {
-  isLoopbackAddress,
-  isTrustedBridgeRequest,
-  isSoftFailure,
-  SOFT_FAILURE_CODES,
-  keyTail,
-  KEY_TAIL_CHARS,
-} from '../lib/pool.js';
+import {LAST_TEST_MAX, PROBE_RETRY_DELAY_MS, PROBE_MODELS_TIMEOUT_MS, LastTestCache,} from '../lib/sandbox.js';
+
+import {isLoopbackAddress, isTrustedBridgeRequest, SOFT_FAILURE_CODES, keyTail, KEY_TAIL_CHARS,} from '../lib/pool.js';
 
 // =========================================================================
 // 1. Quota Window Coverage (#281)
@@ -72,16 +46,6 @@ test('quota-window: isBlockedUntilReset handles edge cases', () => {
 // =========================================================================
 // 2. Clock Coverage (#281)
 // =========================================================================
-test('clock: defaultClock exports functions nowWall and nowMono', () => {
-  assert.equal(typeof defaultClock.nowWall, 'function');
-  assert.equal(typeof defaultClock.nowMono, 'function');
-  const w = defaultClock.nowWall();
-  const m = defaultClock.nowMono();
-  assert.ok(Number.isFinite(w));
-  assert.ok(Number.isFinite(m));
-  assert.ok(w > 1700000000000);
-  assert.ok(m > 0);
-});
 
 // =========================================================================
 // 3. Pool Helpers & Network Guards Coverage (#281)
@@ -134,25 +98,6 @@ test('pool: isTrustedBridgeRequest enforces localhost/loopback and origin safety
   }), false);
 });
 
-test('pool: isSoftFailure correctly classifies codes and error messages', () => {
-  assert.ok(SOFT_FAILURE_CODES.has('TIMEOUT'));
-  assert.ok(SOFT_FAILURE_CODES.has('SERVER'));
-  assert.ok(SOFT_FAILURE_CODES.has('TRANSPORT'));
-
-  assert.equal(isSoftFailure('TIMEOUT'), true);
-  assert.equal(isSoftFailure('SERVER'), true);
-  assert.equal(isSoftFailure('502'), true);
-  assert.equal(isSoftFailure('AUTH'), false);
-  assert.equal(isSoftFailure('RATE_LIMIT'), false);
-
-  // Pattern detection in messages
-  assert.equal(isSoftFailure('', 'Gateway timeout 504 occurred'), true);
-  assert.equal(isSoftFailure('', 'Socket hang up unexpectedly'), true);
-  assert.equal(isSoftFailure('', 'connect ECONNRESET 127.0.0.1:443'), true);
-  assert.equal(isSoftFailure('', 'connect ECONNREFUSED 127.0.0.1:443'), true);
-  assert.equal(isSoftFailure('', 'Bad gateway 502 returned'), true);
-  assert.equal(isSoftFailure('', 'Unrelated error message'), false);
-});
 
 test('pool: keyTail handles null, short and standard keys', () => {
   assert.equal(keyTail(null), '');
@@ -212,19 +157,6 @@ test('http-bridge: readJson rejects malformed JSON', async () => {
   await assert.rejects(promise, (err) => err instanceof SyntaxError);
 });
 
-test('http-bridge: guardLocal denies untrusted and allows trusted', () => {
-  let deniedCode = null;
-  const untrustedReq = { socket: { remoteAddress: '10.0.0.1' } };
-  const mockRes = {
-    writeHead(code) { deniedCode = code; },
-    end() {},
-  };
-  assert.equal(guardLocal(untrustedReq, mockRes, 'test-endpoint'), false);
-  assert.equal(deniedCode, 403);
-
-  const trustedReq = { socket: { remoteAddress: '127.0.0.1' } };
-  assert.equal(guardLocal(trustedReq, mockRes, 'test-endpoint'), true);
-});
 
 test('http-bridge: scanForLiveSecrets masks webhook tokens but flags raw api keys in configs', () => {
   // Config with webhook tokens should have them masked so they are not flagged

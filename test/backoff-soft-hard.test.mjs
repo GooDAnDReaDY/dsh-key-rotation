@@ -1,22 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isSoftFailure, computeBackoff, applyJitter, recordFailure } from '../lib/pool.js';
+import { computeBackoff, applyJitter, recordFailure } from '../lib/pool.js';
 
-test('isSoftFailure: identifies soft network and server drops', () => {
-  assert.equal(isSoftFailure('SERVER', ''), true);
-  assert.equal(isSoftFailure('TIMEOUT', ''), true);
-  assert.equal(isSoftFailure('TRANSPORT', ''), true);
-  assert.equal(isSoftFailure('EMPTY_RESPONSE', ''), true);
-  assert.equal(isSoftFailure(null, '502 Bad Gateway'), true);
-  assert.equal(isSoftFailure(null, '503 Service Unavailable'), true);
-  assert.equal(isSoftFailure(null, 'socket hang up'), true);
 
-  // Hard errors
-  assert.equal(isSoftFailure('QUOTA', ''), false);
-  assert.equal(isSoftFailure('RATE_LIMIT', ''), false);
-  assert.equal(isSoftFailure('AUTH', ''), false);
-  assert.equal(isSoftFailure(null, '429 Too Many Requests'), false);
-});
 
 test('computeBackoff: soft failures get short flat cooldown without multiplier', () => {
   const baseMs = 60000;

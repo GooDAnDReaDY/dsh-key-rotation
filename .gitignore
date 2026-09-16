@@ -30,3 +30,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# never publish internal workflow files (issue #308)
+AGENTS.md
+index.md
+docs/plans/
+docs/superpowers/
+openwiki/

@@ -15,6 +15,7 @@
   - `GET/PUT /dsh-key-rotation/config`: конфигурационный мост (адаптер для DSH settings).
   - `POST /dsh-key-rotation/test`: изолированная песочница валидации ключа (`models` / `chat`).
   - `POST /dsh-key-rotation/webhook/action`: интерактивные действия (cooldown reset, rotate).
+  - `GET/POST /api/dsh-key-rotation/update`: one-click проверка/установка обновления из npm (#307).
 - **CLI**: Стандартный интерфейс управления плагинами DSH (`dsh plugin add/remove`).
 - **Документация**: `README.md`, `README.ru.md`, `README.zh.md`, витрина `goodandready.app`.
 
@@ -40,6 +41,7 @@
   - `PoolRow`: строка конфигурации провайдера со списком ключей, весов и тегов.
   - `HealthChip`: компактный бэйдж здоровья пула с числом живых ключей.
   - `MetricsDrawer`: раскрывающаяся секция гистограмм задержки и кодов ошибок.
+  - `UpdaterSection`: блок текущей/последней версии и кнопка обновления (#307).
 - **Loading / empty / error / success**:
   - `loading`: статус снимка настроек `loading` — форма отображает аккуратный скелетон/индикатор загрузки.
   - `unavailable`: предупреждение о недоступности конфигурации на сервере без перезаписи локального драфта.
@@ -119,3 +121,11 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 - 2026-09-10 — Исходная локаль только `en` (`ctx.locale.register(NS, { en })`); `ru`/`zh` не зашиваются в плагин. Переводы — translation-плагин / core `props.t`. Фолбек активной локали: `ctx.locale.getSnapshot().active` → первый `navigator.languages` → `en` (#277 / GitHub #1).
 - 2026-09-10 — Унификация визуального оформления с эталоном `dsh-clinebot` (#281): семантические карточки секций (`.krot-section-card`), статусные бейджи (`.krot-badge-ok/warn/bad`), панель сводной телеметрии (`.krot-stat-box`), эталонные кнопки (`.krot-btn-primary`, `.krot-btn-danger`), инпуты с радиусом 8px и фокусом на `--dsw-alias-state-brand-primary`, удаление всех хардкод hex-цветов, изоляция стилей через `data-dsh-plugin="dsh-key-rotation"` и `id="dsh-key-rotation-full-css"`.
 - 2026-09-10 — Phase 2: Диаграмма распределения нагрузки (`.krot-load-chart`), модальные окна подтверждения (`.krot-modal`) для чувствительных действий (сброс кулдаунов, удаление пула), синхронный сброс Circuit Breaker при сбросе пула в `/dsh-key-rotation/reset`, и применение джиттера при вычислении кулдаунов для защиты от thundering herd (#283).
+
+## Locked Design Decisions (updated)
+
+- 2026-09-16 — Theme colors only: translucent status fills use `color-mix` over `--dsw-alias-state-*`; chart series use theme tokens via `--krot-chart-*` (#311).
+- 2026-09-16 — Plugin update UX lives inside the existing settings card (no separate navigation); endpoint `/api/dsh-key-rotation/update`; POST only after explicit user click (#307).
+- 2026-09-16 — `lib/client.js` stays a single ModuleLoader factory (no bundler); pure helpers remain in `client-helpers.js` (#294/#312).
+- 2026-09-16 — `dsh.client.inject` declares `@deepseek-ai/dsh-client-locale` and `@deepseek-ai/dsh-client-ui-settings` (#313).
+- 2026-09-16 — Internal files (`AGENTS.md`, `index.md`, `docs/plans/`, `openwiki/`) stay in DEV/Gitea but are untracked for public GitHub (#308).
