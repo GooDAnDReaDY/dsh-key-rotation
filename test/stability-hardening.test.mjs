@@ -104,7 +104,7 @@ test('buildRuntime and credentials.resolve with mock context', async () => {
     effect: (fn) => fn(),
     on: () => () => {},
     inject: (deps, fn) => {
-      fn({
+      const sctx = {
         effect: (fn) => (typeof fn === 'function' ? fn() : undefined),
         settings: {
           register: () => ({
@@ -113,7 +113,10 @@ test('buildRuntime and credentials.resolve with mock context', async () => {
             }),
           }),
         },
-      });
+      };
+      // cordis inject context resolves services via sctx.get(name)
+      sctx.get = (name) => (name === 'settings' ? sctx.settings : null);
+      fn(sctx);
     },
     get: (name) => {
       if (name === 'credentials') return creds;
