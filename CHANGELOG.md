@@ -3,6 +3,36 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.11 - 2026-09-16
+
+### Added
+- **One-click plugin updater** (#307): host endpoint `GET/POST /api/dsh-key-rotation/update` and settings UI section to check the latest npm version and install it via the standard `dsh plugin add` path. POST is loopback + same-origin gated; GET exposes version metadata only.
+- `lib/best-effort.js` helper for intentional non-critical side effects (sync + async, debug log, never throws) (#315).
+- `dsh.client.inject` declares `@deepseek-ai/dsh-client-locale` and `@deepseek-ai/dsh-client-ui-settings` (#313).
+- Unit tests: `test/plugin-updater-307.test.mjs`, `test/best-effort.test.mjs`.
+
+### Changed
+- Client styles use theme tokens via `color-mix` / `--krot_chart-*` instead of hard-coded rgba/hex (#311).
+- Cyrillic comments in `lib/client.js` translated to English; locale note documents en+zh (#309).
+- DESIGN.md locks: ModuleLoader single-file client constraint; short cordis `export const name` vs scoped npm identity; bestEffort policy (#312, #315).
+
+### Fixed
+- Empty `catch` blocks that swallowed persistence, circuit-reset, webhook-callback and UI errors now go through `bestEffort` with debug logging (#315).
+- Production-path tests retargeted after removal of dead exports (`isSoftFailure`, `TokenBucketAccumulator`, etc.) and `test/bucket-o1.test.mjs` (#314).
+
+### Removed
+- Internal agent files (`AGENTS.md`, `index.md`, `docs/plans/*`) from the git publication set and npm pack (#308).
+- Stale release `.tgz` artifacts from the DEV tree (#310).
+
+### Packaging
+- `npm pack`: 34 files, max file ~105KB (`lib/client.js`), no AGENTS/index/docs/plans/openwiki.
+
+### Verification
+- unit: 248 pass / 0 fail / 1 skip
+- preflight: empty-catch FAIL cleared; remaining name FAIL is accepted short cordis id (image-gen convention)
+- MiniPC test contour: status 200, updater GET 200, POST foreign/missing origin 403, cleanup OK
+- Production candidate (temporary tgz): status 200, providers=2 keys=7 present=7, updater GET 200, POST 403 on non-local origin
+
 ## 0.8.8 - 2026-09-12
 
 - feat(ui): add dedicated `.krot-header` with live status badges (pools count, keys configured, circuit state, health score) and subtitle matching `dsh-clinebot` styling (#301, #302)

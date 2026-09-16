@@ -38,6 +38,13 @@
 
 ## ⚡ Overview & The Problem
 
+### 🚀 What's New in v0.8.11 (One-click Updater & Quality Gate)
+
+- **Plugin updater in Settings**: see current/latest version and update from the card without leaving DSH (`#307`).
+- **Safer best-effort side effects**: intentional non-critical failures log at debug instead of silent empty `catch` (`#315`).
+- **Theme-only client colors** and production-path test cleanup (`#311`, `#314`).
+- **Leaner publication set**: agent-only files no longer ship in git/npm (`#308`).
+
 ### 🚀 What's New in v0.8.10 (Stream Concurrency Hardening & Auto-Pruning)
 - **Zero Concurrency Leaks**: Guaranteed release of stream concurrency slots via deterministic `try ... finally` block, preventing key starvation during clean finishes or client stream aborts.
 - **Robust Probe Retry**: Added transient network socket error retry (`PROBE_RETRY_DELAY_MS`) in `SandboxRunner.probeModels` before marking keys as broken.
@@ -163,6 +170,17 @@ graph LR
 * **Latency SLO & Histogram (`lib/histogram.js`)**: Tracks Time-To-First-Token (TTFT) and stream durations with health score degradation scoring (`0..100`).
 
 ---
+
+
+### 🔁 8. One-click Plugin Updater
+
+The settings card includes an **Updater** section:
+
+1. **Check for updates** — `GET /api/dsh-key-rotation/update` returns `currentVersion`, `latestVersion`, `updateAvailable`, `canAutoUpdate` (version metadata only; no secrets).
+2. **Update now** — `POST` with the same path installs the exact latest npm version through the standard `dsh plugin add` flow. The request is accepted only from loopback with a matching same-origin `Origin`/`Host` (and the dedicated header). Cross-origin or missing-origin POST is rejected with `403`.
+3. After a successful install the UI tells you to **restart DSH** so the new host code loads.
+
+No `--force`, no raw shell, no install from worktree/DEV paths. Update runs only after an explicit click.
 
 ## 🖥️ Rich Web GUI & Dashboard
 
