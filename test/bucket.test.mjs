@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bucketAllow, bucketHit, bucketRetryMs, bucketSweep, bucketInfo } from '../lib/bucket.js';
+import { bucketAllow, bucketRetryMs, bucketSweep, bucketInfo } from '../lib/bucket.js';
 
 test('bucket: disabled when limit <= 0', () => {
   const w = new Map();
@@ -27,12 +27,6 @@ test('bucket: per-ref isolation', () => {
   assert.equal(bucketAllow(w, 'B', 1, 1001), true);
 });
 
-test('bucketHit records without checking', () => {
-  const w = new Map();
-  bucketHit(w, 'K', 1000);
-  assert.equal(bucketAllow(w, 'K', 1, 1001), false);
-});
-
 test('bucketRetryMs reports wait time', () => {
   const w = new Map();
   bucketAllow(w, 'K', 1, 1000);
@@ -42,8 +36,8 @@ test('bucketRetryMs reports wait time', () => {
 
 test('bucketSweep drops dead refs', () => {
   const w = new Map();
-  bucketHit(w, 'A', 1000);
-  bucketHit(w, 'B', 1000);
+  bucketAllow(w, 'A', 1, 1000);
+  bucketAllow(w, 'B', 1, 1000);
   bucketSweep(w, new Set(['A']));
   assert.ok(w.has('A'));
   assert.ok(!w.has('B'));

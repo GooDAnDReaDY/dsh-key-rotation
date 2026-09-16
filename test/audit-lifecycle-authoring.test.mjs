@@ -45,9 +45,9 @@ test('client.js settings card has localized label and locale: NS (#236, #275)', 
   assert.ok(!CLIENT_SRC.includes("name: 'settings.section'"), 'No settings.section registration (#275)');
 });
 
-test('client.js registers English dictionary only (#277)', () => {
-  assert.ok(CLIENT_SRC.includes('ctx.locale.register(NS, { en })'), 'Only en source dictionary must be registered');
-  assert.ok(!CLIENT_SRC.includes('{ en, ru, zh }'), 'Hardcoded ru/zh dictionaries are forbidden (#277)');
+test('client.js registers en + zh dictionaries without ru (#277, #309)', () => {
+  assert.ok(CLIENT_SRC.includes('ctx.locale.register(NS, { en, zh })'), 'en + zh source dictionaries must be registered');
+  assert.ok(!CLIENT_SRC.includes('{ en, ru, zh }'), 'Hardcoded ru dictionary is forbidden (#277)');
 });
 
 test('client.js settingsScope integration (#235)', () => {

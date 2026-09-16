@@ -1,7 +1,8 @@
 // test/cascade.test.mjs — issue #194 cascade failover
-import { test } from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import { pickCascadeFallback, hasHealthyKey } from '../lib/cascade.js';
+import { pickCascadeFallback, CASCADE_MAX_DEPTH } from '../lib/cascade.js';
+
 
 function makePool(refs, opts = {}) {
   const now = opts.now || Date.now();
@@ -50,17 +51,5 @@ test('pickCascadeFallback: empty cascade returns null', () => {
   assert.equal(pickCascadeFallback('a', null, new Map()), null);
 });
 
-test('hasHealthyKey: true for healthy pool', () => {
-  const pool = makePool(['A1']);
-  assert.equal(hasHealthyKey(pool), true);
-});
 
-test('hasHealthyKey: false when all in cooldown', () => {
-  const pool = makePool(['A1', 'A2'], { failedUntil: { A1: Date.now() + 60000, A2: Date.now() + 60000 } });
-  assert.equal(hasHealthyKey(pool), false);
-});
 
-test('hasHealthyKey: null/empty pool', () => {
-  assert.equal(hasHealthyKey(null), false);
-  assert.equal(hasHealthyKey({ refs: [] }), false);
-});

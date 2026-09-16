@@ -1,13 +1,14 @@
 // test/stability-080.test.mjs — 0.8.0 stability block (#260-#269)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nowMono, nowWall } from '../lib/clock.js';
-import { BoundedMap } from '../lib/bounded-map.js';
-import { CircuitBreaker, BREAKER_OPEN, BREAKER_CLOSED, BREAKER_HALF_OPEN } from '../lib/circuit-breaker.js';
-import { classifyFailure, shouldSwitch } from '../lib/error-taxonomy.js';
-import { safeParseJson, atomicWriteFile, safeReadJson, atomicWriteJson } from '../lib/atomic-io.js';
-import { NotifyQueue } from '../lib/notify-queue.js';
-import { isSwitchableError } from '../lib/pool.js';
+import {nowMono, nowWall} from '../lib/clock.js';
+import {BoundedMap} from '../lib/bounded-map.js';
+import {CircuitBreaker, BREAKER_OPEN, BREAKER_CLOSED, BREAKER_HALF_OPEN} from '../lib/circuit-breaker.js';
+
+import {safeParseJson, atomicWriteFile, safeReadJson, atomicWriteJson} from '../lib/atomic-io.js';
+import {NotifyQueue} from '../lib/notify-queue.js';
+import {isSwitchableError} from '../lib/pool.js';
+import {classifyFailure} from '../lib/error-taxonomy.js';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -88,17 +89,22 @@ test('error-taxonomy: full HTTP/socket/gRPC table', () => {
   assert.equal(classifyFailure({ code: 'UNAVAILABLE' }).action, 'switch');
   assert.equal(classifyFailure({ code: 'ABORTED' }).action, 'switch');
   assert.equal(classifyFailure({ code: 'INVALID_ARGUMENT' }).action, 'surface');
-  assert.equal(shouldSwitch({ status: 429 }), true);
-  assert.equal(shouldSwitch({ status: 400 }), false);
+  // Production path: rotate() uses classifyFailure + isSwitchableError (#314)
+  assert.equal(classifyFailure({ status: 429 }).action === 'switch', isSwitchableError({ status: 429 }));
+  assert.equal(classifyFailure({ status: 503 }).action === 'switch', isSwitchableError({ status: 503 }));
+  assert.equal(classifyFailure({ status: 400 }).action === 'switch', isSwitchableError({ status: 400 }));
 });
 
-test('error-taxonomy aligns with isSwitchableError for common cases', () => {
+test('production path: classifyFailure drives isSwitchableError decisions', () => {
   const cases = [
     { status: 429 }, { status: 401 }, { status: 503 },
-    { code: 'RESOURCE_EXHAUSTED' }, { code: 'UNAVAILABLE' },
+    { code: 'RESOURCE_EXHAUSTED' }, { code: 'UNAVAILABLE' }, { status: 400 },
   ];
   for (const c of cases) {
-    assert.equal(shouldSwitch(c), isSwitchableError(c), JSON.stringify(c));
+    const cls = classifyFailure(c);
+    const switchable = isSwitchableError(c);
+    if (cls.action === 'switch') assert.equal(switchable, true, JSON.stringify(c));
+    if (cls.action === 'surface') assert.equal(switchable, false, JSON.stringify(c));
   }
 });
 
