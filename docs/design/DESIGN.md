@@ -127,6 +127,7 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 - 2026-09-16 — Theme colors only: translucent status fills use `color-mix` over `--dsw-alias-state-*`; chart series use theme tokens via `--krot-chart-*` (#311).
 - 2026-09-16 — Plugin update UX lives inside the existing settings card (no separate navigation); endpoint `/api/dsh-key-rotation/update`; POST only after explicit user click (#307).
 - 2026-09-16 — `lib/client.js` stays a single ModuleLoader factory (no bundler); pure helpers remain in `client-helpers.js` (#294/#312).
+- 2026-09-16 — Operational HTTP routes decomposed: `lib/routes-ops.js` is a thin orchestrator; route families live in `lib/ops-status.js`, `ops-telemetry.js`, `ops-keys.js`, `ops-test.js`, `ops-webhook.js`; shared path constants in `lib/ops-paths.js` (#312).
 - 2026-09-16 — `dsh.client.inject` declares `@deepseek-ai/dsh-client-locale` and `@deepseek-ai/dsh-client-ui-settings` (#313).
 - 2026-09-16 — Internal files (`AGENTS.md`, `index.md`, `docs/plans/`, `openwiki/`) stay in DEV/Gitea but are untracked for public GitHub (#308).
 

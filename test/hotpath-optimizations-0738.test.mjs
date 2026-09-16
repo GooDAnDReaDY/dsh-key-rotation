@@ -4,8 +4,18 @@ import fs from 'node:fs';
 
 const INDEX_SRC = fs.readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8');
 const ROTATE_SRC = fs.readFileSync(new URL('../lib/rotate.js', import.meta.url), 'utf8');
-const OPS_SRC = fs.readFileSync(new URL('../lib/routes-ops.js', import.meta.url), 'utf8');
+const OPS_FILES = [
+  '../lib/routes-ops.js',
+  '../lib/ops-paths.js',
+  '../lib/ops-status.js',
+  '../lib/ops-telemetry.js',
+  '../lib/ops-keys.js',
+  '../lib/ops-test.js',
+  '../lib/ops-webhook.js',
+];
+const OPS_SRC = OPS_FILES.map((f) => fs.readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n');
 const ALL_SRC = INDEX_SRC + '\n' + ROTATE_SRC + '\n' + OPS_SRC;
+
 
 test('extractRateLimit parses headers efficiently without allocating case variants', async () => {
   const { extractRateLimit } = await import('../lib/pool.js');
