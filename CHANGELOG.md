@@ -3,6 +3,23 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.13 - unreleased
+
+### Changed
+- **Server Decomposition (#312)**: `lib/index.js` decomposed from 924 to ~562 lines to meet the 600-line plugin authoring threshold. Extracted modular services into `lib/logger.js`, `lib/sandbox-service.js`, `lib/budget-monitor.js`, `lib/pool-builder.js`, and `lib/lifecycle.js`. Public exports and runtime behavior are 100% preserved.
+- **Logging Alignment**: replaced all runtime `console.warn` calls across server modules (`lib/index.js`, `lib/rotate.js`, `lib/ops-status.js`, `lib/ops-webhook.js`) with Cordis scoped logger (`ctx.logger('key-rotation')` / `getLogger(ctx)`).
+
+### Fixed
+- **Preflight & Theme Conformance (#312)**:
+  - Client UI: eliminated 11 hardcoded fallback hex color literals from `lib/client.js`, strictly adopting `--dsw-alias-state-*` tokens.
+  - Client UI: requested `IconChevronDownOutline14` in module header to satisfy preflight icon contract.
+  - HTTP Bridge: added strict HTTP method guard (`GET`, `PUT`, `DELETE`, `OPTIONS`) on `/api/dsh-key-rotation/config` write-capable routes.
+- Preflight score improved to `FAIL: 0, WARN: 1` (only `lib/client.js` exceeding 600 lines as documented single-file browser bundle).
+
+### Verification
+- unit: 375 pass / 0 fail / 1 skipped
+- `bash preflight.sh`: FAIL: 0, WARN: 1
+
 ## 0.8.12 - 2026-09-16
 
 ### Changed
