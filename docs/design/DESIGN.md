@@ -136,3 +136,13 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 
 - 2026-09-16 — `export const name` stays the short cordis id `dsh-key-rotation` (same as `dsh-image-gen`); npm/loader identity remains the scoped name in `package.json`, `cordis.patch.yml` `name:`, and `load({ id })`. Preflight 4th-place FAIL is accepted family convention. Revisit only if a consumer injects the scoped name as a cordis service.
 - 2026-09-16 — Intentional best-effort side effects use `lib/best-effort.js` (`bestEffort(label, fn, logger?)`) instead of empty `catch {}`; client factory uses a local equivalent. Adds debug logging without failing the host.
+
+- 2026-09-17 — Core server decomposition & Preflight polish (#312):
+  - `lib/index.js` decomposed from 924 to ~562 lines (below the 600-line plugin authoring threshold). Modular helpers extracted:
+    - `lib/logger.js`: centralized Cordis logger accessor (`getLogger(ctx)`) with safe fallback to `console` during testing/detached mode.
+    - `lib/sandbox-service.js`: sandbox runner & cache service factory (`createSandboxService`).
+    - `lib/budget-monitor.js`: periodic budget checks, expiry detection, low health warnings, and SLO alert dispatcher (`checkBudgetAndHealthAlerts`).
+    - `lib/pool-builder.js`: pool item builder (`buildPoolItem`) and provider state cleanup (`cleanupRemovedProviders`).
+    - `lib/lifecycle.js`: background timer orchestrators (`setupIdleHealEffect`, `setupAutoUnbreakEffect`, `setupPersistence`).
+  - Preflight cleanup: eliminated all 23 `console.*` calls in server runtime (`lib/index.js`, `lib/rotate.js`, `lib/ops-status.js`, `lib/ops-webhook.js`), replaced with Cordis logger; removed 11 hardcoded CSS fallback hex literals from `lib/client.js` in favor of `--dsw-alias-*` theme tokens; client header requests standard `IconChevronDownOutline14` icon; config bridge route checks valid HTTP request methods (`GET`, `PUT`, `DELETE`, `OPTIONS`).
+  - `lib/client.js` remains the documented single-file browser bundle (single ModuleLoader factory per 2026-09-16 decision).
