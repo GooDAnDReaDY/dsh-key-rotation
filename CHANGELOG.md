@@ -3,7 +3,7 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
-## 0.8.13 - unreleased
+## 0.8.13 - 2026-09-17
 
 ### Changed
 - **Server Decomposition (#312)**: `lib/index.js` decomposed from 924 to ~562 lines to meet the 600-line plugin authoring threshold. Extracted modular services into `lib/logger.js`, `lib/sandbox-service.js`, `lib/budget-monitor.js`, `lib/pool-builder.js`, and `lib/lifecycle.js`. Public exports and runtime behavior are 100% preserved.
