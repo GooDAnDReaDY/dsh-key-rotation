@@ -146,3 +146,8 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
     - `lib/lifecycle.js`: background timer orchestrators (`setupIdleHealEffect`, `setupAutoUnbreakEffect`, `setupPersistence`).
   - Preflight cleanup: eliminated all 23 `console.*` calls in server runtime (`lib/index.js`, `lib/rotate.js`, `lib/ops-status.js`, `lib/ops-webhook.js`), replaced with Cordis logger; removed 11 hardcoded CSS fallback hex literals from `lib/client.js` in favor of `--dsw-alias-*` theme tokens; client header requests standard `IconChevronDownOutline14` icon; config bridge route checks valid HTTP request methods (`GET`, `PUT`, `DELETE`, `OPTIONS`).
   - `lib/client.js` remains the documented single-file browser bundle (single ModuleLoader factory per 2026-09-16 decision).
+
+- 2026-09-19 — Switchable codes normalization & updater hardening (#324, GitHub #2, #3, #6):
+  - `isSwitchableError(failureOrPayload, switchCodes)` normalizes array or non-Set arguments to a `Set` at the single choke point. Callers passing `DEFAULT_SWITCH_CODES` (array) or `cfg.switchCodes` (schema array) no longer throw `TypeError`.
+  - `UpdaterSection` resides at module/factory scope in `lib/client.js` directly before `KeyRotationSection` (its caller), ensuring proper hoisting and scope visibility without `ReferenceError`.
+  - `lib/plugin-updater.js` `installExact()` validates `packageSpec` against `PACKAGE_SPEC_PATTERN` (`^(@[a-z0-9~][a-z0-9_.~-]*\/)?[a-z0-9~][a-z0-9_.~-]*(@[0-9a-zA-Z_.~+-]+)?$`) before spawning CLI commands.
