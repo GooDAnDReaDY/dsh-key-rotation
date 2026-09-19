@@ -38,8 +38,14 @@ test('client.js dead mountDashboard is removed (#240)', () => {
   assert.ok(!CLIENT_SRC.includes('mountDashboard()'), 'mountDashboard call must be removed');
 });
 
-test('client.js settings card has localized label and locale: NS (#236, #275)', () => {
-  assert.ok(!CLIENT_SRC.includes("label: () => 'Key Rotation'"), 'Hardcoded English label must be removed');
+test('client.js settings card is localized, with a static list-seat label (#236, #275)', () => {
+  // The plugin-list seat (plugins.item) is what the current core renders as the
+  // plugin's own page. Its label is resolved while the page renders, so it MUST be a
+  // static string: a locale lookup there aborts the whole client batch. Everything
+  // inside the card stays localized through t(...).
+  const seatAt = CLIENT_SRC.indexOf("name: 'plugins.item'");
+  assert.ok(seatAt > 0, 'the plugin-list seat must be registered');
+  assert.match(CLIENT_SRC.slice(seatAt, seatAt + 400), /label: \(\) => '[^']+'/, 'the list-seat label is a static string');
   assert.ok(CLIENT_SRC.includes("t('title')"), 'Card must use t(title)');
   assert.ok(CLIENT_SRC.includes("locale: NS"), 'Card must include locale: NS');
   assert.ok(!CLIENT_SRC.includes("name: 'settings.section'"), 'No settings.section registration (#275)');
