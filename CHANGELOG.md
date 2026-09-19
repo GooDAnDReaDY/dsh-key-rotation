@@ -3,7 +3,7 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
-## Unreleased
+## 0.8.14 - 2026-09-19
 
 ### Fixed
 - **Critical fix: switchable error rotation crash (#324, GitHub #3 / PR #4)**: `isSwitchableError()` in `lib/pool.js` now normalizes `switchCodes` to a `Set` when passed as an array. Previously, runtime schema arrays (`cfg.switchCodes`, `DEFAULT_SWITCH_CODES`) caused `TypeError: switchCodes.has is not a function`, crashing turns on rate limits, quota exhaustion, and 5xx errors instead of rotating keys.
