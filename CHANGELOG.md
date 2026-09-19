@@ -6,6 +6,9 @@ User-facing feature notes also appear in README (en is source of truth).
 ## Unreleased
 
 ### Fixed
+- **Critical fix: switchable error rotation crash (#324, GitHub #3 / PR #4)**: `isSwitchableError()` in `lib/pool.js` now normalizes `switchCodes` to a `Set` when passed as an array. Previously, runtime schema arrays (`cfg.switchCodes`, `DEFAULT_SWITCH_CODES`) caused `TypeError: switchCodes.has is not a function`, crashing turns on rate limits, quota exhaustion, and 5xx errors instead of rotating keys.
+- **Critical fix: settings UI render crash (#324, GitHub #2 / PR #5)**: declared `UpdaterSection` at factory scope in `lib/client.js` before `KeyRotationSection`, removing the `apply(ctx)`-local declaration that caused `ReferenceError: UpdaterSection is not defined`.
+- **Security hardening: packageSpec validation (#324, GitHub #6)**: added strict package spec regex validation in `lib/plugin-updater.js` `installExact()` before child process invocation, preventing command-option injection.
 - **Settings reachable again**: the card registered into `settings.plugin.item`, a
   slot the current DSH core (0.1.6-alpha.2) no longer renders, so the plugin's
   settings were unreachable. The surface now registers into the Plugins page row
