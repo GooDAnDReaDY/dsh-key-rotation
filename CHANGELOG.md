@@ -3,6 +3,19 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.15 - 2026-09-20
+
+### Fixed
+- **Settings on the plugin's own page**: the plugin-list seat `plugins.item` is the one
+  the current core (0.1.6-alpha.2) renders as the plugin's page with its configuration;
+  the row seat alone leaves the page without the form. `KeyRotationCard` is now
+  registered there too (`id: 'dsh-key-rotation'`, order 60) with a **static** label —
+  the label is resolved while the page renders, and a locale lookup there aborts the
+  whole client batch. The row seat and the legacy `settings.plugin.item` card stay as
+  fallbacks.
+- The authoring test no longer forbids every hardcoded label: it now requires the
+  list-seat label to be static while the card body keeps using `t(...)`.
+
 ## 0.8.14 - 2026-09-19
 
 ### Fixed
