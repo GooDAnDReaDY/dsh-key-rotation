@@ -3,6 +3,23 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## Unreleased
+
+### Fixed
+- **Settings reachable again**: the card registered into `settings.plugin.item`, a
+  slot the current DSH core (0.1.6-alpha.2) no longer renders, so the plugin's
+  settings were unreachable. The surface now registers into the Plugins page row
+  seat `plugins.row.config` first, keyed
+  `@goodandready/dsh-key-rotation#dsh-key-rotation` (`rowConfigKey(package, rowId)`):
+  the plugin's row gains a configure control whose page is the settings form
+  (`view: 'page'`, open and without our card chrome — the host page draws the title,
+  icon, crumb and padding) plus a one-line state for `view: 'summary'`. The legacy
+  seat stays registered as a fallback for older cores.
+
+Version bump and public release are intentionally held back for now: the feature
+work on `feat/issue-303-v089-evolution` is still in flight, so this change lands in
+`main` without a release.
+
 ## 0.8.13 - 2026-09-17
 
 ### Changed
