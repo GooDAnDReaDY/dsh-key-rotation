@@ -3,6 +3,12 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.16 - 2026-09-20
+
+### Fixed
+- **Header chip translation scope (#330, GitHub #7 / PR #8)**: `KeyRotationHeaderChip` in `lib/client.js` now accepts props and resolves translator `resolveT(props)` before opening popover, preventing `ReferenceError: t is not defined` and fixing disappearance on first click. Header slot registration includes `locale: NS`.
+- **Live bulk key testing & bounded concurrency (#330, GitHub #9 / PR #10)**: "Test all keys" now executes live API probes (`probe: 'models'`) identically to individual testing via unified `runKeyTests()`, eliminating false-positive green status on invalid keys. Requests are serialized (concurrency 1) to avoid bursting endpoints, mutex `testRunRef` guards duplicate clicks, and returned failure error codes (`tr.code`) are displayed in the UI.
+
 ## 0.8.15 - 2026-09-20
 
 ### Fixed
