@@ -3,6 +3,12 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.17 - 2026-09-21
+
+### Fixed
+- **Provider catalog decoupling in settings UI (#333, GitHub #11 / PR #12)**: `useProviderCatalog` in `lib/client.js` now loads the active provider catalog (`/dsh-key-rotation/config`) independently of `settingsScope` readiness, using `AbortController` and `window.focus` refresh. Eliminates false-negative `(not registered)` badge on existing routes when the settings snapshot was already ready on initial render. Fallback configuration loading is protected against overwriting newer settings values.
+- **Modern provider probe endpoint discovery (#333, GitHub #11 / PR #12)**: extracted dedicated resolver `resolveProbeBaseUrl(ctx, provider)` in `lib/probe-endpoint.js`. Inspects `llm.listConfigurableProviders()` and resolves connection URLs from `settingsNs` + `settingsPath` in effective settings (`settings.describe()`). Supports `baseURL`, `baseUrl`, `apiBase`, `endpoint`, and `url`, eliminating false `no-baseurl` errors when probing SenseNova and modern dictionary-configured pi-ai / standalone adapters. Implements safe path traversal and fail-closed validation.
+
 ## 0.8.16 - 2026-09-20
 
 ### Fixed
