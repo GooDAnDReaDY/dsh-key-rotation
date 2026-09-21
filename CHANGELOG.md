@@ -3,6 +3,16 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.18 - 2026-09-21
+
+### Fixed
+- **Stream success failCount reset (#336)**: `rotate()` now invokes `recordSuccess(pool, activeRef, now())` upon successful stream completion and clean EOF, clearing accumulated `failCounts`, removing stale `failedUntil`, and updating `lastSuccessAt`.
+- **Calendar-based quota reset connection (#337)**: connected `quota-window.js` (`nextQuotaReset`) to `penalizeRef` in `lib/rotate.js` when `QUOTA` / `RESOURCE_EXHAUSTED` / quota errors occur and `quotaResetWindow` is configured. Ensures exhausted keys remain penalized until calendar reset window instead of rapidly failing over back into penalty. Enhanced `nextQuotaReset` to safely handle both object and string window configurations.
+- **Penalty decay during maintenance sweeps (#338)**: `sweepExpired` in `lib/pool.js` now invokes `decayPenalties({ state: st }, now)`, allowing keys with historic transient failures that have run stably to gradually recover their base backoff levels. Also cleans up expired `quotaWindows`. Removed redundant duplicate check in `isSwitchableError`.
+- **State persistence during failover (#339)**: `schedulePersist()` is now passed into `createRotate()` and invoked whenever a key failover occurs, ensuring key penalty and switch state is promptly written to disk across restarts.
+- **Dead imports cleanup (#340)**: removed 16 unused named imports from `lib/index.js` (`pickCascadeFallback`, `nextQuotaReset`, `usageRows`, `usageCsv`, `findSecrets`, `readJson`, `writeSection`, etc.) ensuring lean bundle evaluation.
+- **Remote configuration import timeout (#341)**: added 10-second timeout via `AbortSignal.timeout(10000)` to remote `fetch(url)` in `/dsh-key-rotation/import` route (`lib/ops-keys.js`), returning HTTP 504 Gateway Timeout with structured error code `'timeout'` on network stalls.
+
 ## 0.8.17 - 2026-09-21
 
 ### Fixed
