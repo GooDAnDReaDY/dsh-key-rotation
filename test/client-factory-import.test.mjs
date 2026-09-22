@@ -67,7 +67,7 @@ test('client: module factory imports cleanly and defines inject and apply', () =
   assert.ok(Array.isArray(exports.inject));
   assert.ok(exports.inject.includes('slots'));
   assert.ok(exports.inject.includes('locale'));
-  assert.ok(exports.inject.includes('settingsScope'));
+  assert.ok(exports.inject.includes('configForms'));
 
   // Test apply(mockCtx)
   const registeredSlots = [];
@@ -76,12 +76,12 @@ test('client: module factory imports cleanly and defines inject and apply', () =
     get: (name) => {
       if (name === 'slots') return { inject: (slot, comp) => registeredSlots.push({ slot, comp }) };
       if (name === 'locale') return { register: () => {}, getSnapshot: () => ({ active: 'en' }) };
-      if (name === 'settingsScope') return { bind: () => ({}) };
+      if (name === 'configForms') return { bind: () => ({}) };
       return {};
     },
     slots: { inject: (slot, comp) => registeredSlots.push({ slot, comp }) },
     locale: { register: () => {}, getSnapshot: () => ({ active: 'en' }) },
-    settingsScope: { bind: () => ({}) },
+    configForms: { get: () => ({}) },
   };
 
   exports.apply(mockCordisCtx);
