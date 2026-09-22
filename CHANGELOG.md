@@ -3,6 +3,11 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.20 - 2026-09-22
+
+### Fixed
+- **Settings card on current DSH** (#345): the client reads its settings namespace through `configForms` instead of the removed `settingsScope` service. The package manifest declares the settings and slots providers the card injects, so the fiber activates and the card mounts again.
+
 ## 0.8.19 - 2026-09-22
 
 ### Fixed
