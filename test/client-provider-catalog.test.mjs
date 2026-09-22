@@ -4,7 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const source = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
-const marker = "    module.exports = { apply, inject: ['slots', 'locale', 'settingsScope'] };";
+const marker = "    module.exports = { apply, inject: ['slots', 'locale', 'configForms'] };";
 assert.equal(source.split(marker).length, 2);
 const configPath = '/dsh-key-rotation/config';
 const value = { providers: [{ provider: 'sensenova', keys: ['KEY_A'] }], switchCodes: [] };
@@ -62,7 +62,7 @@ function mount(getConfig = async () => response(), initialSnapshot = ready()) {
     },
   };
   const scope = { getSnapshot: () => snapshot, subscribe: () => () => {} };
-  const props = { ctx: { settingsScope: { bind: () => scope } } };
+  const props = { ctx: { configForms: { get: () => scope } } };
   const context = {
     window: { addEventListener: (name, fn) => events.set(name, fn), removeEventListener: (name) => events.delete(name),
       __ModuleLoader__: { load(definition) { definition.factory((name) => {
@@ -154,7 +154,7 @@ test('a successful empty catalog still identifies truly absent routes', async ()
   ui.unmount();
 });
 
-test('late catalog response cannot overwrite settingsScope or unsaved keys', async () => {
+test('late catalog response cannot overwrite configForms or unsaved keys', async () => {
   const gate = deferred();
   const ui = mount(() => gate.promise);
   ui.buttons('Add API key')[0].props.onClick(); ui.render();
@@ -181,7 +181,7 @@ for (const rejects of [false, true]) {
   });
 }
 
-test('fallback configuration still works when settingsScope is not ready', async () => {
+test('fallback configuration still works when configForms is not ready', async () => {
   const ui = mount(async () => response(), { status: 'loading' });
   await ui.flush();
   assert.equal(ui.rows().length, 1);

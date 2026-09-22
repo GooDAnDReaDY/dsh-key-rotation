@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import { registerTestRoutes } from '../lib/ops-test.js';
 
 const source = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
-const exportMarker = "    module.exports = { apply, inject: ['slots', 'locale', 'settingsScope'] };";
+const exportMarker = "    module.exports = { apply, inject: ['slots', 'locale', 'configForms'] };";
 assert.equal(source.split(exportMarker).length, 2);
 const response = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -83,7 +83,7 @@ function loadSettings(fetchImpl, providers = [{ provider: 'example', keys: ['KEY
     calls,
     render() {
       cursor = 0;
-      tree = context.testSection({ ctx: { settingsScope: { bind: () => scope } } });
+      tree = context.testSection({ ctx: { configForms: { get: () => scope } } });
       return tree;
     },
     row(index) { return nodes(tree, (n) => n.props.className === 'krot-key')[index]; },

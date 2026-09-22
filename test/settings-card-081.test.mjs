@@ -16,7 +16,7 @@ test('client has ErrorBoundary around settings section (#273)', () => {
   assert.match(client, /KeyRotationErrorBoundary,\s*null,\s*h\(KeyRotationSection/);
 });
 
-test('settingsScope getSnapshot is cached for useSyncExternalStore (#273)', () => {
+test('configForms getSnapshot is cached for useSyncExternalStore (#273)', () => {
   assert.match(client, /getScopeSnapshot/);
   assert.match(client, /scopeCacheRef/);
   assert.match(client, /useSyncExternalStore/);

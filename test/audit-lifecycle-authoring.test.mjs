@@ -56,7 +56,7 @@ test('client.js registers en + zh dictionaries without ru (#277, #309)', () => {
   assert.ok(!CLIENT_SRC.includes('{ en, ru, zh }'), 'Hardcoded ru dictionary is forbidden (#277)');
 });
 
-test('client.js settingsScope integration (#235)', () => {
-  assert.match(CLIENT_SRC, /props\.ctx\.settingsScope\.bind\(\{ namespace: NS \}\)/, 'settingsScope must be bound when available');
+test('client.js configForms integration (#235)', () => {
+  assert.match(CLIENT_SRC, /props\.ctx\.configForms\.get\(NS\)/, 'configForms.get must resolve the settings namespace');
   assert.match(CLIENT_SRC, /scopeSnapshot && scopeSnapshot\.status === 'ready'/, 'status ready check must be present');
 });
