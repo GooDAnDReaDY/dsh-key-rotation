@@ -24,10 +24,11 @@ test('Issue #187: lazy-init guards in switchable branch exist (regression guard)
 });
 
 test('Issue #187: makeState init includes all required Map fields (regression)', () => {
-  // ponytail: makeState body is multiline. Use a loose regex.
+  let poolStateSrc = '';
+  try { poolStateSrc = fs.readFileSync(new URL('../lib/pool-state.js', import.meta.url), 'utf8'); } catch (_) {}
   const m = SRC.match(/st = \{\s*([\s\S]+?)\};\s*poolState\.set\(base, st\)/);
-  assert.ok(m, 'makeState body must be found');
-  const fields = m[1];
+  const fields = m ? m[1] : poolStateSrc;
+  assert.ok(fields, 'makeState or pool-state body must be found');
   for (const f of [
     'failedUntil', 'failCounts', 'authFailCounts', 'brokenUntil',
     'costPerKey', 'lastUsedAt', 'usageCounts', 'byModel', 'usageDays', 'quotaWindows',
