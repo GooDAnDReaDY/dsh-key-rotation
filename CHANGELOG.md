@@ -3,6 +3,15 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.19 - 2026-09-22
+
+### Fixed
+- **Restored pool state hydration & telemetry preservation (GitHub PR #14)**: extracted `initializePoolState()` and `hasPoolActivity()` into `lib/pool-state.js`. `StatePersistence.restorePools()` now hydrates existing runtime pools in-place, ensuring transient fields like `events` array are never undefined. `pushEvent()` defensively guards `events` array so telemetry errors cannot throw `TypeError` and mask underlying provider errors as `TRANSPORT`.
+- **Circuit breaker probe lifecycle & stream accounting (GitHub PR #15)**: added once-settled request permits with generation tokens in `CircuitBreaker`. Correctly counts the first half-open probe, checks admission before each key attempt, prevents late failures while open from extending cooldowns, and distinguishes error/aborted terminals from successes in `rotate()`.
+- **Accurate quota failure classification & backoff overflow saturation (GitHub PR #16)**: narrowed `penalizeRef()` quota detection regex in `lib/rotate.js` to explicit quota-exhaustion phrases (`insufficient_quota`, `quota exhausted`, `You exceeded your current quota`), preventing ordinary rate limits (e.g. `rate limit exceeded`, `requests per minute exceeded`, `deadline exceeded`) from being held until midnight UTC. Replaced 32-bit signed integer shifts in `computeBackoff()` with `Math.pow(2, failCount - 1)`, preventing negative delay wrap-around on 32+ failures.
+- **Quarantined key auto-unbreak isolation (GitHub PR #17)**: in `setupAutoUnbreakEffect()`, quarantined keys are now probed using the un-wrapped original credentials resolver handle, ensuring the exact broken key is tested rather than a healthy neighbor chosen by the rotation wrapper. Added concurrency lock and state-observation checks to prevent stale probes from clearing newer failures.
+- **Client error message visibility & empty ref validation (GitHub Issue #13)**: `validateBeforeSave()` in `lib/client.js` now normalizes and extracts `vres.message ?? vres.error?.message` from pre-save validation failures, displaying the server-provided reason instead of the generic "validation failed" toast. `buildPoolItem()` in `lib/pool-builder.js` filters out empty, whitespace-only, and invalid ref names using `isValidRef()`.
+
 ## 0.8.18 - 2026-09-21
 
 ### Fixed
