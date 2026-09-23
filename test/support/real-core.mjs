@@ -8,8 +8,8 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 // or credentials and never send a provider request.
 export async function realCoreFixture(coreDir, version) {
   const req = createRequire(join(resolve(coreDir), 'package.json'));
-  const { Context } = await import(req.resolve('@deepseek-ai/cordis'));
-  const { default: Settings } = await import(req.resolve('@deepseek-ai/dsh-settings'));
+  const { Context } = await import(pathToFileURL(req.resolve('@deepseek-ai/cordis')).href);
+  const { default: Settings } = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-settings')).href);
   const home = mkdtempSync(join(tmpdir(), 'key-rotation-core-'));
   const copy = join(home, 'rotation');
   mkdirSync(copy);
@@ -31,7 +31,7 @@ export async function realCoreFixture(coreDir, version) {
   let ctx, profile, persisted = {}, starts = 0;
   const modern = version.startsWith('0.1.7');
   if (modern) {
-    const { initProfile } = await import(req.resolve('@deepseek-ai/dsh-app-boot'));
+    const { initProfile } = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-app-boot')).href);
     const dir = join(home, 'profiles', 'test');
     initProfile(dir, ['test-bundle']);
     const bundle = join(dir, 'node_modules', 'test-bundle');
@@ -48,8 +48,8 @@ export async function realCoreFixture(coreDir, version) {
   const start = async () => {
     starts++;
     if (modern) {
-      const { boot, readProfilePatches } = await import(req.resolve('@deepseek-ai/dsh-app-boot'));
-      const { default: Editor } = await import(req.resolve('@deepseek-ai/dsh-config-editor'));
+      const { boot, readProfilePatches } = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-app-boot')).href);
+      const { default: Editor } = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-config-editor')).href);
       ctx = await boot('test', join(profile.dir, 'cordis.yml'), readProfilePatches('test', profile), ctx => {
         ctx.provide('profileContext', profile);
         ctx.provide('appReady', { onReady(callback) { callback(); return () => {}; } });

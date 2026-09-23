@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { realCoreFixture } from './support/real-core.mjs';
@@ -48,7 +49,7 @@ test(`real Cordis in DSH ${version}: client optional injection, late services an
   const { createRequire } = await import('node:module');
   const { resolve } = await import('node:path');
   const req = createRequire(resolve(coreDir, 'package.json'));
-  const { Context } = await import(req.resolve('@deepseek-ai/cordis'));
+  const { Context } = await import(pathToFileURL(req.resolve('@deepseek-ai/cordis')).href);
   const { clientRuntime, browserScope, memoryHost } = await import('./support/client-runtime.mjs');
   const host = memoryHost();
   const rt = await clientRuntime({ kind: 'none', Context, host }); t.after(() => rt.dispose());
@@ -71,7 +72,7 @@ test(`real Cordis in DSH ${version}: client optional injection, late services an
 test(`real Cordis in DSH ${version}: legacy binding is owned once and disposed with its provider`, options, async t => {
   const { createRequire } = await import('node:module'); const { resolve } = await import('node:path');
   const req = createRequire(resolve(coreDir, 'package.json'));
-  const { Context, Service } = await import(req.resolve('@deepseek-ai/cordis'));
+  const { Context, Service } = await import(pathToFileURL(req.resolve('@deepseek-ai/cordis')).href);
   const { clientRuntime, browserScope, memoryHost, act } = await import('./support/client-runtime.mjs');
   const host = memoryHost(); let binds = 0, disposed = 0;
   const rt = await clientRuntime({ kind: 'none', Context, host }); t.after(() => rt.dispose());
