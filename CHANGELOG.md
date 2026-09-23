@@ -3,6 +3,22 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.21 - 2026-09-23
+
+### Fixed
+- **Cross-core settings compatibility & DSH 0.1.5-rc.2 renderer boot (GitHub #18, PR #19)**: removed the hard client dependency on `settingsScope` / `configForms`; required services in `inject` are now strictly `['slots', 'locale']`. Added dynamic lifecycle-owned service acquisition (`createSettingsSource`) that prefers modern `configForms` and gracefully falls back to legacy `settingsScope`, preventing renderer crash loops on DSH 0.1.5-rc.2.
+- **Atomic secret-safe writes (GitHub #18, PR #19)**: saves and import routes now use atomic `settings.mutate(namespace, ops, expectedRevision)` rather than full replacement of redacted sections. Submits only modified fields, preventing accidental erasure of private tokens (`webhookActionToken`).
+- **Recoverable drafts & race condition prevention (GitHub #18, PR #19)**: decoupled saving state from snapshot readiness. Disables duplicate submissions during active saves, captures draft original revisions, keeps failed/conflicting drafts visible with an interactive Discard button, and bounds I/O with timeouts.
+- **Key-pool editing & loopback origin hardening (GitHub #18, PR #19)**: preserves provider indices across search filtering, fixes batch key removal, bounds pathological weights to `[1, 1000]`, and accepts bracketed IPv6 loopback origins safely.
+- **Dynamic auto-unbreak reconfiguration (GitHub #18, PR #19)**: auto-unbreak intervals update dynamically when modified in settings without requiring plugin restarts.
+- **Comprehensive test coverage**: 581 tests passing (including 30 real React 18 component interaction tests and 24 route tests).
+- Special thanks to **@Minervaowl7** for the extraordinary cross-core architectural audit, pull request, and test suites!
+
+## 0.8.20 - 2026-09-22
+
+### Fixed
+- **Settings card on current DSH** (#345): the client reads its settings namespace through `configForms` instead of the removed `settingsScope` service. The package manifest declares the settings and slots providers the card injects, so the fiber activates and the card mounts again.
+
 ## 0.8.19 - 2026-09-22
 
 ### Fixed
