@@ -3,6 +3,20 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## Unreleased
+
+### Fixed
+- **Settings compatibility and durable writes (PR #19)**: optional lifecycle-owned `configForms` / `settingsScope` acquisition replaces the legacy hard dependency. Modern Host settings now exposes live Config fields, and the running plugin unwraps their current values; legacy namespace registration keeps a plain schema.
+- **Secret-preserving saves and imports**: use revision-fenced Host `mutate` rather than replacing a redacted section. Snapshot and provider imports no longer erase hidden tokens. The UI stages imports until explicit Save and submits changed fields only. A modern refusal or ambiguous settlement never triggers a second transport write.
+- **Draft recovery and concurrency**: separate saving from snapshot readiness, retain failed/conflicting drafts, make Discard settle, ignore stale reads/service generations, bound requests/file reads, and guard duplicate submissions. Read-only forms still allow local Discard.
+- **Key-pool editing**: retain original indices under provider search, fix batch removal, preserve weights/expiry on move/remove/Undo, keep empty pools editable, and associate typed credentials with their references. Earlier credential saves no longer clear later input. Runtime filtering retains metadata indices and bounds weights.
+- **Host configuration and bridge details**: modern provider descriptors refresh on invalidation, auto-unbreak timing can be changed live, malformed mutations fail closed, request bodies are bounded, and bracketed IPv6 loopback origins are recognized without accepting invalid IPv4-like hosts.
+
+### Verification
+- Replaced source-only regex assertions with real React interaction and route behavior tests.
+- Added isolated real Host/Cordis tests for 0.1.5-rc.2, 0.1.6-alpha.2, and 0.1.7-alpha.1, including persistence and restart.
+- Added cross-platform Node/core CI and explicit test discovery. See `TESTING.md` for commands, fixture boundaries, and the distinction from Desktop/live-provider acceptance.
+
 ## 0.8.19 - 2026-09-22
 
 ### Fixed

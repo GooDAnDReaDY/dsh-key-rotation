@@ -1,0 +1,62 @@
+name: Settings regression
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, node: '18' }
+          - { os: ubuntu-latest, node: '20' }
+          - { os: ubuntu-latest, node: '22' }
+          - { os: ubuntu-latest, node: '24' }
+          - { os: windows-latest, node: '22' }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, core: '0.1.5-rc.2', cordis: '4.0.2', schema: '3.18.2' }
+          - { os: ubuntu-latest, core: '0.1.6-alpha.2', cordis: '4.0.4', schema: '3.18.4' }
+          - { os: ubuntu-latest, core: '0.1.7-alpha.1', cordis: '4.0.4', schema: '3.18.4' }
+          - { os: windows-latest, core: '0.1.7-alpha.1', cordis: '4.0.4', schema: '3.18.4' }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+      - name: Install isolated pinned Host contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dsh-core"
+          printf '{"private":true,"type":"module"}\n' > "$RUNNER_TEMP/dsh-core/package.json"
+          npm install --prefix "$RUNNER_TEMP/dsh-core" --ignore-scripts --no-audit --no-fund \
+            "@deepseek-ai/dsh-settings@${{ matrix.core }}" \
+            "@deepseek-ai/dsh-client-ui-settings@${{ matrix.core }}" \
+            "@deepseek-ai/cordis@${{ matrix.cordis }}" "@deepseek-ai/schemastery@${{ matrix.schema }}"
+          echo "DSH_TEST_CORE_DIR=$RUNNER_TEMP/dsh-core" >> "$GITHUB_ENV"
+      - run: npm run test:core
+        env:
+          DSH_TEST_CORE_VERSION: ${{ matrix.core }}

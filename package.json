@@ -61,6 +61,12 @@
     "@deepseek-ai/dsh-llm": "^0.1.0-rc.6"
   },
   "scripts": {
-    "test": "node --test --test-timeout=10000"
+    "test": "node tools/test.mjs",
+    "test:core": "node tools/test.mjs --core",
+    "check": "node tools/check.mjs"
+  },
+  "devDependencies": {
+    "react": "18.3.1",
+    "react-test-renderer": "18.3.1"
   }
 }
