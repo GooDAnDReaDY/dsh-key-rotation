@@ -38,14 +38,9 @@ test('client.js dead mountDashboard is removed (#240)', () => {
   assert.ok(!CLIENT_SRC.includes('mountDashboard()'), 'mountDashboard call must be removed');
 });
 
-test('client.js settings card is localized, with a static list-seat label (#236, #275)', () => {
-  // The plugin-list seat (plugins.item) is what the current core renders as the
-  // plugin's own page. Its label is resolved while the page renders, so it MUST be a
-  // static string: a locale lookup there aborts the whole client batch. Everything
-  // inside the card stays localized through t(...).
-  const seatAt = CLIENT_SRC.indexOf("name: 'plugins.item'");
-  assert.ok(seatAt > 0, 'the plugin-list seat must be registered');
-  assert.match(CLIENT_SRC.slice(seatAt, seatAt + 400), /label: \(\) => '[^']+'/, 'the list-seat label is a static string');
+test('client.js settings card is localized with independent seat registration (#19, #236, #275)', () => {
+  assert.ok(CLIENT_SRC.includes("plugins.bundle.config"), 'the bundle config seat must be registered');
+  assert.ok(CLIENT_SRC.includes("settings.plugin.item"), 'the settings plugin item seat must be registered');
   assert.ok(CLIENT_SRC.includes("t('title')"), 'Card must use t(title)');
   assert.ok(CLIENT_SRC.includes("locale: NS"), 'Card must include locale: NS');
   assert.ok(!CLIENT_SRC.includes("name: 'settings.section'"), 'No settings.section registration (#275)');
@@ -56,7 +51,8 @@ test('client.js registers en + zh dictionaries without ru (#277, #309)', () => {
   assert.ok(!CLIENT_SRC.includes('{ en, ru, zh }'), 'Hardcoded ru dictionary is forbidden (#277)');
 });
 
-test('client.js configForms integration (#235)', () => {
-  assert.match(CLIENT_SRC, /props\.ctx\.configForms\.get\(NS\)/, 'configForms.get must resolve the settings namespace');
-  assert.match(CLIENT_SRC, /scopeSnapshot && scopeSnapshot\.status === 'ready'/, 'status ready check must be present');
+test('client.js dual configForms and settingsScope cross-core compatibility (#18, #235)', () => {
+  assert.match(CLIENT_SRC, /configForms/, 'configForms service discovery must be supported');
+  assert.match(CLIENT_SRC, /settingsScope/, 'settingsScope fallback must be supported');
+  assert.match(CLIENT_SRC, /createSettingsSource/, 'createSettingsSource helper must be present');
 });

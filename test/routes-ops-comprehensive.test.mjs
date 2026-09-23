@@ -35,6 +35,12 @@ function createMockEnv(overrides = {}) {
         return {
           describe: () => [{ ns: 'dsh-key-rotation', value: settingsSection, revision: 1 }],
           replace: async (ns, val, rev) => { Object.assign(settingsSection, val); },
+          mutate: async (ns, ops, rev) => {
+            for (const op of ops) {
+              if (op.op === 'set') settingsSection[op.path[0]] = op.value;
+              else if (op.op === 'unset') delete settingsSection[op.path[0]];
+            }
+          },
         };
       }
       return null;

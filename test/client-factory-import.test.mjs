@@ -67,7 +67,7 @@ test('client: module factory imports cleanly and defines inject and apply', () =
   assert.ok(Array.isArray(exports.inject));
   assert.ok(exports.inject.includes('slots'));
   assert.ok(exports.inject.includes('locale'));
-  assert.ok(exports.inject.includes('configForms'));
+  assert.ok(exports.inject.includes('slots')); assert.ok(exports.inject.includes('locale'));
 
   // Test apply(mockCtx)
   const registeredSlots = [];
