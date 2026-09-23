@@ -139,6 +139,119 @@ test('modern provider profile lookup caches descriptors and refreshes on documen
   key = 'B'; callback(); assert.equal(reader().a.apiKeyEnv, 'B'); assert.equal(calls, 2);
 });
 
+test('provider profile lookup caches settings.get across N calls and invalidates on document update (#350)', () => {
+  let callback, calls = 0, key = 'A';
+  const ctx = {
+    effect: fn => fn(),
+    on: (name, cb) => { if (name === 'settings/document-updated') callback = cb; return () => {}; },
+    get: () => settings,
+  };
+  const settings = {
+    get(ns) {
+      calls++;
+      return { providers: { a: { apiKeyEnv: key } } };
+    },
+  };
+  const reader = createProviderProfilesReader(ctx, 'llm-pi-ai');
+
+  // N calls without document update must invoke settings.get only once
+  for (let i = 0; i < 25; i++) {
+    const res = reader();
+    assert.equal(res.a.apiKeyEnv, 'A');
+  }
+  assert.equal(calls, 1, 'settings.get called only once for 25 reads');
+
+  // Triggering document-updated invalidates cache
+  key = 'B';
+  callback();
+  for (let i = 0; i < 15; i++) {
+    const res = reader();
+    assert.equal(res.a.apiKeyEnv, 'B');
+  }
+  assert.equal(calls, 2, 'settings.get called once more after invalidation');
+});
+
+test('createConfigReader with ctx caches unwrapped config across N calls and invalidates on event (#350)', () => {
+  let docCallback, getCalls = 0, cooldown = 60000;
+  const ctx = {
+    effect: fn => fn(),
+    on: (name, cb) => {
+      if (name === 'settings/document-updated') docCallback = cb;
+      return () => {};
+    },
+  };
+  const read = createConfigReader({ cooldownMs: { get: () => { getCalls++; return cooldown; } }, providers: [] }, ctx);
+
+  const initial = read();
+  assert.equal(getCalls, 1);
+  for (let i = 0; i < 20; i++) {
+    const res = read();
+    assert.strictEqual(res, initial);
+  }
+  assert.equal(getCalls, 1, 'volatile getter called only once across 20 reads');
+
+  // Invalidation causes next read to re-evaluate
+  cooldown = 75000;
+  docCallback();
+  const updated = read();
+  assert.equal(getCalls, 2);
+  assert.equal(updated.cooldownMs, 75000);
+  assert.notStrictEqual(updated, initial);
+  for (let i = 0; i < 10; i++) {
+    assert.strictEqual(read(), updated);
+  }
+  assert.equal(getCalls, 2, 'volatile getter called only once after invalidation');
+});
+
+test('buildRuntime: N calls without settings change result in exactly one settings.get call (#350)', async () => {
+  const plugin = await import('../lib/index.js?t=buildRuntime350');
+  const listeners = [];
+  let settingsGetCalls = 0;
+  const settings = {
+    get(ns) {
+      settingsGetCalls++;
+      return { providers: { demo: { apiKeyEnv: 'KEY_A' } } };
+    },
+  };
+  const ctx = {
+    webServer: { register: () => () => {} },
+    get: (name) => name === 'settings' ? settings : null,
+    effect: (fn) => fn(),
+    on: (name, fn) => {
+      if (name === 'settings/document-updated') listeners.push(fn);
+      return () => {};
+    },
+    inject: (_, fn) => fn(ctx),
+  };
+  const config = {
+    persistenceEnabled: false,
+    providers: [{ provider: 'demo', keys: ['KEY_A'] }],
+  };
+  plugin.apply(ctx, config);
+
+  // Initial call through getRuntime() -> buildRuntime()
+  const r1 = plugin.getRuntime();
+  assert.ok(r1);
+  assert.equal(settingsGetCalls, 1);
+
+  // 50 subsequent calls without settings changes must not invoke settings.get again
+  for (let i = 0; i < 50; i++) {
+    const r = plugin.getRuntime();
+    assert.strictEqual(r, r1);
+  }
+  assert.equal(settingsGetCalls, 1, '50 calls to buildRuntime executed with exactly 1 settings.get call');
+
+  // Document update invalidates and triggers a single re-fetch
+  for (const fn of listeners) fn();
+  const r2 = plugin.getRuntime();
+  assert.equal(settingsGetCalls, 2, 'single settings.get call triggered after document update');
+  for (let i = 0; i < 20; i++) {
+    const r = plugin.getRuntime();
+    assert.strictEqual(r, r2);
+  }
+  assert.equal(settingsGetCalls, 2);
+});
+
 test('auto-unbreak interval can be enabled/changed/disabled live and cannot restart after disposal', async () => {
   let config = { selfHealingIntervalMinutes: 0 }; const callbacks = new Map(), timers = new Map(); let id = 0, cleanup;
   const ctx = { effect(fn) { cleanup = fn(); }, on(name, cb) { callbacks.set(name, cb); return () => callbacks.delete(name); } };
