@@ -24,6 +24,23 @@ function createMockBridge(overrides = {}) {
       curSection = nextVal;
       curRevision++;
     },
+    mutate: async (ns, ops, expectedRev) => {
+      if (expectedRev !== undefined && expectedRev !== curRevision) {
+        const err = new Error('Settings conflict');
+        err.code = 'SETTINGS_CONFLICT';
+        err.expected = expectedRev;
+        err.actual = curRevision;
+        throw err;
+      }
+      for (const op of ops) {
+        if (op.op === 'set') {
+          curSection[op.path[0]] = op.value;
+        } else if (op.op === 'unset') {
+          delete curSection[op.path[0]];
+        }
+      }
+      curRevision++;
+    },
   };
 
   const mockCtx = {
