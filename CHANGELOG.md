@@ -3,6 +3,14 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.22 - 2026-09-23
+
+### Performance
+- **Cache settings and volatile configuration on hot path (#350)**:
+  - Cached `settings.get(PIAI_NS)` calls in `createProviderProfilesReader` (`lib/config-compat.js`) with invalidation on `settings/document-updated`. In DSH 0.1.7-alpha.2+, `settings.get(ns)` materializes the tree via `dsh-config-editor` and `structuredClone`, taking hundreds of milliseconds and blocking the Node.js event loop when called on every request.
+  - Cached `createConfigReader` (`lib/config-compat.js`) across request hot paths using `settings/document-updated`, `loader/volatile-update`, and `config` invalidation listeners, eliminating expensive recursive traversal of volatile config objects on every request.
+  - Added regression test suite verifying N calls to `buildRuntime` without settings modifications yield exactly 1 invocation of `settings.get`.
+
 ## 0.8.21 - 2026-09-23
 
 ### Fixed
