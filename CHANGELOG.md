@@ -3,6 +3,14 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.23 - 2026-09-23
+
+### Fixed
+- **Fix settings cache invalidation on Cordis traceable Proxies (#350)**:
+  - Removed `settings !== owner` reference equality check in `createProviderProfilesReader` (`lib/config-compat.js`). In Cordis, `ctx.get('settings')` creates and returns a fresh traceable `Proxy` wrapper on every single invocation, which was constantly triggering `dirty = true` and invalidating the cache per-request.
+  - Subscribed to `internal/service` event (for service name `'settings'`) alongside `settings/document-updated` to safely invalidate cache upon service replacement without comparing proxy identities.
+  - Added regression test suite verifying that when `ctx.get('settings')` returns a new `Proxy` instance on every call, 100 subsequent invocations of `buildRuntime()` or `readProfiles()` execute strictly 1 call to `settings.get()`.
+
 ## 0.8.22 - 2026-09-23
 
 ### Performance
