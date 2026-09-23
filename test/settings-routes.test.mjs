@@ -203,6 +203,116 @@ test('createConfigReader with ctx caches unwrapped config across N calls and inv
   assert.equal(getCalls, 2, 'volatile getter called only once after invalidation');
 });
 
+test('provider profile lookup: ctx.get returns fresh proxy each call; 100 calls invoke get/describe only once (#350)', () => {
+  let docCallback, serviceCallback, getCalls = 0, describeCalls = 0;
+  const rawSettings = {
+    get(ns) {
+      getCalls++;
+      return { providers: { a: { apiKeyEnv: 'KEY_A' } } };
+    },
+    describe() {
+      describeCalls++;
+      return [{ ns: 'llm-pi-ai', value: { providers: { a: { apiKeyEnv: 'KEY_A' } } } }];
+    },
+  };
+
+  const ctx = {
+    effect: fn => fn(),
+    on: (name, cb) => {
+      if (name === 'settings/document-updated') docCallback = cb;
+      if (name === 'internal/service') serviceCallback = cb;
+      return () => {};
+    },
+    // Return a brand new Proxy on EVERY call to ctx.get(), exactly mimicking Cordis traceable proxies
+    get: (name) => (name === 'settings' ? new Proxy(rawSettings, {}) : null),
+  };
+
+  const reader = createProviderProfilesReader(ctx, 'llm-pi-ai');
+
+  // 100 calls without event must call get/describe exactly ONCE
+  for (let i = 0; i < 100; i++) {
+    const res = reader();
+    assert.equal(res.a.apiKeyEnv, 'KEY_A');
+  }
+  assert.equal(getCalls, 1, 'settings.get called exactly once despite 100 new Proxy instances from ctx.get');
+  assert.equal(describeCalls, 0);
+
+  // Invalidation via settings/document-updated causes exactly 1 re-read
+  docCallback();
+  for (let i = 0; i < 50; i++) {
+    const res = reader();
+    assert.equal(res.a.apiKeyEnv, 'KEY_A');
+  }
+  assert.equal(getCalls, 2, 'settings.get called once more after document update');
+
+  // Invalidation via internal/service ('settings') causes exactly 1 re-read
+  serviceCallback('settings');
+  for (let i = 0; i < 50; i++) {
+    const res = reader();
+    assert.equal(res.a.apiKeyEnv, 'KEY_A');
+  }
+  assert.equal(getCalls, 3, 'settings.get called once more after internal/service');
+
+  // Unrelated service event does not invalidate
+  serviceCallback('other-service');
+  for (let i = 0; i < 50; i++) {
+    reader();
+  }
+  assert.equal(getCalls, 3, 'unrelated service event did not invalidate cache');
+});
+
+test('buildRuntime: ctx.get returns fresh proxy each call; 100 calls result in exactly one settings.get call (#350)', async () => {
+  const plugin = await import('../lib/index.js?t=proxyCordisTest350');
+  const listeners = [];
+  let settingsGetCalls = 0;
+  const rawSettings = {
+    get(ns) {
+      settingsGetCalls++;
+      return { providers: { demo: { apiKeyEnv: 'KEY_PROXY' } } };
+    },
+  };
+  const ctx = {
+    webServer: { register: () => () => {} },
+    // Return a fresh Proxy every time
+    get: (name) => (name === 'settings' ? new Proxy(rawSettings, {}) : null),
+    effect: (fn) => fn(),
+    on: (name, fn) => {
+      listeners.push({ name, fn });
+      return () => {};
+    },
+    inject: (_, fn) => fn(ctx),
+  };
+  const config = {
+    persistenceEnabled: false,
+    providers: [{ provider: 'demo', keys: ['KEY_PROXY'] }],
+  };
+  plugin.apply(ctx, config);
+
+  // 100 calls to getRuntime() / buildRuntime()
+  const r1 = plugin.getRuntime();
+  assert.ok(r1);
+  assert.equal(settingsGetCalls, 1);
+
+  for (let i = 0; i < 100; i++) {
+    const r = plugin.getRuntime();
+    assert.strictEqual(r, r1);
+  }
+  assert.equal(settingsGetCalls, 1, '100 calls to buildRuntime executed with exactly 1 settings.get call');
+
+  // Trigger document-updated
+  for (const l of listeners) {
+    if (l.name === 'settings/document-updated') l.fn();
+  }
+  const r2 = plugin.getRuntime();
+  assert.equal(settingsGetCalls, 2);
+
+  for (let i = 0; i < 100; i++) {
+    const r = plugin.getRuntime();
+    assert.strictEqual(r, r2);
+  }
+  assert.equal(settingsGetCalls, 2);
+});
+
 test('buildRuntime: N calls without settings change result in exactly one settings.get call (#350)', async () => {
   const plugin = await import('../lib/index.js?t=buildRuntime350');
   const listeners = [];
