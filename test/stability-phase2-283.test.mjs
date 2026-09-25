@@ -121,7 +121,11 @@ test('routes-ops: /dsh-key-rotation/reset resets both pool and circuit breaker',
       super();
       this.method = 'POST';
       this.socket = { remoteAddress: '127.0.0.1' };
-      this.headers = {};
+      this.headers = {
+        host: '127.0.0.1:3080',
+        origin: 'http://127.0.0.1:3080',
+        'sec-fetch-site': 'same-origin',
+      };
     }
   }
 

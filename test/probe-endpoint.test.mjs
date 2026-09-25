@@ -194,7 +194,7 @@ test('actual test route uses the selected credential, keeps presave offline and 
   registerTestRoutes(ctx, { ...f.service, poolState: new Map() });
   async function request(body, remoteAddress = '127.0.0.1') {
     const req = Readable.from([JSON.stringify(body)]);
-    Object.assign(req, { method: 'POST', headers: {}, socket: { remoteAddress } });
+    Object.assign(req, { method: 'POST', headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080', 'sec-fetch-site': 'same-origin' }, socket: { remoteAddress } });
     let status, data;
     await handlers.get('/dsh-key-rotation/test')(req, {
       writeHead: (value) => { status = value; }, end: (raw) => { data = JSON.parse(raw); },
