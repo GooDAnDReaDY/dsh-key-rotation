@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import dns from 'node:dns/promises';
 import { handleConfigBridge, readJson } from '../lib/http-bridge.js';
 import { registerTelemetryRoutes } from '../lib/ops-telemetry.js';
 import { registerKeyRoutes } from '../lib/ops-keys.js';
@@ -90,6 +91,7 @@ test('snapshot export/import round trip preserves hidden token and honors revisi
 
 test('provider URL import mutates only providers and preserves hidden token', async t => {
   const host = memoryHost({ webhookActionToken: 'private-test' });
+  t.mock.method(dns, 'lookup', async () => [{ address: '93.184.216.34', family: 4 }]);
   t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, json: async () => [{ provider: 'a', keys: ['KEY_A'] }] }));
   const response = await invokeRoute(routes(host).get('/dsh-key-rotation/import'), { method: 'POST', body: { url: 'https://example.test/pools.json', expectedRevision: 10 } });
   assert.equal(response.status, 200, await response.text());
@@ -99,6 +101,7 @@ test('provider URL import mutates only providers and preserves hidden token', as
 
 test('malformed provider import fails atomically', async t => {
   const host = memoryHost();
+  t.mock.method(dns, 'lookup', async () => [{ address: '93.184.216.34', family: 4 }]);
   t.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => [{ provider: 'a', keys: ['KEY_A'] }, { provider: 'b', keys: [null] }] }));
   const response = await invokeRoute(routes(host).get('/dsh-key-rotation/import'), { method: 'POST', body: { url: 'https://example.test/pools.json' } });
   assert.equal(response.status, 400); assert.equal(host.writes.length, 0);

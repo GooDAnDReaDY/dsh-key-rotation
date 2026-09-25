@@ -70,8 +70,8 @@ test('pool: isTrustedBridgeRequest enforces localhost/loopback and origin safety
   // Remote non-loopback IP
   assert.equal(isTrustedBridgeRequest({ socket: { remoteAddress: '8.8.8.8' } }), false);
 
-  // Loopback without origin header (e.g. server curl / internal cli)
-  assert.equal(isTrustedBridgeRequest({ socket: { remoteAddress: '127.0.0.1' } }), true);
+  // Loopback without origin header: fail-closed (#353)
+  assert.equal(isTrustedBridgeRequest({ socket: { remoteAddress: '127.0.0.1' } }), false);
 
   // Cross-site fetch header
   assert.equal(isTrustedBridgeRequest({
@@ -103,8 +103,8 @@ test('pool: keyTail handles null, short and standard keys', () => {
   assert.equal(keyTail(null), '');
   assert.equal(keyTail(undefined), '');
   assert.equal(keyTail(12345), '');
-  assert.equal(keyTail('abc'), 'abc');
-  assert.equal(keyTail('12345'), '12345');
+  assert.equal(keyTail('abc'), '***');
+  assert.equal(keyTail('12345'), '***');
   assert.equal(keyTail('sk-live-123456789'), '56789');
   assert.equal(KEY_TAIL_CHARS, 5);
 });

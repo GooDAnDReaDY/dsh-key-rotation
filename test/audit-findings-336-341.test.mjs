@@ -281,6 +281,7 @@ test('Issue #341: ops-keys import route returns 504 on fetch timeout', async () 
       poolState: new Map(),
       buildRuntime: () => ({}),
       circuitBreaker: { reset: () => {} },
+      lookupImpl: async () => [{ address: '93.184.216.34', family: 4 }],
     });
 
     const handler = routes.get('/dsh-key-rotation/import');
