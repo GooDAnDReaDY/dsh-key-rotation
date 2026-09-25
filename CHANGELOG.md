@@ -3,6 +3,25 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.24 - 2026-09-25
+
+### Security Hardening
+- **Bridge trust guard fail-closed enforcement (#353)**:
+  - `lib/pool.js`: `isTrustedBridgeRequest` is now strictly fail-closed. Rejects any request missing the `Origin` header (`origin` is required). Validates that `Origin` host strictly matches the `Host` header and that hostname is loopback (`127.0.0.1`, `::1`, `localhost`). Rejects requests with `Sec-Fetch-Site: cross-site`.
+  - `lib/ops-status.js`: removed loopback fallback logic in `/health` (lines 170-175) that previously bypassed the centralized predicate when `Sec-Fetch-Site` was not `cross-site`. All guarded routes (`status`, `health`, `key`, `reset`, `import`, `test`, `sandbox-cache`, `usage`, `snapshot`, `config`) now consistently route through `isTrustedBridgeRequest`.
+  - Added comprehensive test suite `test/route-guard-fail-closed.test.mjs` verifying missing-header and origin-mismatch rejections across all 12 guarded route surfaces.
+- **SSRF protection on provider pool import route (#354)**:
+  - `lib/safe-fetch.js` & `lib/ops-keys.js`: added multi-layered SSRF guard for `/dsh-key-rotation/import`.
+  - Protocol constraint: strictly `https:`.
+  - DNS / IP classification: resolves and rejects private (RFC 1918: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), loopback (`127.0.0.0/8`, `::1`), link-local (`169.254.0.0/16`, `fe80::/10`), unique-local (`fc00::/7`), multicast (`224.0.0.0/4`, `ff00::/8`), carrier-grade NAT (`100.64.0.0/10`), IPv4-mapped IPv6, and reserved IP literals and DNS resolutions. Guards against DNS rebinding attacks.
+  - Redirect protection: uses `redirect: 'manual'` and recursively validates redirect target URLs and resolved IPs up to 5 hops (`MAX_REDIRECTS`).
+  - Response size bounding: caps response body stream to 1 MB (`MAX_IMPORT_BYTES = 1048576`) before parsing JSON, preventing memory exhaustion attacks.
+  - Added comprehensive test suite `test/ssrf-protection.test.mjs`.
+- **Short credential masking in keyTail (#355)**:
+  - `lib/pool.js`: `keyTail` now returns a fixed placeholder `***` (`KEY_TAIL_PLACEHOLDER`) for credentials with length <= 5 (`KEY_TAIL_CHARS`), preventing complete credential disclosure through operational telemetry (`status`, `test`). Returns empty string for empty or non-string inputs.
+  - Exported `KEY_TAIL_PLACEHOLDER` and `KEY_TAIL_CHARS`.
+  - Added boundary tests covering lengths 0 through 8 in `test/key-tail.test.js`.
+
 ## 0.8.23 - 2026-09-23
 
 ### Fixed

@@ -205,8 +205,9 @@ Access full visual management under **Settings → Key Rotation** or via the Hea
 
 * **Zero Plaintext Secrets in Plugin Config**: Configuration files store only environment variable reference names (e.g. `MY_PROVIDER_API_KEY`).
 * **Secure Vault Storage**: Actual secret values reside securely in `$DSH_HOME/.credentials.yaml` managed by the DSH `Credentials` service.
-* **5-Character Masking (`keyTail`)**: Full secret values are never sent to the client browser; only the trailing 5 characters are exposed for visual identification.
-* **Loopback & Same-Origin Fencing**: Administrative endpoints (`GET /status`, `PUT /key`, `POST /reset`, `POST /test-matrix`) strictly enforce loopback origin checks (`isTrustedBridgeRequest`).
+* **5-Character Masking (`keyTail`)**: Full secret values are never sent to the client browser; only the trailing 5 characters are exposed for visual identification. Short keys (<= 5 characters) return a fixed masked placeholder (`***`) to prevent credential disclosure.
+* **Fail-Closed Loopback & Same-Origin Fencing**: Administrative endpoints strictly enforce loopback origin checks (`isTrustedBridgeRequest`), requiring valid `Origin` headers, matching `Host` headers, and rejecting `cross-site` or non-loopback requests without fallbacks.
+* **SSRF Guard on Import Route**: Remote provider pool import strictly enforces HTTPS-only URLs, validates all resolved IP addresses against private and reserved ranges (RFC 1918, loopback, link-local, multicast, CGNAT), verifies redirect targets, and caps response payload size to 1 MB.
 
 ---
 
