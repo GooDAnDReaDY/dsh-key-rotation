@@ -3,6 +3,24 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.25 - 2026-09-27
+
+### Fixed & Hardened
+- **Sandbox cache HTTP method validation (#357)**:
+  - `lib/ops-test.js`: enforced strict `GET` method check on `/dsh-key-rotation/sandbox-cache`. Non-GET requests (`POST`, `PUT`, `DELETE`) now consistently return HTTP 405 Method Not Allowed (`{ error: { code: 'method', message: 'GET only' } }`).
+- **Webhook action security and timeout hardening (#358)**:
+  - `lib/ops-webhook.js`: converted authorization bearer token validation to constant-time comparison via `crypto.timingSafeEqual`, preventing timing side-channel attacks on `webhookActionToken`.
+  - Added strict Telegram bot token format validation (`TELEGRAM_BOT_TOKEN_RE = /^[0-9]{5,16}:[a-zA-Z0-9_-]{20,50}$/`).
+  - Added 10-second timeout guard (`signal: AbortSignal.timeout(10000)`) on outgoing Telegram API `setWebhook` requests to eliminate socket hang risks.
+- **Dead code removal & unexported private symbols (#359)**:
+  - Removed unimported orphaned module `lib/bounded-map.js` and removed its standalone test cases.
+  - Eliminated dead exports in internal modules: unexported `CONCURRENCY_DEFAULT_LIMIT`, `CONCURRENCY_STALE_LOCK_MS` in `lib/concurrency.js`, `MAX_USAGE_RETENTION_DAYS` in `lib/usage-report.js`, `WEBHOOK_*` constants in `lib/webhook.js`, `assertJson` and `SECRET_FIELDS` in `lib/settings-write.js`, and `isNewerVersion` in `lib/plugin-updater.js`.
+- **Documentation contract alignment (#360)**:
+  - `docs/design/DESIGN.md`: added mandatory sections «Политика маршрутов» (complete 12-route method, origin, and authorization matrix) and «Что публикуется» (npm files, exclusions, and verification timestamp) per `dsh-documentation-standard`.
+  - Corrected webhook endpoint URI in DESIGN.md to `/dsh-key-rotation/webhook-action`.
+- **Canonical scoped package name in module export (#361)**:
+  - `lib/index.js`: unified `export const name = '@goodandready/dsh-key-rotation';` across all four package identity checkpoints (`package.json`, `cordis.patch.yml`, `lib/client.js`, and `lib/index.js`), resolving preflight check failure.
+
 ## 0.8.24 - 2026-09-25
 
 ### Security Hardening

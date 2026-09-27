@@ -243,7 +243,7 @@ test('Issue #340: lib/index.js loads cleanly after removing dead imports', async
   }
   if (mod) {
     assert.equal(typeof mod.apply, 'function');
-    assert.equal(mod.name, 'dsh-key-rotation');
+    assert.equal(mod.name, '@goodandready/dsh-key-rotation');
   }
 });
 

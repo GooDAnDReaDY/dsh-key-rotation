@@ -12,6 +12,6 @@ if (!mod) {
 } else {
   test('module exports snapshot route intact', () => {
     assert.equal(typeof mod.apply, 'function');
-    assert.equal(mod.name, 'dsh-key-rotation');
+    assert.equal(mod.name, '@goodandready/dsh-key-rotation');
   });
 }

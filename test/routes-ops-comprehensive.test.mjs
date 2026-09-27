@@ -357,3 +357,42 @@ test('routes-ops: POST /dsh-key-rotation/webhook-action validates token and exec
   assert.equal(enRes.status, 200);
   assert.equal(env.mockDeps.getRotationDisabled(), false);
 });
+
+test('Issue #357 & #358: sandbox-cache enforces GET only (405) and webhook-action validates token & botToken', async () => {
+  const env = createMockEnv();
+
+  // 1. Check sandbox-cache method enforcement
+  for (const badMethod of ['POST', 'PUT', 'DELETE']) {
+    const res = await env.invoke('/dsh-key-rotation/sandbox-cache', {
+      method: badMethod,
+      headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080', 'sec-fetch-site': 'same-origin' },
+    });
+    assert.equal(res.status, 405, `Expected 405 for ${badMethod}`);
+    assert.equal(res.body?.error?.code, 'method');
+  }
+
+  // Valid GET returns 200
+  const getRes = await env.invoke('/dsh-key-rotation/sandbox-cache', {
+    method: 'GET',
+    headers: { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080', 'sec-fetch-site': 'same-origin' },
+  });
+  assert.equal(getRes.status, 200);
+
+  // 2. Check timing-safe token mismatch in webhook-action
+  const badTokenRes = await env.invoke('/dsh-key-rotation/webhook-action', {
+    method: 'POST',
+    headers: { authorization: 'Bearer wrong-length-or-value' },
+    body: { action: 'enable-rotation' },
+  });
+  assert.equal(badTokenRes.status, 401);
+  assert.equal(badTokenRes.body?.error?.code, 'unauthorized');
+
+  // 3. Check invalid telegram botToken validation
+  const badBotRes = await env.invoke('/dsh-key-rotation/webhook-action', {
+    method: 'POST',
+    headers: { authorization: 'Bearer secret-token-xyz' },
+    body: { setWebhook: { botToken: 'invalid-bot-token-without-colon' } },
+  });
+  assert.equal(badBotRes.status, 400);
+  assert.equal(badBotRes.body?.error?.code, 'bad-request');
+});
