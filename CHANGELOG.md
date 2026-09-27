@@ -3,6 +3,42 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.28 - 2026-09-27
+
+### Security & Key Lifecycle (Block 3)
+- **Permanent Key Revocation (#369)**:
+  - Added `revokedRefs` tracking in pool state and configuration. Keys returning permanent auth failures (HTTP 401 / `AUTH_FAILED`) are permanently revoked and excluded from rotation and cascade attempts.
+  - Added visual revoked status badges and tokens in WebUI (`lib/client.js`).
+- **Key Encryption at Rest (#370)**:
+  - Added `lib/crypto-storage.js` implementing authenticated AES-256-GCM encryption with 12-byte IV and 16-byte auth tag.
+  - Transparently uses environment variable `DSH_KEY_SECRET` when configured, with safe plaintext fallback when unset.
+- **Key Expiration Tracker (#371)**:
+  - Added automated expiration date tracking (`expiresAt`), horizon detection (`expiringSoon`), 24-hour notification deduplication (`shouldNotifyDaily`), and automated exclusion of expired keys from active routing.
+
+### Monitoring & Integrations (Block 4)
+- **Multi-Platform Webhook Integrations (#372)**:
+  - Extended `lib/webhook.js` with native detection and formatting for Gotify (`/message` with JSON priority/extras) and Ntfy (`/alerts` with action buttons).
+- **Prometheus Metrics Exporter (#373)**:
+  - Added `/dsh-key-rotation/metrics` route (`lib/ops-metrics.js`) exposing OpenMetrics / Prometheus standard text format with gauges for pool totals, active/cooldown/paused/revoked keys, and counters for proactive switches and cascades. Guarded by loopback origin fail-closed security.
+
+## 0.8.27 - 2026-09-27
+
+### Smart Routing (Block 1)
+- **Proactive Rate-Limit Cooldown (#363)**:
+  - Proactive key cooldown based on upstream rate limit reset headers (`x-ratelimit-reset`, `x-ratelimit-reset-requests`, `x-ratelimit-reset-tokens`) supporting time deltas and ISO timestamps.
+- **Cross-Provider Cascading (#364)**:
+  - Cascade routing across providers on pool exhaustion with `modelMapping` and max cascade depth guard.
+- **Adaptive Concurrency Normalization (#365)**:
+  - Weighted least-loaded concurrency balancing (`inflight / weight`).
+
+### WebUI Suite (Block 2)
+- **Bulk Key Import (#366)**:
+  - WebUI modal for bulk key import supporting line-by-line, `.env`, and CSV formats.
+- **Key Maintenance Toggle (#367)**:
+  - Live key pause/resume toggle (`isPaused`) in WebUI.
+- **Traffic Sparklines (#368)**:
+  - Native SVG Sparkline component for request and latency visual trends.
+
 ## 0.8.25 - 2026-09-27
 
 ### Fixed & Hardened
