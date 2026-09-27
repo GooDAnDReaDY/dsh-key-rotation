@@ -151,3 +151,41 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
   - `isSwitchableError(failureOrPayload, switchCodes)` normalizes array or non-Set arguments to a `Set` at the single choke point. Callers passing `DEFAULT_SWITCH_CODES` (array) or `cfg.switchCodes` (schema array) no longer throw `TypeError`.
   - `UpdaterSection` resides at module/factory scope in `lib/client.js` directly before `KeyRotationSection` (its caller), ensuring proper hoisting and scope visibility without `ReferenceError`.
   - `lib/plugin-updater.js` `installExact()` validates `packageSpec` against `PACKAGE_SPEC_PATTERN` (`^(@[a-z0-9~][a-z0-9_.~-]*\/)?[a-z0-9~][a-z0-9_.~-]*(@[0-9a-zA-Z_.~+-]+)?$`) before spawning CLI commands.
+
+
+## Политика маршрутов (Route Policy)
+
+Все внешние и внутренние HTTP-маршруты плагина строго регламентированы: любой запрос с неразрешённым методом отклоняется со статусом `405 Method Not Allowed`, а чувствительные операции требуют валидации источника (`isTrustedBridgeRequest` fail-closed) либо авторизационного Bearer-токена.
+
+| Маршрут | Метод | Авторизация / Проверка источника | Ограничения и защита | Статус отказа |
+|---|---|---|---|---|
+| `/dsh-key-rotation/status` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Только локальный хост | 403 / 405 |
+| `/dsh-key-rotation/health` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Только локальный хост | 403 / 405 |
+| `/dsh-key-rotation/usage` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Параметры `days` (до 90), `base` | 403 / 405 |
+| `/dsh-key-rotation/snapshot` | GET, POST | `isTrustedBridgeRequest` (Origin match loopback) | POST: импорт снимка с валидацией | 403 / 405 |
+| `/dsh-key-rotation/key` | PUT, DELETE | `isTrustedBridgeRequest` (Origin match loopback) | PUT: маскирование, DELETE: удаление | 403 / 405 |
+| `/dsh-key-rotation/reset` | POST | `isTrustedBridgeRequest` (Origin match loopback) | Сброс кулдаунов и ошибок пула | 403 / 405 |
+| `/dsh-key-rotation/import` | POST | `isTrustedBridgeRequest` (Origin match loopback) | `safeFetchJson`: SSRF/DNS-фильтр, макс. 1 МБ | 403 / 405 |
+| `/dsh-key-rotation/test` | POST | `isTrustedBridgeRequest` (Origin match loopback) | Изолированная тестовая песочница | 403 / 405 |
+| `/dsh-key-rotation/sandbox-cache` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Кэш результатов тестирования зондов | 403 / 405 |
+| `/dsh-key-rotation/webhook-action` | POST | Bearer token (`webhookActionToken`) | `timingSafeEqual`, таймаут Telegram 10с | 401 / 405 |
+| `/dsh-key-rotation/config` | GET, PUT, DELETE, OPTIONS | `isTrustedBridgeRequest` (Origin match loopback) | Конфигурационный мост настроек | 403 / 405 |
+| `/api/dsh-key-rotation/update` | GET, HEAD, POST | `isTrustedUpdateRequest` (loopback / same-origin) | POST: запуск `pnpm add` с проверкой пакета | 403 / 405 |
+
+## Что публикуется (What is Published)
+
+### Состав npm-пакета (`package.json` -> `files`)
+- `lib/`: серверный и клиентский рантайм плагина, операционные роуты, утилиты.
+- `cordis.patch.yml`: слой конфигурации плагина для инъекции в DSH-профиль.
+- `README.md`: каноническая пользовательская документация на английском языке.
+- `README.zh.md`: пользовательская документация на китайском языке.
+- `README.ru.md`: пользовательская документация на русском языке.
+- `CHANGELOG.md`: хронологический журнал релизов и изменений.
+- `LICENSE`: лицензия MIT © GooDAnDReaDY.
+
+### Исключения (не публикуются в npm и GitHub mirror)
+- `docs/**`: внутренняя проектная документация, спецификации (`docs/superpowers/`), планы и заметки деплоя остаются только в приватном Gitea-репозитории.
+- `test/**`, `tools/**`: тесты и проверочные скрипты не включаются в тарболл пакета.
+- `.worktrees/**`, `.git/**`: служебные файлы версионирования.
+
+*Дата последней проверки состава и целостности:* 2026-09-27.
