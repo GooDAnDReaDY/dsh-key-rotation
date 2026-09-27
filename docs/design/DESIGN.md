@@ -102,6 +102,13 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
 ## Locked Design Decisions
+- 2026-09-27 — v0.8.27 Smart Routing & UI Suite (#363, #364, #365, #366, #367, #368):
+  - Smart Rate-Limit Reset & Proactive Throttling (#363): поддержка дельт времени ('1.5s', '500ms', '2m') и ISO дат в `x-ratelimit-reset`, `x-ratelimit-reset-requests`, `x-ratelimit-reset-tokens`; превентивное охлаждение ключа на вычисленное время reset при приближении остатка к порогу; счётчик `proactiveSwitches`.
+  - Multi-Vendor Cascade Fallback с Model Mapping (#364): каскадное переключение на резервного провайдера при исчерпании пула; глубина каскада до `CASCADE_MAX_DEPTH` (3); поддержка `modelMapping` (например, `deepseek-chat` -> `openrouter/deepseek/deepseek-chat`).
+  - Queue-Depth Aware Routing (#365): улучшение стратегии `least-loaded` с нормализацией по весам ключей (`inflight / weight`), предотвращающее перекос нагрузки.
+  - Bulk Key Import в WebUI (#366): интерфейс пакетной вставки ключей с парсингом построчно, `.env` (KEY=value) и CSV с весами без перезатирания существующих ключей.
+  - Режим обслуживания ключа (#367): флаг `isPaused`, тумблер паузы в строке ключа в WebUI; исключение приостановленных ключей из ротации и проверок.
+  - Визуализация Sparklines в WebUI (#368): легковесные SVG sparklines динамики нагрузки и трендов задержки в теме DSH без сторонних библиотек.
 - 2026-09-15 — Гарантированное освобождение слотов concurrencyTracker через try...finally и 1-retry в probeModels (#305); устранение фантомных блокировок ключей при штатном завершении стрима или отмене клиентом; пересмотр при переходе на внешний распределённый трекер соединений.
 - 2026-09-13 — v0.8.9 Core Evolutions (#303):
   - Proactive Rate-Limit Guard (`proactiveRateLimitGuard: true` by default): pre-emptively pauses keys on `remaining <= 1`, `Retry-After` (seconds or HTTP date), or when quota drops below threshold before a 429 occurs.
