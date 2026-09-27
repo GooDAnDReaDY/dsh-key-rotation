@@ -102,6 +102,12 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 `atomicWriteFile` (temp+fsync+rename) and `safeParseJson`/`safeReadJson` (corrupt → previous fallback, never empty-overwrite).
 
 ## Locked Design Decisions
+- 2026-09-27 — v0.8.28 Security & Monitoring Suite (#369, #370, #371, #372, #373):
+  - Пометка навсегда отозванных ключей (#369): при 401 Unauthorized / auth failure ключ помечается `isRevoked: true`, навсегда исключается из ротации и проверок, пушится событие `KEY_REVOKED`.
+  - Шифрование секретов в покое (#370): опциональное AES-256-GCM шифрование конфиденциальных строк при наличии `DSH_KEY_SECRET` в окружении с форматом `enc:v1:<iv>:<tag>:<ciphertext>`.
+  - Интерактивные Inline-кнопки в Telegram (#371): генерация `reply_markup.inline_keyboard` в алертах и обработка `callback_query` с подтверждением через `answerCallbackQuery`.
+  - Адаптеры оповещений для Discord, Slack, Gotify, ntfy (#372): автоопределение платформы и форматирование нативных карточек/сообщений.
+  - Экспорт метрик Prometheus (#373): защищённый эндпоинт `GET /dsh-key-rotation/metrics` в формате OpenMetrics (счётчики пулов, ключей, сбоев, задержек).
 - 2026-09-27 — v0.8.27 Smart Routing & UI Suite (#363, #364, #365, #366, #367, #368):
   - Smart Rate-Limit Reset & Proactive Throttling (#363): поддержка дельт времени ('1.5s', '500ms', '2m') и ISO дат в `x-ratelimit-reset`, `x-ratelimit-reset-requests`, `x-ratelimit-reset-tokens`; превентивное охлаждение ключа на вычисленное время reset при приближении остатка к порогу; счётчик `proactiveSwitches`.
   - Multi-Vendor Cascade Fallback с Model Mapping (#364): каскадное переключение на резервного провайдера при исчерпании пула; глубина каскада до `CASCADE_MAX_DEPTH` (3); поддержка `modelMapping` (например, `deepseek-chat` -> `openrouter/deepseek/deepseek-chat`).
