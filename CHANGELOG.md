@@ -3,6 +3,27 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.29 - 2026-09-27
+
+### Fixed & Hardened (#376)
+- **Decrypted secret resolution at rest**:
+  - `lib/index.js`: patched `credentials.resolve` now decrypts ciphertext (`enc:v1:...`) via `decryptSecret` for pooled hits, fallback environment variables, and unpooled standalone key queries, preventing raw encrypted strings from being passed to upstream LLM providers.
+- **Fail-safe candidate selection in rotation pool**:
+  - `lib/index.js`: `credentials.resolve` candidate check loop now explicitly enforces `!isKeyRevoked(pool, candidate)` and `!isKeyPaused(pool, candidate)` before selecting candidates.
+- **Predicate logic & dynamic state resolution**:
+  - `lib/pool.js`: corrected `isKeyPaused` predicate to ensure `pool.state.pausedRefs` is inspected when `pool.pausedRefs` Set or Array does not contain the ref, allowing runtime key pause mutations to take effect.
+  - `lib/cascade.js`: replaced raw `.has()` call with `isKeyRevoked(pool, ref)` and unified `isKeyPaused`, preventing `TypeError` crashes when `revokedRefs` is represented as an Array.
+- **Config & schema synchronization**:
+  - `lib/index.js`: propagated `p.revoked` into `buildPool` / `buildPoolItem` and added missing `paused` and `revoked` definitions to `SettingsSchema.providers`.
+- **Status & key administrative routes**:
+  - `lib/ops-status.js`: exposed `paused` and `revoked` booleans on key entries in `/dsh-key-rotation/status`.
+  - `lib/pool.js`: updated `keyTail` to transparently decrypt ciphertext before extracting the tail, displaying the actual credential mask instead of random ciphertext characters while preserving test safety contracts.
+  - `lib/ops-keys.js`: `/dsh-key-rotation/reset` now clears `st.revokedRefs` for provider resets and single ref resets, enabling operators to unblock fixed keys.
+- **Prometheus metrics & monitoring**:
+  - `lib/ops-metrics.js`: separated expired keys from active counts and added `dsh_key_rotation_expired_keys` gauge.
+  - `lib/budget-monitor.js`: excluded revoked and paused keys from healthy count in `warnBelowHealthy` threshold evaluation.
+  - `lib/webhook.js`: hardened Ntfy topic extraction against URLs with trailing slashes and query strings.
+
 ## 0.8.28 - 2026-09-27
 
 ### Security & Key Lifecycle (Block 3)
