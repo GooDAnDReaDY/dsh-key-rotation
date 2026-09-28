@@ -3,6 +3,21 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.33 - 2026-09-28
+
+### Fixed & Hardened
+- **Telegram Webhook Interactive Actions (#388)**:
+  - Route `/dsh-key-rotation/webhook-action` now accepts `X-Telegram-Bot-Api-Secret-Token` via constant-time comparison (`crypto.timingSafeEqual`) alongside `Authorization: Bearer`.
+  - Added native Telegram `answerCallbackQuery` webhook response (`{ method: 'answerCallbackQuery', callback_query_id, text }`) dismissing the spinner immediately on button presses.
+  - Enforced mandatory explicit HTTPS URL requirement in `setWebhook` helper and transmission of `secret_token`.
+- **Plugin Self-Updater Resiliency & Supply Chain Protection (#390)**:
+  - Removed `--config.minimumReleaseAge=0` override from `dsh plugin add` arguments, restoring release age policies and package verification.
+  - Implemented live PID detection via `process.kill(pid, 0)` in `package.json.lock`, returning 409 Conflict if installation is already in progress.
+  - Added automatic cleanup of orphaned/stale lockfiles left by dead processes.
+  - Ensured child process timeout immediately cleans up its own lockfile.
+- **Repository & Worktree Hygiene (#389)**:
+  - Pruned obsolete worktrees and deleted old merged feature branches.
+
 ## 0.8.32 - 2026-09-28
 
 ### Added & Enhanced

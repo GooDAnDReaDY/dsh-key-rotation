@@ -311,7 +311,7 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 | `/dsh-key-rotation/reset` | `POST` | Instantly resets all cooldowns and restores all keys to `ready`. |
 | `/dsh-key-rotation/test-matrix` | `POST` | Triggers parallel health check across all configured keys and models. |
 | `/dsh-key-rotation/usage-report` | `GET` | Returns aggregated usage metrics in JSON or CSV format (`?format=csv`). |
-| `/dsh-key-rotation/webhook-callback`| `POST` | Receives and executes interactive actions from Telegram/Slack callbacks. |
+| `/dsh-key-rotation/webhook-action` | `POST` | Receives and executes interactive actions from Telegram/Slack callbacks (`Authorization: Bearer` or `X-Telegram-Bot-Api-Secret-Token`). |
 
 ---
 

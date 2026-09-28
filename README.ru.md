@@ -303,7 +303,7 @@ dsh-key-rotation:
 | `/dsh-key-rotation/reset` | `POST` | Мгновенный сброс всех кулдаунов и возврат ключей в статус `ready`. |
 | `/dsh-key-rotation/test-matrix` | `POST` | Запуск параллельного тестирования всей матрицы ключей и моделей. |
 | `/dsh-key-rotation/usage-report` | `GET` | Получение сводного отчета использования в формате JSON или CSV (`?format=csv`). |
-| `/dsh-key-rotation/webhook-callback`| `POST` | Обработка интерактивных действий от кнопок в Telegram/Slack. |
+| `/dsh-key-rotation/webhook-action` | `POST` | Обработка интерактивных действий от кнопок в Telegram/Slack (`Authorization: Bearer` или `X-Telegram-Bot-Api-Secret-Token`). |
 
 ---
 
