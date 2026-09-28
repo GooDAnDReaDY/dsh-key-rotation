@@ -3,6 +3,25 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.34 - 2026-09-28
+
+### Security & Hardening
+- **Credentials Encryption at Rest on PUT (#395)**:
+  - Wired `encryptSecret` in `lib/ops-keys.js` (`PUT /dsh-key-rotation/key`).
+  - When `DSH_KEY_SECRET` is set in the environment, new keys are automatically encrypted at rest via AES-256-GCM (`enc:v1:...`).
+  - Key tail calculation and leak shape analysis continue to operate on raw values for uninterrupted UI diagnostics.
+  - Added dedicated integration test suite `test/crypto-storage-keys.test.mjs`.
+
+### Refactored & Tech-Debt
+- **Preflight Cleanliness & Safe Diagnostics (#393)**:
+  - Eliminated 5 empty `catch {}` blocks across `lib/plugin-updater.js` and `lib/ops-webhook.js`.
+  - Replaced unhandled exceptions with `bestEffort(label, fn, logger)` utilizing structured debug logging to `ctx?.logger`.
+  - Resolved preflight check blocker (`FAIL=0`).
+- **Dead Export Wiring & Core Cohesion (#394)**:
+  - Reused `scanForLiveSecrets` in `lib/http-bridge.js` to parse patch ops arrays directly in `handleConfigBridge`.
+  - Connected `filterQuotaEligible` to `anyModelQuotaAvailable` in `lib/model-quota.js`.
+  - Integrated `nowWall()` in `lib/quota-window.js` for default calendar reset calculations.
+
 ## 0.8.33 - 2026-09-28
 
 ### Fixed & Hardened
