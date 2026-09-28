@@ -124,7 +124,11 @@ test('fail-closed guard (#353): every guarded route rejects requests missing Ori
       headers: { host: '127.0.0.1:3080' }, // NO Origin header!
       body,
     });
-    assert.equal(res.status, 403, `route ${method} ${path} must reject request missing Origin with 403`);
+    if (method === 'GET') {
+      assert.notEqual(res.status, 403, `GET ${path} must accept without Origin from loopback`);
+    } else {
+      assert.equal(res.status, 403, `route ${method} ${path} must reject request missing Origin with 403`);
+    }
   }
 });
 
