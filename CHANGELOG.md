@@ -3,7 +3,7 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
-## 0.8.30 - 2026-09-28
+## 0.8.31 - 2026-09-28
 
 ### Added & Enhanced
 - **Per-Model Per-Key Token Quotas (#380)**:
