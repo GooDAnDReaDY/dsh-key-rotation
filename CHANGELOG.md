@@ -3,6 +3,25 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.35 - 2026-09-28
+
+### Refactored & Architecture
+- **Frontend Modularization (`lib/client-src/`) (#399, PR #400)**:
+  - Decomposed monolithic `lib/client.js` (~152 KiB, 2,691 lines) into 8 clean, domain-focused fragments under `lib/client-src/`:
+    - `00-header.js`: Module loader entry, requires, scoped CSS injection.
+    - `10-locales.js`: English (`en`) and Chinese (`zh`) translation dictionaries, error boundary, and helper constants.
+    - `20-hooks.js`: `useRotationStatus` and `useProbeCache` smart hooks.
+    - `30-utils.js`: Formatting utilities, CSS stylesheet, and dynamic locale resolver.
+    - `40-components.js`: Micro-components, JSON diff/patch operators, quota utilities, and pool validation.
+    - `50-card-main.js`: `KeyRotationSection` main settings surface and live telemetry controls.
+    - `60-header-chip.js`: `KeyRotationHeaderChip` session header status widget.
+    - `90-apply.js`: Plugin apply lifecycle, slot registrations, and internals exposure.
+  - Added deterministic zero-dependency Node build script `scripts/build-client.mjs` matching sister plugin standards (`dsh-cron`).
+  - Integrated `build:client` and `pretest` lifecycle triggers into `package.json`.
+  - Excluded `lib/client-src/` from distributed npm package tarballs via `files: ["lib/*.js", ...]`.
+  - Fixed misplaced updater translation keys, moving them cleanly inside `en` and `zh` dictionaries.
+  - Added automated CI regression test `test/build-client.test.mjs`.
+
 ## 0.8.34 - 2026-09-28
 
 ### Security & Hardening
