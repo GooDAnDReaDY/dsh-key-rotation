@@ -26,7 +26,7 @@ test('isLoopbackAddress: undefined / null / empty rejected', () => {
   assert.equal(isLoopbackAddress(''), false);
 });
 
-const req = (remoteAddress, headers = {}) => ({ socket: { remoteAddress }, headers });
+const req = (remoteAddress, headers = {}, method = 'GET') => ({ socket: { remoteAddress }, headers, method });
 
 test('isTrustedBridgeRequest: rejects non-loopback even with matching Origin', () => {
   assert.equal(isTrustedBridgeRequest(req('192.168.1.50', { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' })), false);
@@ -40,8 +40,12 @@ test('isTrustedBridgeRequest: accepts loopback + same-origin', () => {
   assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' })), true);
 });
 
-test('isTrustedBridgeRequest: rejects loopback with no Origin header (#353 fail-closed)', () => {
-  assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080' })), false);
+test('isTrustedBridgeRequest: accepts loopback with no Origin header for GET (#378)', () => {
+  assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080' }, 'GET')), true);
+});
+
+test('isTrustedBridgeRequest: rejects loopback with no Origin header for POST (#353 fail-closed, #378)', () => {
+  assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080' }, 'POST')), false);
 });
 
 test('isTrustedBridgeRequest: rejects loopback with missing Host header', () => {
