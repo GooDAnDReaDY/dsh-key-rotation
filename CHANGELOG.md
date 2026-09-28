@@ -3,6 +3,34 @@
 All notable changes to `@goodandready/dsh-key-rotation` are documented here.
 User-facing feature notes also appear in README (en is source of truth).
 
+## 0.8.30 - 2026-09-28
+
+### Added & Enhanced
+- **Per-Model Per-Key Token Quotas (#380)**:
+  - Granular token budgets per key within model sub-pools (`models.<model>.quotas.<ref>.tokenLimit`).
+  - Fail-closed local quota enforcement without penalising keys (healthy keys reaching their budget are safely skipped for that model without poisoning health scores or cooldown timers).
+  - Live token usage meters and progress bars in Settings UI card with remaining token counts and reset countdowns.
+  - Multi-window persistence of token consumption across daemon restarts.
+- **Resilient Provider Catalog (#379)**:
+  - Hardened provider catalog discovery for RPC-backed LLM service layers and backwards compatibility across core versions.
+  - Safe fallbacks from `listProviders()` to `listConfigurableProviders()` preventing card load failures when remote providers are registered.
+- **Method-Aware Bridge Security Guard (#378)**:
+  - Reinforced loopback origin checks distinguishing read-only operations (GET, HEAD, OPTIONS) from mutating operations.
+  - Hardened host header normalization (IPv6 bracket stripping and port stripping) guarding local management endpoints.
+
+### Refactored & Optimized
+- **Isolated Credential Resolver Module (#381)**:
+  - Extracted `credentials.resolve` dispatch logic from `lib/index.js` into modular `lib/resolver.js` (`createResolver`).
+  - Unit-testable routing decisions, request-scoped pool ownership (AsyncLocalStorage), and fail-closed budget checks.
+
+### Fixed & Hardened (#385)
+- **Lifecycle & Quota State Synchronization**:
+  - `/health` operational route now accurately respects `isKeyRevoked` and `isKeyPaused` in healthy count and degradation status.
+  - Fixed cost budget loop early `continue` in `lib/budget-monitor.js` which previously suppressed low-health and latency SLO alerts on providers lacking cost budgets.
+  - Integrated model token quota exhaustion detection (`isModelQuotaAvailable`) into low-health alerting (`warnBelowHealthy`).
+  - `DELETE /key` and `POST /reset` now cleanly purge stale `st.tokenUsage` entries.
+  - Replaced hardcoded hex color fallback in UI `Sparkline` with CSS theme variables.
+
 ## 0.8.29 - 2026-09-27
 
 ### Fixed & Hardened (#376)

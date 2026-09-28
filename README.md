@@ -264,6 +264,16 @@ dsh-key-rotation:
         - PRIMARY_API_KEY
         - PRIMARY_API_KEY_2
         - PRIMARY_API_KEY_BACKUP
+      models:
+        reasoning-model-id:
+          keys:
+            - PRIMARY_API_KEY
+            - PRIMARY_API_KEY_2
+          quotas:
+            PRIMARY_API_KEY:
+              tokenLimit: 500000
+            PRIMARY_API_KEY_2:
+              tokenLimit: 1000000
     - provider: secondary-provider
       keys:
         - SECONDARY_API_KEY
