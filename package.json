@@ -30,7 +30,7 @@
     "./cordis.patch.yml": "./cordis.patch.yml"
   },
   "files": [
-    "lib",
+    "lib/*.js",
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
@@ -63,7 +63,9 @@
   "scripts": {
     "test": "node tools/test.mjs",
     "test:core": "node tools/test.mjs --core",
-    "check": "node tools/check.mjs"
+    "check": "node tools/check.mjs",
+    "build:client": "node scripts/build-client.mjs",
+    "pretest": "node scripts/build-client.mjs"
   },
   "devDependencies": {
     "react": "18.3.1",

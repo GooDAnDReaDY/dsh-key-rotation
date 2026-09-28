@@ -8,7 +8,7 @@ const files = [];
 for (const dir of ['lib', 'test', 'tools']) {
   const walk = path => { for (const item of readdirSync(path, { withFileTypes: true })) {
     const full = join(path, item.name);
-    if (item.isDirectory()) walk(full); else if (/\.(mjs|js)$/.test(item.name)) files.push(full);
+    if (item.isDirectory()) { if (item.name !== 'client-src') walk(full); } else if (/\.(mjs|js)$/.test(item.name)) files.push(full);
   } }; walk(join(root, dir));
 }
 JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
