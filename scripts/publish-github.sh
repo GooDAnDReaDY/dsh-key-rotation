@@ -58,6 +58,7 @@ FORBIDDEN=(
   ".ruff_cache"
   ".venv"
   "node_modules"
+  "lib/client-src"
 )
 
 mode=""
@@ -96,6 +97,7 @@ is_allowed() {
   for entry in "${ALLOW[@]}"; do
     if [ "$path" = "$entry" ]; then return 0; fi
     case "$path" in "$entry"/*) return 0 ;; esac
+    case "$path" in $entry) return 0 ;; esac
   done
   return 1
 }
