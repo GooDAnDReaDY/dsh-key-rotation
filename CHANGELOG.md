@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.37 - 2026-09-30
+## 0.8.38 - 2026-09-30
 
 ### Added
 - **Sliding-Window TPM (Tokens Per Minute) Rate Limiting (#402, GH #20)**:
@@ -11,6 +11,14 @@
   - Exposed live TPM telemetry (`used`, `remaining`, `limit`, `resetMs`) in `GET /dsh-key-rotation/status` with sanitization in `lib/sanitize-snapshot.js`.
   - Added visual UI badge and editable TPM limit input in `lib/client-src/50-card-main.js` with localization (`en`, `zh`).
   - Added automated test suite `test/tpm-rate-limit.test.mjs` verifying bucket math, sweep cleanup, resolver fail-over, and snapshot sanitization.
+
+## 0.8.37
+
+### Fixed
+- **Peer gate on DSH 0.2.0-rc.1** (#58): the bundle was skipped at profile startup because its `peerDependencies` excluded the running version.
+- **Settings card served no form**: `NS` was the package name rather than the profile entry id, `Config` declared no `.volatile()` field, and `getConfig` handed out `Volatile` boxes. Both 0.1.7-rc.2 and 0.2.0 now serve and read the form.
+- **A saved setting never took effect**: the host applied changes through `settings.register` and `scope.watch`, neither of which exists in either release. Changes are applied on `loader/volatile-update` now.
+- **`settings.plugin.item` registration removed**: retired before DSH 0.1.7-rc.2, it only registered the card a second time on a seat that no longer exists.
 
 ## 0.8.36
 
