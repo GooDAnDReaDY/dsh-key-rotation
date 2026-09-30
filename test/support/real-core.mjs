@@ -29,7 +29,7 @@ export async function realCoreFixture(coreDir, version) {
     providers: [{ provider: 'a', keys: ['KEY_A', 'KEY_B'] }],
   };
   let ctx, profile, persisted = {}, starts = 0;
-  const modern = version.startsWith('0.1.7');
+  const modern = !/^(?:0\.1\.[0-6])(?:[.-]|$)/.test(version);
   if (modern) {
     const { initProfile } = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-app-boot')).href);
     const dir = join(home, 'profiles', 'test');
