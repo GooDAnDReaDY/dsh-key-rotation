@@ -204,3 +204,37 @@ test('safeFetchJson: succeeds on safe redirect to valid HTTPS target', async () 
   assert.equal(data.length, 1);
   assert.equal(data[0].provider, 'redirected-prov');
 });
+
+
+test('isPrivateOrReservedIp: correctly identifies hex-encoded and mapped IPv6 loopbacks (#411)', () => {
+  assert.equal(isPrivateOrReservedIp('::ffff:7f00:1'), true);
+  assert.equal(isPrivateOrReservedIp('::ffff:7f00:0001'), true);
+  assert.equal(isPrivateOrReservedIp('::ffff:c0a8:0101'), true);
+  assert.equal(isPrivateOrReservedIp('::ffff:127.0.0.1'), true);
+  assert.equal(isPrivateOrReservedIp('0:0:0:0:0:ffff:7f00:1'), true);
+  assert.equal(isPrivateOrReservedIp('::ffff:0808:0808'), false);
+});
+
+test('assertSafeUrl: blocks hex-encoded IPv4-mapped loopbacks (#411)', async () => {
+  await assert.rejects(assertSafeUrl('https://[::ffff:7f00:1]/audit'), /private or reserved/);
+  await assert.rejects(assertSafeUrl('https://[::ffff:7f00:0001]/audit'), /private or reserved/);
+  await assert.rejects(assertSafeUrl('https://[::ffff:127.0.0.1]/audit'), /private or reserved/);
+});
+
+test('createSafeDispatcher: blocks connection if connect-time lookup resolves to private IP (#411)', (t, done) => {
+  import('../lib/safe-fetch.js').then(({ createSafeDispatcher }) => {
+    const fakeLookup = (hostname, opts, cb) => {
+      cb(null, [{ address: '127.0.0.1', family: 4 }]);
+    };
+    const agent = createSafeDispatcher({ lookupImpl: fakeLookup });
+    // Verify the connect.lookup hook
+    const lookupFn = agent[Object.getOwnPropertySymbols(agent).find(s => s.description === 'options')]?.connect?.lookup
+      || agent.options?.connect?.lookup;
+    assert.ok(lookupFn, 'connect lookup function must be registered');
+    lookupFn('rebound.example.com', {}, (err) => {
+      assert.ok(err, 'must return error');
+      assert.equal(err.code, 'SSRF_BLOCKED');
+      done();
+    });
+  });
+});

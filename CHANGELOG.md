@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.39 - 2026-09-30
+
+### Fixed
+- **SSRF guard: IPv4-mapped IPv6 loopbacks & connect-time rebinding (#411)**:
+  - Blocked hex (`::ffff:7f00:1`, `::ffff:7f00:0001`), dotted (`::ffff:127.0.0.1`), IPv4-compatible (`::/96`), and NAT64 (`64:ff9b::/96`) loopback addresses via full 8-word IPv6 unpacking in `lib/safe-fetch.js`.
+  - Added connect-time DNS resolution enforcement using `undici.Agent` lookup hook to prevent TOCTOU DNS rebinding before establishing socket connections.
+- **Fail-closed credential resolver on pool exhaustion (#406)**:
+  - Return fail-closed error `LOCAL_POOL_EXHAUSTED` instead of leaking unmanaged `original(ref)` when all credentials in a managed pool are exhausted or blocked by cooldown, expiry, RPM, or TPM.
+- **Credential status inheritance & permanent auth revocation (#408)**:
+  - Model sub-pools inherit `paused`, `revoked`, and `expiresAt` credentials from their parent base provider pool.
+  - Runtime 401 permanent auth failure marks credential as revoked (`revokedRefs.add` and `failedUntil = Infinity`) across all associated pools sharing the ref.
+- **Persistence of revocation state and spend counters (#409)**:
+  - `StatePersistence` serializes and restores `revokedRefs` (as a Set), `Infinity` failedUntil timestamps, and daily usage/cost aggregation maps (`costDays`, `costPerKey`, `usageDays`, `usageCounts`).
+- **UI credential alignment and model weights on reordering (#412)**:
+  - Preserved `paused` and `revoked` flag alignment with credential references during reordering, deletion, and undo actions in the settings card.
+  - Model pool key reordering preserves model-specific weights and expiry mappings.
+
 ## 0.8.38 - 2026-09-30
 
 ### Added
