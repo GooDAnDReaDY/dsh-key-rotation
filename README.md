@@ -207,7 +207,9 @@ Access full visual management under **Settings → Key Rotation** or via the Hea
 * **Secure Vault Storage**: Actual secret values reside securely in `$DSH_HOME/.credentials.yaml` managed by the DSH `Credentials` service.
 * **5-Character Masking (`keyTail`)**: Full secret values are never sent to the client browser; only the trailing 5 characters are exposed for visual identification. Short keys (<= 5 characters) return a fixed masked placeholder (`***`) to prevent credential disclosure.
 * **Fail-Closed Loopback & Same-Origin Fencing**: Administrative endpoints strictly enforce loopback origin checks (`isTrustedBridgeRequest`), requiring valid `Origin` headers, matching `Host` headers, and rejecting `cross-site` or non-loopback requests without fallbacks.
-* **SSRF Guard on Import Route**: Remote provider pool import strictly enforces HTTPS-only URLs, validates all resolved IP addresses against private and reserved ranges (RFC 1918, loopback, link-local, multicast, CGNAT), verifies redirect targets, and caps response payload size to 1 MB.
+* **Fail-Closed Resolver on Pool Exhaustion**: When all credentials in a managed pool are exhausted, paused, expired, or blocked by RPM/TPM limits, the resolver fails closed with `LOCAL_POOL_EXHAUSTED` error rather than falling back to leaking unmanaged credentials.
+* **SSRF Protection & Rebinding Guard**: Remote provider pool import strictly enforces HTTPS-only URLs, validates all resolved IP addresses including IPv4-mapped and IPv4-compatible IPv6 addresses (`::ffff:127.0.0.1`, `::ffff:7f00:1`, `64:ff9b::/96`), and enforces connect-time DNS validation via undici agent dispatchers to prevent TOCTOU DNS rebinding.
+* **Cross-Pool Revocation & Inheritance**: Model pools automatically inherit pause, revoke, and expiry states from their base provider; runtime 401 permanent authentication failures revoke the credential across all shared pools immediately.
 
 ---
 
