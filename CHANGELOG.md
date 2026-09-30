@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.41 - 2026-10-01
+
+### Fixed
+- **Reproducible CI and core compatibility matrix (#424)**:
+  - Added explicit test `devDependencies` (`@deepseek-ai/schemastery`, `@deepseek-ai/cordis`, `@deepseek-ai/dsh-llm`, `semver`) to `package.json` to ensure clean checkouts (`npm ci`) reproduce all unit tests without depending on global or ambient node_modules.
+  - Updated modern core detection in `test/support/real-core.mjs` to properly identify DSH `0.2.0-rc.1`, `0.2.0-rc.2`, and future releases as modern loaders rather than misclassifying them as legacy.
+- **Preserved exponential backoff across credential selection (#410)**:
+  - Removed premature deletion of `failCounts`, `authFailCounts`, and `brokenUntil` during resolver selection in `lib/resolver.js` (`settle()`).
+  - Quarantine backoff state is now strictly retained until upstream requests finish successfully via `recordSuccess()`, preventing flapping keys from resetting to first-level retry backoff on every dispatch.
+- **Cascade failover on open circuit breaker (#413)**:
+  - When a primary provider's circuit breaker is open (`breaker.acquire()` returns null), `lib/rotate.js` now evaluates `pickCascadeFallback` before terminating, seamlessly routing traffic to healthy fallback providers.
+  - `pickCascadeFallback` in `lib/cascade.js` now validates circuit breaker state, skipping fallback providers whose circuits are open and failing closed with `CIRCUIT_OPEN` only when all cascade options are exhausted.
+- **Plaintext secret decryption for diagnostic probes and self-healing (#415)**:
+  - Added `decryptSecret` decryption to `lib/ops-test.js` (`/dsh-key-rotation/test` route) and `lib/lifecycle.js` (`autoUnbreakBrokenKeys`), preventing encrypted ciphertext credentials (`enc:v1:...`) from being sent to upstream LLM probe endpoints.
+  - Probe success now cleanses `revokedRefs` alongside `failedUntil` and `failCounts`.
+- **Fan-out reset across all model pools and shared credentials (#416)**:
+  - Key reset (`POST /dsh-key-rotation/reset` with `ref`) now fans out across ALL pools in `poolState` containing the ref rather than halting after the first match, clearing `failedUntil`, `failCounts`, `authFailCounts`, `brokenUntil`, `tokenUsage`, and `revokedRefs`.
+  - Provider reset (`provider`) and webhook actions (`pause-*`, `reset-*`) now fan out across base pools and all model sub-pools (`provider::*`), resetting circuit breakers and all associated quotas.
+
 ## 0.8.40 - 2026-09-30
 
 ### Fixed
