@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.37 - 2026-09-30
+
+### Added
+- **Sliding-Window TPM (Tokens Per Minute) Rate Limiting (#402, GH #20)**:
+  - Added 60-second sliding-window TPM rate-limiting alongside existing RPM (`tpmAllow`, `tpmRecord`, `tpmRetryMs`, `tpmSweep`, `tpmInfo` in `lib/bucket.js`).
+  - Added `tpmLimit` configuration at global, provider, and per-model scopes in `lib/index.js` and `lib/pool-builder.js`.
+  - Automatically records consumed tokens on streaming and non-streaming responses in `lib/rotate.js`.
+  - Enforced fail-over and cooldown in `lib/resolver.js` when candidate key exceeds its configured TPM budget.
+  - Exposed live TPM telemetry (`used`, `remaining`, `limit`, `resetMs`) in `GET /dsh-key-rotation/status` with sanitization in `lib/sanitize-snapshot.js`.
+  - Added visual UI badge and editable TPM limit input in `lib/client-src/50-card-main.js` with localization (`en`, `zh`).
+  - Added automated test suite `test/tpm-rate-limit.test.mjs` verifying bucket math, sweep cleanup, resolver fail-over, and snapshot sanitization.
+
 ## 0.8.36
 
 ### Fixed
