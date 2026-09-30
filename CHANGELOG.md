@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.40 - 2026-09-30
+
+### Fixed
+- **Dynamic concurrency limits & least-loaded connection tracking (#407)**:
+  - Added `configure({ limit, staleMs })` to `ConcurrencyTracker` so runtime limit updates from configuration or settings take immediate effect.
+  - Track in-flight request counts across all keys regardless of whether global limit is 0, ensuring accurate `least-loaded` routing metrics and status telemetry.
+  - Atomically acquire in-flight permit at credential selection time in `lib/resolver.js` and roll back immediately if the credential resolver rejects.
+  - Safely release concurrency permits in the outer `finally` block of `lib/rotate.js` on stream completion, client abort, error, or unhandled rejection.
+  - Skip saturated keys in `pickLeastLoaded` and fail closed when all candidate keys exceed their configured concurrency limits.
+- **Model-aware cross-provider cascade failover (#414)**:
+  - `pickCascadeFallback` now maps fallback models to target model sub-pools (`modelPoolByProvider`) rather than falling back only to base provider pools.
+  - Supported model-only providers (providers where credentials are defined exclusively under `models`) as valid cascade fallback targets.
+  - Validated local model token budgets (`isModelQuotaAvailable`) during cascade selection to bypass exhausted model pools.
+- **Aggregated provider monetary budget & model pool enforcement (#422)**:
+  - Added `getProviderCost(provider, runtime, now)` to aggregate daily and weekly spend across provider base pools and all model sub-pools without double-counting shared state.
+  - `checkBudgetAndHealthAlerts` now consolidates provider spend across all pools, sends unified webhook alerts with correct provider names, and pauses all pools (base and model sub-pools) for 24h when `pauseOnBudget: true`.
+  - Enforced monetary budget refusal (`LOCAL_POOL_EXHAUSTED`) at credential resolution time in `lib/resolver.js` when provider budget is exceeded and `pauseOnBudget` is active.
+
 ## 0.8.39 - 2026-09-30
 
 ### Fixed
