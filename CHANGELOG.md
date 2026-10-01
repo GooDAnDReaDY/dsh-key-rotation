@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.43 - 2026-10-01
+
+### Fixed
+- **Sanitized GitHub mirror and provenance workflow documentation (#425)**:
+  - Updated `docs/deployment/github-npm-provenance.md` to accurately document the Gitea-first development workflow and sanitized GitHub mirror export (`./scripts/publish-github.sh --push <tag>`), eliminating contradictions regarding direct GitHub PRs and external CI triggers.
+- **LatencyHistogram configuration from latencyWindow setting (#426)**:
+  - Implemented dynamic `reconfigure({ window })` on `LatencyHistogram` (`lib/histogram.js`) and wired `cfg.latencyWindow` from configuration into `buildRuntime()` (`lib/index.js`), ensuring the configured latency sampling window is respected at runtime.
+- **Auto-unbreak quarantine separation and safety checks (#427)**:
+  - Updated `lib/rotate.js` to place keys into a recoverable 30-minute quarantine (`brokenUntil`) after 3 consecutive non-auth failures while protecting rate-limited/quota-exhausted keys from quarantine pollution.
+  - Updated `lib/heal.js` to strictly skip permanently revoked (`revokedRefs`) and paused (`pausedRefs`) credentials during auto-unbreak background probing, preventing probing or accidental reactivation of revoked credentials.
+- **Webhook Alert Digest pipeline integration (#428)**:
+  - Wired `AlertDebouncer` into the production notification pipeline in `lib/index.js`, batching rapid alert bursts into consolidated digest payloads before webhook dispatch as documented.
+
 ## 0.8.42 - 2026-10-01
 
 ### Fixed
