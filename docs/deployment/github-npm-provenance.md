@@ -11,7 +11,7 @@
 1. Все проверки качества (`npm test`, `npm run check`, `preflight.sh`, сборка `lib/client.js`, диагностический harness) выполняются в Gitea/DEV рабочем окружении.
 2. Проводится обязательная предварительная физическая приёмка релизного кандидата на тестовом сервере MiniPC (`http://192.168.1.123:3082` / окружение `/home/vadim/.dsh-test`, профиль `web`):
    - Установка тарбола (`goodandready-dsh-key-rotation-X.Y.Z.tgz`) через `pnpm add`.
-   - Проверка запуска сервиса `dsh-test-web.service` (`systemctl is-active dsh-test-web.service`).
+   - Проверка запуска сервиса `dsh-test-web.service` (`systemctl --user is-active dsh-test-web.service`).
    - Проверка эндпоинтов `/dsh-key-rotation/status`, `/dsh-key-rotation/metrics`, `/dsh-key-rotation/health`.
    - Проверка карточки настроек в WebUI и отсутствие ошибок React/console.
    - Чистая деинсталляция пакета и валидация отсутствия остаточных артефактов (сохранение постоянного `dsh-lanmode 0.8.0`).
