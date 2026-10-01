@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.46 - 2026-10-02
+
+### Fixed
+- **Telegram Inline Callback Wire Limit & Receiver Resolution (#419)**: Ensure serialized `callback_data` on the wire strictly conforms to Telegram API's 64-byte limit (`Buffer.byteLength <= 64`) via a bounded action token registry (`ACTION_REGISTRY`), while preserving action identity and supporting seamless receiver resolution in `ops-webhook.js`.
+- **Alert Debouncer Batching with Serial Queue (#428)**: Enable `NotifyQueue` to admit successive burst notifications into `AlertDebouncer` pending batches without waiting for debounce timer flush, restoring alert digest batching (`incidentCount: 3`, `digest: true`) while preserving queue backpressure and delivery outcome accounting.
+- **Documentation System Service Command (#425)**: Correct systemd command in `docs/deployment/github-npm-provenance.md` to `systemctl --user is-active dsh-test-web.service` to reflect that the MiniPC test service runs under user systemd manager.
+
 ## 0.8.45 - 2026-10-01
 
 ### Fixed
