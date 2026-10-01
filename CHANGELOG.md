@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.44 - 2026-10-01
+
+### Fixed
+- **Core & Persistence Integrity (#407, #408, #409, #410, #422, #427)**:
+  - Eliminated concurrency permit leaks in lazy streams by avoiding premature permit reservation in rotate dispatch (#407).
+  - Implemented physical credential revocation fan-out across all pools in runtime on 401 AUTH failures (#408).
+  - Supported nested `Map<ref, Map<day, number>>` in state persistence for `costDays` and `usageDays`, preserving daily financial spend and preventing provider budget bypasses across restarts (#409, #422).
+  - Preserved exponential backoff failure counts across cooldown expiration in `sweepExpired` (#410).
+  - Blocked quarantined credentials in candidate selection (`resolver.js`) and ensured auto-unbreak probes skip configured paused keys (#427).
+- **Transport, Circuit Breakers & Route Reliability (#411, #413, #415, #418, #428)**:
+  - Ensured safe dispatcher single-address lookup returns scalar `(err, address, family)` rather than array, conforming to standard Node.js `dns.lookup` contract (#411).
+  - Added non-mutating `isAvailable` inspection to `CircuitBreaker`, preventing cascade candidate checks from consuming trial half-open probes prior to dispatch (#413).
+  - Enforced fail-closed decryption validation in `/dsh-key-rotation/test`, preventing encrypted ciphertext from reaching upstream LLM endpoints when secrets cannot be decrypted (#415).
+  - Model sub-pools now accurately reflect their base provider circuit breaker state in `/status`, and `/health` correctly transitions to `degraded` when any circuit is open (#418).
+  - Streamlined `NotifyQueue` dispatch into debouncer pipeline with accurate delivery outcome tracking and backoff handling (#428).
+- **UI & Client Reliability (#419, #420, #421)**:
+  - Stripped master action token from Telegram interactive callbacks, bounded UTF-8 byte length to <= 64 bytes for unicode, and preserved ASCII action routing (#419).
+  - Fixed `keyStatus` to recognize paused status from server DTOs and reset optimistic reset flags upon active cooldown updates (#420).
+  - Memoized `UpdaterSection` load callback with ref to prevent duplicate background network checks on unrelated parent settings updates (#421).
+- **Packaging, CI & Documentation (#424, #425)**:
+  - Synchronized `package-lock.json` with `semver@7.8.5` and `undici@6.29.0` for clean `npm ci --ignore-scripts` reproducibility (#424).
+  - Updated `docs/deployment/github-npm-provenance.md` with mandatory pre-release MiniPC test-server acceptance and explicit user confirmation requirements (#425).
+
 ## 0.8.43 - 2026-10-01
 
 ### Fixed
