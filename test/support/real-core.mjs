@@ -1,8 +1,8 @@
 import { createRequire } from 'node:module';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { pathToFileURL, fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 // Use an isolated, explicitly installed core. Tests never use a user's DSH home
 // or credentials and never send a provider request.
@@ -11,13 +11,7 @@ export async function realCoreFixture(coreDir, version) {
   const { Context } = await import(pathToFileURL(req.resolve('@deepseek-ai/cordis')).href);
   const { default: Settings } = await import(pathToFileURL(req.resolve('@deepseek-ai/dsh-settings')).href);
   const home = mkdtempSync(join(tmpdir(), 'key-rotation-core-'));
-  const copy = join(home, 'rotation');
-  mkdirSync(copy);
-  const source = fileURLToPath(new URL('../../', import.meta.url));
-  cpSync(join(source, 'lib'), join(copy, 'lib'), { recursive: true });
-  cpSync(join(source, 'package.json'), join(copy, 'package.json'));
-  symlinkSync(join(resolve(coreDir), 'node_modules'), join(copy, 'node_modules'), 'junction');
-  const plugin = await import(pathToFileURL(join(copy, 'lib/index.js')));
+  const plugin = await import(new URL('../../lib/index.js', import.meta.url).href);
   const routes = new Map();
   const services = (ctx) => {
     ctx.provide('llm', { listProviders: () => [{ id: 'a', name: 'A' }], listConfigurableProviders: () => [] });
