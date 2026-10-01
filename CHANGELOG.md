@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.45 - 2026-10-01
+
+### Fixed
+- **Background Auto-Unbreak Decryption Check (#415)**: Skip auto-unbreak model probes and keep quarantine active when stored credentials cannot be decrypted due to missing or invalid `DSH_KEY_SECRET`.
+- **Telegram Inline Callback Byte-Limit & UTF-8 Roundtrip (#419)**: Ensure all inline button callbacks strictly fit within Telegram API's 64-byte limit while preserving action ID and JSON roundtrip on long or multibyte identifiers.
+- **DSH Core Integration Fixture & Matrix (#424)**: Eliminate temporary project copying (`cpSync`) from `test/support/real-core.mjs` by importing `lib/index.js` directly from the worktree; expand CI test matrix in `.github/workflows/tests.yml` to include DSH `0.1.7-rc.2` and `0.2.0-rc.1`.
+- **Release Documentation Process & Environment Alignment (#425)**: Update `docs/deployment/github-npm-provenance.md` with the accurate MiniPC acceptance environment (`/home/vadim/.dsh-test`, profile `web`, `dsh-test-web.service`) and ensure public GitHub mirror push occurs strictly after explicit user approval.
+- **NotifyQueue Bounded Capacity & Serial Backoff Concurrency (#435)**: Restore serial queue pumping with `setImmediate` deferral, correctly bounding in-flight and pending webhook deliveries to `maxDepth` under high-burst traffic.
+
 ## 0.8.44 - 2026-10-01
 
 ### Fixed
