@@ -11,7 +11,7 @@ test('sweepExpired: clears only expired entries', () => {
   assert.equal(st1.failedUntil.has('A'), false);
   assert.equal(st1.failedUntil.has('B'), true);
   assert.equal(st2.failedUntil.has('C'), false);
-  assert.equal(st1.failCounts.has('A'), false);
+  assert.equal(st1.failCounts.has('A'), true); // #410: failCounts preserved across cooldown
   assert.equal(st1.failCounts.has('B'), true);
 });
 test('sweepExpired: returns 0 when nothing expired', () => {
