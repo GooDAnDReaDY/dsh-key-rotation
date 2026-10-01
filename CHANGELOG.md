@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.42 - 2026-10-01
+
+### Fixed
+- **Telemetry and budget monitor model pool coverage (#417)**:
+  - Fixed `/dsh-key-rotation/usage` export and background alert monitoring (`budget-monitor.js`) to iterate over `runtime.pools` instead of `poolByRef.values()`.
+  - Ensures model pools sharing physical credential refs (`provider::model`) are included in usage reports, CSV exports, and low-health/SLO alerts without double-counting aggregate credential totals.
+- **Exposed circuit breaker state and notifyQueue status (#418)**:
+  - Passed `notifyQueue` to operational routes and attached `breaker` and `notifyQueue` to `buildRuntime()`.
+  - `/dsh-key-rotation/status` now reports `circuit` state (`open`, `half-open`, `closed`) per provider and includes `notifyQueue` pending/sent metrics in `meta`.
+- **Bounded Telegram callback_data payload size (#419)**:
+  - Updated `formatInteractive` in `lib/webhook.js` so Telegram inline button `callback_data` payloads are strictly <= 64 bytes and omit raw master `actionToken`.
+  - Prevents Telegram API rejection (`BUTTON_DATA_INVALID`) while retaining Telegram `secret_token` header authentication and callback acknowledgement.
+- **Structured key eligibility in Settings UI (#420)**:
+  - Updated `keyStatus` in `lib/client-src/50-card-main.js` to return structured eligibility flags (`ready`, `paused`, `revoked`, `expired`, `missing`, `cooling`).
+  - Settings card ready counters, header summaries, and ready filter pills no longer miscount paused, revoked, expired, or missing keys as ready. `optimisticReset` state is cleared upon receiving server status updates.
+- **Single root UpdaterSection component (#421)**:
+  - Relocated `UpdaterSection` out of per-provider card row loops to the main card root container in `lib/client-src/50-card-main.js`.
+  - Ensures exactly one updater section is rendered regardless of provider count (0, 1, or N), enabling update checks even with 0 pools configured while eliminating duplicate GET requests.
+- **Quota-aware Prometheus active_keys metric (#423)**:
+  - Updated Prometheus metrics exporter in `lib/ops-metrics.js` to verify model token quota availability when calculating `dsh_key_rotation_active_keys`.
+  - Added new `dsh_key_rotation_quota_exhausted_keys` gauge metric, aligning exporter readiness metrics with `/dsh-key-rotation/health`.
+
 ## 0.8.41 - 2026-10-01
 
 ### Fixed
