@@ -8,9 +8,15 @@
 
 ## Порядок выпуска
 
-1. Все проверки качества (`npm test`, `npm run check`, сборка `lib/client.js`) выполняются в Gitea/DEV рабочем окружении.
-2. После успешного слияния в `main` на Gitea создается релизный тег `vX.Y.Z`.
-3. Скрипт `./scripts/publish-github.sh --push vX.Y.Z` формирует очищенное (sanitized) дерево продукта и синхронизирует его с публичным зеркалом GitHub.
-4. Владелец проекта дает явное подтверждение на публикацию релиза в npm.
-5. Публикация пакета `@goodandready/dsh-key-rotation@X.Y.Z` выполняется в npm registry (`npm publish --access public`).
-6. Агент устанавливает опубликованный релиз в production web-профиль (`/home/vadim/.dsh/profiles/web`), перезапускает сервис `dsh-web.service` и выполняет финальную валидацию эндпоинта `/status`.
+1. Все проверки качества (`npm test`, `npm run check`, `preflight.sh`, сборка `lib/client.js`) выполняются в Gitea/DEV рабочем окружении.
+2. Проводится обязательная предварительная физическая приёмка на тестовом сервере MiniPC (`http://192.168.1.123:3082` / профиль `dsh-test`):
+   - Установка тарбола (`goodandready-dsh-key-rotation-X.Y.Z.tgz`) через `pnpm add`.
+   - Проверка запуска сервиса `dsh-test.service`.
+   - Проверка эндпоинтов `/dsh-key-rotation/status`, `/dsh-key-rotation/metrics`, `/dsh-key-rotation/health`.
+   - Проверка карточки настроек в WebUI и отсутствие ошибок React/console.
+   - Чистая деинсталляция и валидация отсутствия остаточных артефактов.
+3. После успешного слияния PR в `main` на Gitea создается релизный тег `vX.Y.Z`.
+4. Скрипт `./scripts/publish-github.sh --push vX.Y.Z` формирует очищенное (sanitized) дерево продукта и синхронизирует его с публичным зеркалом GitHub.
+5. Запрашивается явное подтверждение владельца проекта (пользователя) на публикацию релиза в npm. Без явного подтверждения публикация строго запрещена.
+6. Публикация пакета `@goodandready/dsh-key-rotation@X.Y.Z` выполняется в npm registry (`npm publish --access public`).
+7. Агент устанавливает опубликованный релиз в production web-профиль (`/home/vadim/.dsh/profiles/web`), перезапускает сервис `dsh-web.service` и выполняет финальную валидацию эндпоинта `/status`.

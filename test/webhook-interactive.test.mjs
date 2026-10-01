@@ -20,7 +20,7 @@ test('telegram: inline keyboard with callback_data JSON', () => {
   const btn = body.reply_markup.inline_keyboard[0][0];
   const data = JSON.parse(btn.callback_data);
   assert.equal(data.id, 'pause-pool');
-  assert.equal(data.token, 'tok');
+  assert.equal(data.token, undefined);
 });
 
 test('discord: action row buttons with custom_id', () => {
@@ -47,7 +47,7 @@ test('WebhookSender: interactive payload formats body via formatInteractive', as
   await sender.send('https://api.telegram.org/bot1/sendMessage', { title: 'T', text: 'x', actions: [{ id: 'pause-pool', label: 'Pause' }], actionToken: 'tok' });
   const btn = captured.reply_markup.inline_keyboard[0][0];
   assert.equal(JSON.parse(btn.callback_data).id, 'pause-pool');
-  assert.equal(JSON.parse(btn.callback_data).token, 'tok');
+  assert.equal(JSON.parse(btn.callback_data).token, undefined);
 });
 
 test('WebhookSender: plain payload stays plain JSON', async () => {
