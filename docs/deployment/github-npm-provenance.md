@@ -1,35 +1,16 @@
-# Публичная npm-публикация через GitHub Actions
+# Порядок публичного релиза и публикации в npm
 
 ## Назначение
 
-`.github/workflows/ci.yml` проверяет публичное зеркало. Он не имеет write или
-deploy permissions и не публикует пакеты.
+Основным источником истины и местом выполнения полных проверок качества (unit-тесты, статический анализ, сборка клиента, сквозные тесты) является репозиторий **Gitea**.
 
-`.github/workflows/publish-npm.yml` запускается вручную только после полного
-качества по основному workflow: Gitea merge, DSH test server, production
-проверка и явное подтверждение владельца на публикацию.
+Зеркало на GitHub (**GooDAnDReaDY/dsh-key-rotation**) является публичным продуктовым зеркалом. Для обеспечения безопасности внутренней инфраструктуры служебные файлы (тесты, скрипты сборки, агентские инструкции, CI-конфигурации) исключаются из зеркала скриптом `./scripts/publish-github.sh`.
 
 ## Порядок выпуска
 
-1. Агент завершает задачу в Gitea, merge в `main`, deploy и production-проверку.
-2. Владелец подтверждает публикацию.
-3. Из проверенного commit создаётся и зеркалируется GitHub tag `vX.Y.Z`.
-4. GitHub CI должен быть зелёным для этого commit.
-5. В GitHub Actions вручную запускается `Publish public npm package`, с точным
-   `release_tag`.
-6. Workflow повторно выполняет install, доступные static checks, tests, audit
-   и `npm pack --dry-run`, затем публикует `npm publish --provenance`.
-7. Агент устанавливает exact опубликованную версию в production и повторяет
-   штатные production checks.
-
-## Настройка npm Trusted Publisher
-
-В npm package settings указать GitHub Actions publisher:
-
-- organization: `GooDAnDReaDY`;
-- repository: `dsh-key-rotation`;
-- workflow filename: `publish-npm.yml`;
-- environment: `npm-production`.
-
-Trusted publishing использует OIDC; NPM token в GitHub Secrets не требуется.
-Пакет остаётся публичным, а GitHub repository должен быть public.
+1. Все проверки качества (`npm test`, `npm run check`, сборка `lib/client.js`) выполняются в Gitea/DEV рабочем окружении.
+2. После успешного слияния в `main` на Gitea создается релизный тег `vX.Y.Z`.
+3. Скрипт `./scripts/publish-github.sh --push vX.Y.Z` формирует очищенное (sanitized) дерево продукта и синхронизирует его с публичным зеркалом GitHub.
+4. Владелец проекта дает явное подтверждение на публикацию релиза в npm.
+5. Публикация пакета `@goodandready/dsh-key-rotation@X.Y.Z` выполняется в npm registry (`npm publish --access public`).
+6. Агент устанавливает опубликованный релиз в production web-профиль (`/home/vadim/.dsh/profiles/web`), перезапускает сервис `dsh-web.service` и выполняет финальную валидацию эндпоинта `/status`.
