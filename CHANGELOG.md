@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.47 - 2026-10-02
+
+### Fixed
+- **Pool Exhaustion Alerts Coalescing into Digest (#428)**: Pass hooks (`webhookSender`, `notifyQueue`, `now`) to `notifyExhaustion` in `createRotate` options in `lib/index.js`, ensuring rapid multi-pool exhaustions route through `NotifyQueue` and `AlertDebouncer` into a single consolidated digest rather than falling back to default direct sender where secondary alerts get dropped by the 1-req/s throttle.
+- **Queue Admission Bound & Debouncer Send Serialization (#435)**: Track unsettled events (`_unsettled`) in `NotifyQueue` across debounced send lifecycles to strictly enforce admission limit (`maxDepth`) during burst traffic without bypassing queue capacity, and serialize batched HTTP deliveries in `AlertDebouncer.prototype.flush` via `_sendLock` to ensure single-flight send concurrency (`peak <= 1`).
+
 ## 0.8.46 - 2026-10-02
 
 ### Fixed
