@@ -41,3 +41,34 @@ test('AlertDebouncer: multiple events batch into a single consolidated digest', 
   assert.ok(sent[0].payload.text.includes('deepseek, openrouter'));
   assert.ok(sent[0].payload.text.includes('k1, k2, k3'));
 });
+test('AlertDebouncer: respects sender throttle window across rapid consecutive flushes without losing batches', async () => {
+  const sent = [];
+  let lastSent = -Infinity;
+  const minIntervalMs = 50;
+  const sender = {
+    _minIntervalMs: minIntervalMs,
+    _lastSentAt: new Map(),
+    send: async (url, payload) => {
+      const now = Date.now();
+      if (now - lastSent < minIntervalMs) {
+        return { sent: false, throttled: true };
+      }
+      lastSent = now;
+      sender._lastSentAt.set(url, now);
+      sent.push({ url, payload });
+      return { sent: true, status: 200 };
+    },
+  };
+
+  const debouncer = new AlertDebouncer({ sender, debounceMs: 100, maxBatch: 5 });
+  const promises = [];
+  for (let i = 0; i < 10; i++) {
+    promises.push(debouncer.enqueue('https://webhook.url', { provider: 'p' + i }));
+  }
+
+  const results = await Promise.all(promises);
+  assert.equal(sent.length, 2);
+  assert.equal(sent[0].payload.incidentCount, 5);
+  assert.equal(sent[1].payload.incidentCount, 5);
+  assert.ok(results.every(r => r.sent === true));
+});

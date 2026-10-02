@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.48 - 2026-10-02
+
+### Fixed
+- **Debouncer Throttle Interval Preservation & Delivery Guarantee (#428)**: Ensure `AlertDebouncer.prototype.flush` respects `WebhookSender` inter-batch throttling window (`_minIntervalMs`, default 1000ms) between consecutive batch deliveries across high-burst traffic (e.g. 20 rapid exhaustion events splitting into two 10-incident batches), preventing secondary batches from receiving `throttled: true` drops and guaranteeing all accepted digest alerts are delivered without loss.
+
 ## 0.8.47 - 2026-10-02
 
 ### Fixed
