@@ -163,6 +163,73 @@ graph LR
 * **使用量与成本报表 (`lib/usage-report.js`)**：按日统计各密钥请求数与预估成本，支持一键导出 CSV/JSON (`GET /dsh-key-rotation/usage-report`)。
 * **延迟 SLO 监控 (`lib/histogram.js`)**：记录首字延迟（TTFT）与健康度评分 (`0..100`)。
 
+### 🎯 5. 模型级路由与按模型 Token 额度
+* **模型子池（`lib/pool.js`）**：为特定模型层级（如重型推理模型 vs 轻量工具模型）配置专用密钥池。
+* **按「模型 × 密钥」的 Token 额度（`lib/model-quota.js`）**：可为某个凭据在某个模型上单独设置本地 Token 额度。额度耗尽的密钥**只在该模型上被跳过**——`claude-sonnet` 额度用尽绝不会导致同一把密钥的 `claude-opus` 被禁用。
+
+#### 按模型、按密钥的 Token 额度
+
+`tokenLimit` 作用于**某个模型池中的某一个凭据**。同一凭据可以在它所属的每个模型池中拥有各自独立的额度：
+
+```yaml
+dsh-key-rotation:
+  quotaResetWindow:
+    type: midnight_utc
+    hour: 0
+
+  providers:
+    - provider: anthropic
+
+      keys:
+        - CLAUDE_KEY_A
+        - CLAUDE_KEY_B
+
+      models:
+        claude-sonnet:
+          keys:
+            - CLAUDE_KEY_A
+            - CLAUDE_KEY_B
+          quotas:
+            CLAUDE_KEY_A:
+              tokenLimit: 1000000
+            CLAUDE_KEY_B:
+              tokenLimit: 1000000
+
+        claude-opus:
+          keys:
+            - CLAUDE_KEY_A
+            - CLAUDE_KEY_B
+          quotas:
+            CLAUDE_KEY_A:
+              tokenLimit: 200000
+            CLAUDE_KEY_B:
+              tokenLimit: 200000
+```
+
+行为如下：
+
+```text
+claude-sonnet 请求
+  → CLAUDE_KEY_A 的 Sonnet 额度仍有剩余
+  → 使用 CLAUDE_KEY_A
+  → 按实际 usage 扣除 Token
+  → CLAUDE_KEY_A / Sonnet 达到上限
+  → 后续 Sonnet 请求跳过 CLAUDE_KEY_A，改用 CLAUDE_KEY_B
+  → claude-opus 请求仍可继续使用 CLAUDE_KEY_A
+```
+
+需要注意的规则与限制：
+
+* **`tokenLimit`** 表示单个凭据在单个模型池中、于当前额度周期内可消耗的 Token 数。缺失、`null`、非数字或非正数一律表示**不做本地 Token 限制**——完全不写 `quotas` 时行为与此前版本完全一致。
+* **`quotaResetWindow`** 控制这些额度的重置时机，复用已有的 `midnight_utc` / `midnight_pst` / `rolling_24h` 配置。重置是惰性的：周期结束后首次读取即归零，不会为每把密钥创建定时器。
+* **额度依据成功响应返回的 usage 记账。** 只有正常完成且带有可用 `usage` 的请求才会被扣减；失败、中断、被本地额度拒绝和重试路径都不会计费。
+* **不上报 usage 的提供商无法精确统计。** 这类请求**不会被猜测、也不会被扣减**，因此模型额度只可能被真正上报了 Token 用量的响应耗尽。
+* 允许最后一个放行的请求略微超出配置上限；并发在途请求同样可能产生有限超出。这是当前版本的预期行为——本版本没有 Token 预留机制。
+* 本地模型额度**失败即关闭（fail closed）**：当所有凭据都没有额度时，请求不会发往上游，也**不会**回退到原始凭据绕过限制，而是进入既有的密钥池耗尽 / 级联流程。
+* 额度耗尽属于**预算状态**，不是凭据故障：它不会写入冷却、失败计数或损坏标记；上游返回的 QUOTA 错误也仍然只在真正处理该请求的模型池内生效。
+* 修改额度立即生效：把上限调到已用量之下会立刻变为已耗尽；调高则自动重新计算剩余量且不清空已用量；删除 `quotas.<REF>` 立即恢复为不限额。
+* 状态文件中只保存凭据 **ref** 与计数器，额度上限本身仍来自设置配置；磁盘中不会写入任何真实 API Key，状态接口也不会返回密钥值。
+
 ---
 
 ## 🖥️ Web GUI 控制台 (**设置 → 密钥轮换**)
@@ -177,6 +244,7 @@ graph LR
 | **密钥泄漏探测器** | 实时校验输入格式（`sk-...` 等），防止误贴私钥或无关 Token。 |
 | **批量 `.env` 导入** | 支持文件导入解析并自动填充至对应提供商池。 |
 | **5 秒撤销栏** | 误删密钥或提供商时提供 5 秒快速撤销操作。 |
+| **模型子池与 Token 额度编辑** | 在每个提供商下按模型维护凭据列表，并逐个设置 Token 额度；实时显示 `已用 / 上限`、百分比、剩余量与重置倒计时，未配置时显示 `不限额`。 |
 
 ---
 
@@ -185,7 +253,7 @@ graph LR
 * **配置零明文**：插件配置仅保存环境变量引用名（如 `MY_PROVIDER_API_KEY`）。
 * **宿主安全存储**：真实密钥持久化保存在 `$DSH_HOME/.credentials.yaml`。
 * **前台 5 字符脱敏**：前端仅展示密钥后 5 位字符进行视觉区分。对于长度 <= 5 的短密钥，返回统一脱敏占位符 (`***`)，防止凭证完整泄露。
-* **Fail-Closed 环回同源安全隔离**：管理接口严格通过 `isTrustedBridgeRequest` 验证本地同源请求，强制要求有效 `Origin` 和 `Host` 匹配，无条件拒绝跨站 (`cross-site`) 与非环回调用。
+* **Fail-Closed 环回同源安全隔离**：管理接口严格通过 `isTrustedBridgeRequest` 校验：套接字对端与 `Host` 头必须均为环回地址（`127.0.0.1`、`::1`、`localhost`），并始终拒绝 `sec-fetch-site: cross-site`。若请求携带 `Origin`，则必须是 http(s) 环回源且与 `Host` 完全一致。`POST`/`PUT`/`PATCH`/`DELETE` 必须携带 `Origin`，而 `GET`/`HEAD`/`OPTIONS` 允许省略——因为浏览器在同源读取请求中不会发送该头，强制要求会连带拒绝设置面板自身的请求。
 * **凭证池耗尽 Fail-Closed 熔断**：当受管凭证池中所有密钥均被耗尽、暂停、过期或触发 RPM/TPM 限制时，解析器立即返回 `LOCAL_POOL_EXHAUSTED` 错误熔断，杜绝静默回退泄漏未受控原始密钥。
 * **SSRF 与 DNS 重绑定防护**：远程配置导入严格仅支持 HTTPS，全面校验解析 IP 并拦截 IPv4-mapped/IPv4-compatible 等各类 IPv6 环回变体（如 `::ffff:127.0.0.1`、`::ffff:7f00:1`、`64:ff9b::/96`），并通过 undici 调度器执行连接时（connect-time）DNS 校验，从根本上防御 TOCTOU DNS 重绑定。
 * **跨池吊销与状态继承**：模型子池自动继承基础提供商的暂停、吊销与过期时间；运行时 401 永久认证失败将即时在所有关联共享池中统一标记吊销。
