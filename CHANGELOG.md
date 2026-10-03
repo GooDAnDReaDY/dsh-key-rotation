@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.49 - 2026-10-03
+
+### Added
+- **Per-Model Per-Key Token Quotas Documentation & Specification Tests (#442)**:
+  - Documented per-model token quota configuration, accounting lifecycle, lazy reset window semantics, and fail-closed isolation rules across `README.md`, `README.ru.md`, and `README.zh.md`.
+  - Added Web GUI documentation for model sub-pools & token quota editing, and clarified loopback method-aware Origin validation (`isTrustedBridgeRequest`).
+  - Adopted and adapted 5 comprehensive specification test suites from Hipple (`53c479b`):
+    - `test/backward-compat.test.mjs`: Legacy configurations parse and operate without quota limits or unintended defaults.
+    - `test/integration-acceptance.test.mjs`: End-to-end model quota verification with per-model token exhaustion failover and pool isolation.
+    - `test/schema.test.mjs`: Settings schema normalization and optional `@deepseek-ai/schemastery` peer dependency resolution.
+    - `test/routes-live-guard.test.mjs`: Method-aware bridge authentication across browser same-origin reads and mutations.
+    - `test/persistence-model-quota.test.mjs`: In-memory serialization and durable restore of `tokenUsage` across restarts.
+
 ## 0.8.48 - 2026-10-02
 
 ### Fixed

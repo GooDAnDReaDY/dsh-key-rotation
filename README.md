@@ -162,7 +162,91 @@ graph LR
 
 ### 🎯 4. Model-Aware Routing
 * **Model Sub-Pools (`lib/pool.js`)**: Configure dedicated key pools for specific model tiers (e.g. reasoning/heavy models vs fast/cheap utility models).
+* **Per-Model Per-Key Token Quotas (`lib/model-quota.js`)**: Give one credential its own local token budget for one model. A key that spends its budget is skipped **for that model only** — an exhausted `claude-sonnet` budget never disables the same key for `claude-opus`.
 * **Tag-Based Routing**: Assign operational tags (`production`, `background`, `eval`) to match key usage with workload priorities.
+
+#### Per-Model Per-Key Token Quotas
+
+`tokenLimit` applies to **one credential in one configured model pool**. The same
+credential can hold an independent budget in every model pool it belongs to:
+
+```yaml
+dsh-key-rotation:
+  quotaResetWindow:
+    type: midnight_utc
+    hour: 0
+
+  providers:
+    - provider: anthropic
+
+      keys:
+        - CLAUDE_KEY_A
+        - CLAUDE_KEY_B
+
+      models:
+        claude-sonnet:
+          keys:
+            - CLAUDE_KEY_A
+            - CLAUDE_KEY_B
+          quotas:
+            CLAUDE_KEY_A:
+              tokenLimit: 1000000
+            CLAUDE_KEY_B:
+              tokenLimit: 1000000
+
+        claude-opus:
+          keys:
+            - CLAUDE_KEY_A
+            - CLAUDE_KEY_B
+          quotas:
+            CLAUDE_KEY_A:
+              tokenLimit: 200000
+            CLAUDE_KEY_B:
+              tokenLimit: 200000
+```
+
+Behaviour:
+
+```text
+claude-sonnet request
+  → CLAUDE_KEY_A still has Sonnet budget
+  → dispatched on CLAUDE_KEY_A
+  → actual usage is charged to CLAUDE_KEY_A / Sonnet
+  → CLAUDE_KEY_A / Sonnet reaches its limit
+  → later Sonnet requests skip CLAUDE_KEY_A and use CLAUDE_KEY_B
+  → claude-opus requests may still use CLAUDE_KEY_A
+```
+
+Rules and limits worth knowing:
+
+* **`tokenLimit`** is the number of tokens one credential may spend on one model
+  pool within the current quota window. A missing, `null`, non-numeric or
+  non-positive value means **no local model token limit** — omitting `quotas`
+  entirely leaves behaviour byte-identical to previous releases.
+* **`quotaResetWindow`** controls reset timing for these budgets, reusing the
+  existing `midnight_utc` / `midnight_pst` / `rolling_24h` settings. Resets are
+  lazy: the counter returns to zero when the window elapses, with no per-key timer.
+* **Usage is tracked from the usage returned by successful LLM responses.** Only a
+  completed request with usable `usage` is charged. Failed, aborted or refused
+  requests are never billed.
+* **Providers that do not report usage cannot be tracked precisely.** Such
+  requests are **not guessed at and not deducted**, so a model budget can only be
+  exhausted by responses that actually reported token usage.
+* The final request that fits is allowed to overshoot the configured limit
+  slightly, and concurrent in-flight requests can also overshoot. This is expected
+  behaviour in this version — there is no token reservation.
+* Local model quotas **fail closed**: when no credential has budget left, the
+  request is not sent upstream and the original credential is **not** used as a
+  fallback. The pool enters the existing exhaustion / cascade flow instead.
+* Exhaustion is a **budget** state, not a credential failure. It never sets a
+  cooldown, a failure count or a broken flag, and upstream QUOTA errors stay
+  isolated to the model pool that served the request.
+* Editing a limit takes effect immediately: lowering it below the tokens already
+  spent marks the credential exhausted at once, raising it restores headroom
+  without clearing usage, and deleting `quotas.<REF>` restores `Unlimited`.
+* Only credential **refs** and counters are stored in the state file. The limit
+  itself stays in Settings Config, and no API key value is ever written to disk or
+  returned by the status API.
 
 ### 📊 5. Observability, Telemetry & Webhooks
 * **Interactive Multi-Platform Webhooks (`lib/webhook.js`)**: Dispatches rich notifications with HMAC-signed action buttons for **Telegram** (Inline Keyboards), **Discord** (Action Rows), and **Slack** (Block Kit). Administrators can click buttons to reset cooldowns or pause providers directly from their mobile chat.
@@ -197,6 +281,7 @@ Access full visual management under **Settings → Key Rotation** or via the Hea
 | **Secret Leak Detector** | Real-time input sanitizer (`lib/keycheck.js`) catching accidental pastes of private keys, SSH keys, or misplaced tokens. |
 | **Batch `.env` Import** | Parse standard `.env` key-value pairs directly into corresponding provider pools. |
 | **5-Second Undo Bar** | Non-destructive undo bar for accidental key or pool removals. |
+| **Model Sub-Pools & Token Quota Editing** | Maintain per-model key lists under each provider, with per-key token limits, live used/limit, percentage, remaining tokens and reset countdown. |
 | **Usage Analytics Chart** | Interactive breakdown of lifetime requests and daily trends per key. |
 
 ---
@@ -206,7 +291,7 @@ Access full visual management under **Settings → Key Rotation** or via the Hea
 * **Zero Plaintext Secrets in Plugin Config**: Configuration files store only environment variable reference names (e.g. `MY_PROVIDER_API_KEY`).
 * **Secure Vault Storage**: Actual secret values reside securely in `$DSH_HOME/.credentials.yaml` managed by the DSH `Credentials` service.
 * **5-Character Masking (`keyTail`)**: Full secret values are never sent to the client browser; only the trailing 5 characters are exposed for visual identification. Short keys (<= 5 characters) return a fixed masked placeholder (`***`) to prevent credential disclosure.
-* **Fail-Closed Loopback & Same-Origin Fencing**: Administrative endpoints strictly enforce loopback origin checks (`isTrustedBridgeRequest`), requiring valid `Origin` headers, matching `Host` headers, and rejecting `cross-site` or non-loopback requests without fallbacks.
+* **Fail-Closed Loopback & Same-Origin Fencing**: Administrative endpoints strictly enforce loopback checks (`isTrustedBridgeRequest`): the socket peer and the `Host` header must both be loopback (`127.0.0.1`, `::1`, `localhost`), and `sec-fetch-site: cross-site` is always refused. An attached `Origin` must be an http(s) loopback origin matching `Host` exactly. `Origin` is required on `POST`/`PUT`/`PATCH`/`DELETE` but optional on `GET`/`HEAD`/`OPTIONS`, because browsers omit it on same-origin reads — requiring it there would reject the Settings card's own requests.
 * **Fail-Closed Resolver on Pool Exhaustion**: When all credentials in a managed pool are exhausted, paused, expired, or blocked by RPM/TPM limits, the resolver fails closed with `LOCAL_POOL_EXHAUSTED` error rather than falling back to leaking unmanaged credentials.
 * **SSRF Protection & Rebinding Guard**: Remote provider pool import strictly enforces HTTPS-only URLs, validates all resolved IP addresses including IPv4-mapped and IPv4-compatible IPv6 addresses (`::ffff:127.0.0.1`, `::ffff:7f00:1`, `64:ff9b::/96`), and enforces connect-time DNS validation via undici agent dispatchers to prevent TOCTOU DNS rebinding.
 * **Cross-Pool Revocation & Inheritance**: Model pools automatically inherit pause, revoke, and expiry states from their base provider; runtime 401 permanent authentication failures revoke the credential across all shared pools immediately.
@@ -294,10 +379,12 @@ dsh-key-rotation:
 | `circuitBreakerHalfOpenProbes` | `number` | `1` | Probe requests allowed in half-open state. |
 | `verboseLogging` | `boolean` | `false` | Per-request rotation logs (noisy; off by default). |
 | `concurrencyLimit` | `number` | `0` (disabled) | Max concurrent in-flight streams per key (0 = unlimited). |
-| `quotaResetWindow` | `object` | `null` | Calendar reset alignment (`midnight_utc`, `midnight_pst`, `rolling_24h`). |
+| `quotaResetWindow` | `object` | `null` | Calendar reset alignment for both provider-reported quota cooldowns and local per-model token budgets (`midnight_utc`, `midnight_pst`, `rolling_24h`). |
 | `cascade` | `array` | `[]` | Fallback provider chain when primary pool is completely exhausted. |
 | `webhookUrl` | `string` | `""` | Target URL for interactive Telegram, Discord, Slack, or generic alerts. |
-| `providers` | `array` | `[]` | List of `{ provider, keys, rpmLimit, tpmLimit, modelPools }` definitions. |
+| `providers` | `array` | `[]` | List of `{ provider, keys, rpmLimit, tpmLimit, models }` definitions. |
+| `providers[].models` | `object` | `{}` | Per-model sub-pools: `{ <model>: { keys: [...], weights: [...], quotas: { <REF>: { tokenLimit } } } }`. A model pool may also use credentials the provider base pool does not list. |
+| `providers[].models.<model>.quotas` | `object` | `{}` | Local token budgets keyed by credential ref. Omit for unlimited. See [Per-Model Per-Key Token Quotas](#per-model-per-key-token-quotas). |
 
 ---
 
@@ -307,7 +394,7 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 
 | Route | Method | Description |
 |---|---|---|
-| `/dsh-key-rotation/status` | `GET` | Real-time health, keys, cooldowns. Since v0.8.0 also `providers[].circuit` and `meta` (`expectedClones`, `notifyQueue`). |
+| `/dsh-key-rotation/status` | `GET` | Real-time health, keys, cooldowns. Since v0.8.0 also `providers[].circuit` and `meta` (`expectedClones`, `notifyQueue`). Model sub-pools appear as their own entries with an additive `model` field, and each key carries `modelQuota` (`null` = unlimited). |
 | `/dsh-key-rotation/config` | `GET` / `PUT` | Read and update active key rotation settings and provider pools. |
 | `/dsh-key-rotation/key` | `PUT` / `DELETE` | Add, update, or remove credentials in host storage and pool. |
 | `/dsh-key-rotation/reset` | `POST` | Instantly resets all cooldowns and restores all keys to `ready`. |
