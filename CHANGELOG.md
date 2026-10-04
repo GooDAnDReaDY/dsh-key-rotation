@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.50 - 2026-10-05
+
+### Fixed
+- **Multi-Instance Isolation in Single Process (#446)**: Scoped all module-level state (`moduleBreaker`, `latencyHistogram`, `quotaStore`, `concurrencyTracker`, `webhookSender`, `alertDebouncer`, `moduleNotifyQueue`, and alert suppression maps `*NotifiedAt`) into `apply(ctx, config)` factory scope, eliminating shared state across profiles/instances.
+- **Config Bridge GET Error Handling (#444)**: Wrapped `handleConfigBridge` GET branch in `try ... catch` to prevent unhandled promise rejections on catalog/settings provider read failures, safely returning HTTP 500 JSON with error code `settings-read-failed`.
+- **Safe Settings Service Property Access (#447)**: Guarded `settings.writable` and `settings.documentPath` reads with defensive fallbacks and verified `typeof settings?.describe === function` in `descriptorOf`, `viewOf`, `writeSection`, and `handleConfigBridge`.
+- **Clean Stream Consumer Finally Block (#445)**: Removed redundant empty `try { ... } finally { }` block in `lib/rotate.js`, keeping the outer resource cleanup block for concurrency permit and picked reference disposal.
+- **Wired Diagnostics Pool Helpers (#440)**: Connected exported `providerOfBase` and `basePoolForBase` in `lib/resolver.js` (provider budget checks and exhaustion error formatting) and `lib/ops-status.js` (`/status` and `/health` routes, circuit breaker evaluation), and added `test/pool-index.test.js`.
+
 ## 0.8.49 - 2026-10-03
 
 ### Added
