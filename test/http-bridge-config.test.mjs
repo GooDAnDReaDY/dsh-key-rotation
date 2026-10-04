@@ -142,3 +142,76 @@ test('http-bridge: 405 on POST method', async () => {
   const res405 = await bridge.invokeBridge({ method: 'POST' });
   assert.equal(res405.status, 405);
 });
+
+test('http-bridge: GET returns 500 when catalog or descriptor throws (#444)', async () => {
+  const badCtx = {
+    get: (name) => {
+      if (name === 'settings') {
+        return {
+          describe: () => {
+            throw new Error('Settings store disk failure');
+          },
+        };
+      }
+      return null;
+    },
+  };
+
+  const req = {
+    method: 'GET',
+    headers: {
+      host: '127.0.0.1:3080',
+      origin: 'http://127.0.0.1:3080',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  };
+
+  let status = 0;
+  let body = null;
+  const res = {
+    writeHead: (s) => { status = s; },
+    end: (d) => { body = JSON.parse(d); },
+  };
+
+  await handleConfigBridge(badCtx, req, res, () => []);
+  assert.equal(status, 500);
+  assert.equal(body.error.code, 'settings-read-failed');
+  assert.match(body.error.message, /Settings store disk failure/);
+});
+
+test('http-bridge: GET and viewOf work with undocumented or missing settings properties (#447)', async () => {
+  // Settings provider with no writable or documentPath properties
+  const bareSettings = {
+    describe: () => [{ ns: NS, value: { cooldownMs: 15000 }, revision: 1 }],
+  };
+
+  const bareCtx = {
+    get: (name) => {
+      if (name === 'settings') return bareSettings;
+      if (name === 'llm') return { listProviders: () => [] };
+      return null;
+    },
+  };
+
+  const req = {
+    method: 'GET',
+    headers: {
+      host: '127.0.0.1:3080',
+      origin: 'http://127.0.0.1:3080',
+    },
+    socket: { remoteAddress: '127.0.0.1' },
+  };
+
+  let status = 0;
+  let body = null;
+  const res = {
+    writeHead: (s) => { status = s; },
+    end: (d) => { body = JSON.parse(d); },
+  };
+
+  await handleConfigBridge(bareCtx, req, res, () => []);
+  assert.equal(status, 200);
+  assert.equal(body.writable, false);
+  assert.equal(body.hasDocument, false);
+  assert.deepEqual(body.value, { cooldownMs: 15000 });
+});
