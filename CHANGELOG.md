@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.52 - 2026-10-07
+
+### Added
+- **Key Pinning (`pinnedRef`) with Resilient Failover Bypass (#455)**:
+  - Added `pinnedRef` (alias `useKeyRef`) to provider settings schema and pool builder.
+  - In key selection (`lib/resolver.js` and `lib/rotate.js`), healthy pinned keys are prioritized first.
+  - When a pinned key enters cooldown, is paused/revoked, or runs out of token quota, requests automatically and seamlessly bypass the pin to rotate among remaining healthy keys, preventing agent stalls.
+- **User-Defined Key Labels (#456)**:
+  - Added `labels` string array aligned with provider `keys` in settings schema and pool models.
+  - Exposed per-key in `GET /dsh-key-rotation/status` (`label` field) and provider overview.
+  - Displayed as visual tag badges in WebUI settings card.
+- **Secure Plaintext Key Reveal Endpoint (#457)**:
+  - Added `GET /dsh-key-rotation/key?ref=...` in `lib/ops-keys.js` with loopback and same-origin validation (`isTrustedBridgeRequest`).
+  - Decrypts and returns `{ ref, plaintext, tail }` for operator auditing and copying without raw disk inspection.
+- **In-Memory Client Diagnostics Ring Buffer (#458)**:
+  - Added bounded 200-entry diagnostics ring buffer and `/dsh-key-rotation/diag` route in `lib/ops-telemetry.js`.
+  - Ingests frontend runtime errors and fetch failures via `POST /diag` and retrieves log entries via `GET /diag`.
+
+### Changed
+- **PeerDependencies Triplet SemVer Range (#459)**:
+  - Updated `@deepseek-ai/dsh-llm` peer dependency range to `^0.1.7-rc.2 || >=0.2.0-rc.1 <0.2.1-0` in `package.json` to prevent peer dependency warnings across DSH `0.2.0-rc.*` releases.
+
 ## 0.8.51 - 2026-10-06
 
 ### Fixed
