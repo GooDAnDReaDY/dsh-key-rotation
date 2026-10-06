@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.51 - 2026-10-06
+
+### Fixed
+- **Strict switchCodes Filtering & Unbounded Retry Prevention (#453, GitHub PR #21)**:
+  - Add `SOCKET_TRANSPORT_CODES` and `RECOGNIZED_SWITCH_CODES` in `lib/pool.js` to ensure explicit error codes are not overridden by regex text heuristics when users customize `switchCodes`.
+  - In `agent/request-error` hook (`lib/index.js`), enforce strict matching against `effectiveSwitchCodes` and only return `{ kind: 'retry' }` when `pickNext(pool, now)` yields an alternative healthy key; falls through to `next()` when no healthy candidate is available, eliminating infinite retry hangs on single-key and cooling pools.
+  - Credit: Jan Eickholt (@JanEickholt).
+- **Canonical CSS Theme Tokens & Clean Client Comments (#450)**:
+  - Replaced deprecated/unrecognized theme tokens with standard DSH variables (`--dsw-alias-brand-primary`, `--dsw-alias-state-warn-primary`) across `lib/client-src/`.
+  - Replaced issue comment references (`// #<id>` -> `// (issue <id>)`) to avoid false positives in automated hex color audits.
+- **Client Fetch Timeout Signals (#451)**:
+  - Added defensive `signal: AbortSignal.timeout(ms)` to all 9 previously unguarded client fetch calls (`/reset`, `/test`, `/key`, `/snapshot`, `/status`, `/sandbox-cache`, `/health`), preventing unhandled client-side request hangs on unresponsive networks.
+  - Rebuilt production bundle `lib/client.js`.
+- **Wired Production Exports (#452)**:
+  - Connected unused exported utilities across production paths: `getModelTokenUsage` and `getModelTokenRemaining` in `lib/model-quota.js`, `modelPoolsForRef` in `lib/ops-status.js`, `isSoftFailureCode` and `SOFT_FAILURE_CODES` in `lib/error-taxonomy.js`, `QUOTA_WINDOW_TYPES` in `lib/index.js`, and `poolResetAt` in `lib/rotate.js`.
+
 ## 0.8.50 - 2026-10-05
 
 ### Fixed
