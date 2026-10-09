@@ -112,7 +112,7 @@ const guardedRoutes = [
   { path: '/dsh-key-rotation/config', method: 'DELETE' },
 ];
 
-test('fail-closed guard (#353): every guarded route rejects requests missing Origin header', async () => {
+test('desktop compatibility (#465 / GitHub #22): every guarded route accepts loopback requests missing Origin header', async () => {
   const { routes } = setupEnvironment();
   for (const { path, method, body } of guardedRoutes) {
     const route = routes.get(path);
@@ -121,14 +121,10 @@ test('fail-closed guard (#353): every guarded route rejects requests missing Ori
     const res = await invoke(route.handler, {
       method,
       remoteAddress: '127.0.0.1',
-      headers: { host: '127.0.0.1:3080' }, // NO Origin header!
+      headers: { host: '127.0.0.1:3080' }, // NO Origin header (Desktop forwardWebRequest behavior)
       body,
     });
-    if (method === 'GET') {
-      assert.notEqual(res.status, 403, `GET ${path} must accept without Origin from loopback`);
-    } else {
-      assert.equal(res.status, 403, `route ${method} ${path} must reject request missing Origin with 403`);
-    }
+    assert.notEqual(res.status, 403, `route ${method} ${path} must accept loopback request without Origin`);
   }
 });
 
