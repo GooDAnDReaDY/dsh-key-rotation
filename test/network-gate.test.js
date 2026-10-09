@@ -44,8 +44,9 @@ test('isTrustedBridgeRequest: accepts loopback with no Origin header for GET (#3
   assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080' }, 'GET')), true);
 });
 
-test('isTrustedBridgeRequest: rejects loopback with no Origin header for POST (#353 fail-closed, #378)', () => {
-  assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080' }, 'POST')), false);
+test('isTrustedBridgeRequest: accepts loopback with no Origin header for POST (#465 / GitHub #22)', () => {
+  // Official Desktop forwards requests stripping Origin; loopback peer & Host are verified
+  assert.equal(isTrustedBridgeRequest(req('127.0.0.1', { host: '127.0.0.1:3080' }, 'POST')), true);
 });
 
 test('isTrustedBridgeRequest: rejects loopback with missing Host header', () => {

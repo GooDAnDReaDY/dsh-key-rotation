@@ -117,22 +117,20 @@ test('GET /config still refuses a cross-site request', async () => {
   );
 });
 
-test('PUT /config still requires a same-origin Origin (mutations stay fenced)', async () => {
+test('PUT /config accepts loopback mutations without Origin (#465 / GitHub #22 Desktop compatibility)', async () => {
   const { ctx } = makeCtx();
   await serve(
     (req, res) => handleConfigBridge(ctx, req, res, () => new Set()),
     async (port) => {
-      // No Origin at all on a mutation: refused, because a cross-origin write is
-      // always Origin-bearing and CSRF on writes is the real risk.
+      // Desktop forwardWebRequest strips Origin; on verified loopback this passes
       const res = await call(port, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ section: { providers: [] }, expectedRevision: 3 }),
       });
-      assert.equal(res.status, 403, 'an Origin-less mutation must not be accepted');
+      assert.notEqual(res.status, 403, 'an Origin-less mutation on loopback must pass the network gate');
 
-      // A same-origin Origin is accepted through the guard (the write itself may
-      // still fail on the stubbed settings service, which is not what is under test).
+      // A same-origin Origin is also accepted through the guard
       const ok = await call(port, {
         method: 'PUT',
         headers: { 'content-type': 'application/json', origin: `http://127.0.0.1:${port}` },

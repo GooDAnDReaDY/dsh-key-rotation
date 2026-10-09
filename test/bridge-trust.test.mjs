@@ -66,13 +66,12 @@ test('a same-origin GET with no Origin and no Fetch Metadata is trusted', async 
   });
 });
 
-test('an Origin-less mutation is refused (writes stay fenced)', async () => {
+test('an Origin-less mutation is accepted when peer and Host are loopback (#465 / GitHub #22)', async () => {
   await withServer(async (port) => {
-    // A browser always attaches Origin to POST/PUT/PATCH/DELETE, same-origin
-    // included, so this only happens for a non-browser or forged caller.
+    // Official Desktop shell forwardWebRequest strips Origin. Peer socket & Host are verified loopback.
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
       const res = await raw(port, { method, headers: { accept: 'application/json' } });
-      assert.equal(res.body.trusted, false, `${method} without Origin must be refused`);
+      assert.equal(res.body.trusted, true, `${method} without Origin on verified loopback must be trusted`);
     }
   });
 });
@@ -141,15 +140,12 @@ test('a malformed Origin is refused rather than ignored', async () => {
   });
 });
 
-test('an empty Origin value is treated as absent, applying the method rule', async () => {
-  // Browsers never send `Origin:` with an empty value; it carries the same
-  // information as omitting the header (none), so it gets the same treatment
-  // rather than becoming a third state.
+test('an explicit empty Origin value is refused as malformed/untrusted', async () => {
   await withServer(async (port) => {
     const get = await raw(port, { headers: { origin: '', 'sec-fetch-site': 'same-origin' } });
-    assert.equal(get.body.trusted, true, 'an empty Origin on a GET behaves as absent');
+    assert.equal(get.body.trusted, false, 'an empty Origin is not trusted');
     const post = await raw(port, { method: 'POST', headers: { origin: '' } });
-    assert.equal(post.body.trusted, false, 'an empty Origin on a POST is still Origin-less');
+    assert.equal(post.body.trusted, false, 'an empty Origin on POST is not trusted');
   });
 });
 
