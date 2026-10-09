@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.53 - 2026-10-09
+
+### Fixed
+- **Official DSH Desktop Build Compatibility (#465, GitHub #22)**:
+  - Fixed issue where all mutating routes (POST, PUT, DELETE) answered `403 "forbidden"` inside the official DSH Desktop application (reported by @onech1cken in GitHub #22).
+  - The Desktop shell (`dsh-app://app/`) uses `forwardWebRequest` proxying which strips the `Origin` header before forwarding requests to the in-process server.
+  - `isTrustedBridgeRequest` now permits absent `Origin` headers (`origin === undefined`) for mutating requests when the remote peer address is verified loopback (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`) and the `Host` header is verified loopback/localhost with no cross-site fetch metadata (`sec-fetch-site !== cross-site`). Real web browsers unconditionally attach `Origin` to cross-origin writes, preventing CSRF.
+  - Explicitly allowed `dsh-app://app` origin when forwarded by Desktop shell.
+  - Preserved strict fail-closed security for non-loopback clients, DNS rebinding, malformed origins, and cross-site requests.
+
 ## 0.8.52 - 2026-10-07
 
 ### Added
