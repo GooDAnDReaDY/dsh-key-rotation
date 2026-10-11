@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.55 - 2026-10-11
+
+### Fixed
+- **Cleaned Dead Exports and Test-Only Smells (#471)**:
+  - Removed unwired exports `getModelTokenUsage` and `getModelTokenRemaining` from `lib/model-quota.js`. Internal logic and status routes use `getModelQuotaStatus(pool, ref, now)`.
+  - Removed test-only export `isSoftFailureCode` from `lib/pool.js`.
+  - Wired `activeModelPools` into `/dsh-key-rotation/status` response keys object as `modelPools`.
+  - Cleaned dead-export and test references across the repository.
+
 ## 0.8.54 - 2026-10-11
 
 ### Added
