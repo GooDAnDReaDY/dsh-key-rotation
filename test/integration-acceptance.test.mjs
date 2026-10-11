@@ -21,7 +21,7 @@ import { preserveDispatchContext } from '../lib/rotate.js';
 import { selectPool } from '../lib/pool.js';
 import { StatePersistence } from '../lib/persistence.js';
 import {
-  consumeModelTokens, getModelTokenRemaining, getModelTokenUsage, getModelQuotaStatus,
+  consumeModelTokens, getModelQuotaStatus,
 } from '../lib/model-quota.js';
 
 const WINDOW = { type: 'midnight_utc', hour: 0 };
@@ -135,8 +135,8 @@ test('ACCEPTANCE: Sonnet exhaustion rotates to KEY_B while Opus keeps KEY_A', as
   assert.equal(r2.store.pickedRef, 'CLAUDE_KEY_A', 'still under the 1,000,000 limit');
 
   // Overshot to 1,100,000: exhausted.
-  assert.equal(getModelTokenUsage(sonnet, 'CLAUDE_KEY_A', NOW), 1100000);
-  assert.equal(getModelTokenRemaining(sonnet, 'CLAUDE_KEY_A', NOW), 0);
+  assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_A', NOW).used, 1100000);
+  assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_A', NOW).remaining, 0);
   assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_A', NOW).exhausted, true);
 
   // 2. The next Sonnet request must skip CLAUDE_KEY_A even with the cursor on it.
@@ -150,12 +150,12 @@ test('ACCEPTANCE: Sonnet exhaustion rotates to KEY_B while Opus keeps KEY_A', as
   assert.equal(r4.store.resolved, 'secret-for-CLAUDE_KEY_A');
 
   // 4. Final asserted state.
-  assert.equal(getModelTokenUsage(sonnet, 'CLAUDE_KEY_A', NOW), 1100000, 'Sonnet/KEY_A used 1,100,000');
-  assert.equal(getModelTokenRemaining(sonnet, 'CLAUDE_KEY_A', NOW), 0, 'Sonnet/KEY_A exhausted');
-  assert.equal(getModelTokenRemaining(sonnet, 'CLAUDE_KEY_B', NOW), 999000, 'Sonnet/KEY_B remains available');
-  assert.equal(getModelTokenUsage(opus, 'CLAUDE_KEY_A', NOW), 20000, 'Opus/KEY_A used 20,000');
-  assert.equal(getModelTokenRemaining(opus, 'CLAUDE_KEY_A', NOW), 180000, 'Opus/KEY_A remaining 180,000');
-  assert.equal(getModelTokenRemaining(opus, 'CLAUDE_KEY_B', NOW), 200000, 'Opus/KEY_B untouched');
+  assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_A', NOW).used, 1100000, 'Sonnet/KEY_A used 1,100,000');
+  assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_A', NOW).remaining, 0, 'Sonnet/KEY_A exhausted');
+  assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_B', NOW).remaining, 999000, 'Sonnet/KEY_B remains available');
+  assert.equal(getModelQuotaStatus(opus, 'CLAUDE_KEY_A', NOW).used, 20000, 'Opus/KEY_A used 20,000');
+  assert.equal(getModelQuotaStatus(opus, 'CLAUDE_KEY_A', NOW).remaining, 180000, 'Opus/KEY_A remaining 180,000');
+  assert.equal(getModelQuotaStatus(opus, 'CLAUDE_KEY_B', NOW).remaining, 200000, 'Opus/KEY_B untouched');
 
   // 5. The two counters are genuinely independent objects.
   assert.notEqual(sonnet.state.tokenUsage, opus.state.tokenUsage);
@@ -232,7 +232,7 @@ test('budgets survive a process restart through persistence', async () => {
   const first = install(ACCEPTANCE);
   const sonnet = first.modelPoolByProvider.get('anthropic').get('claude-sonnet');
   await first.request('anthropic', 'claude-sonnet', { usage: { total_tokens: 820000 }, pin: 'CLAUDE_KEY_A' });
-  assert.equal(getModelTokenUsage(sonnet, 'CLAUDE_KEY_A', NOW), 820000);
+  assert.equal(getModelQuotaStatus(sonnet, 'CLAUDE_KEY_A', NOW).used, 820000);
 
   // Snapshot, then rebuild from scratch as a restart would.
   const snapshot = JSON.parse(JSON.stringify(
@@ -246,8 +246,8 @@ test('budgets survive a process restart through persistence', async () => {
   const rebuilt = buildPools({ cfg: ACCEPTANCE, poolState: second.poolState });
   const sonnet2 = rebuilt.modelPoolByProvider.get('anthropic').get('claude-sonnet');
 
-  assert.equal(getModelTokenUsage(sonnet2, 'CLAUDE_KEY_A', NOW), 820000, 'usage restored, not zeroed');
-  assert.equal(getModelTokenRemaining(sonnet2, 'CLAUDE_KEY_A', NOW), 180000);
+  assert.equal(getModelQuotaStatus(sonnet2, 'CLAUDE_KEY_A', NOW).used, 820000, 'usage restored, not zeroed');
+  assert.equal(getModelQuotaStatus(sonnet2, 'CLAUDE_KEY_A', NOW).remaining, 180000);
 });
 
 test('the whole acceptance run leaves no secret in persisted state', async () => {

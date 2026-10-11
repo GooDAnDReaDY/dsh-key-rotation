@@ -11,7 +11,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 import { createRotate } from '../lib/rotate.js';
 import { buildPools } from '../lib/pool-builder.js';
-import { getModelTokenUsage, getModelTokenRemaining } from '../lib/model-quota.js';
+import { getModelQuotaStatus } from '../lib/model-quota.js';
 import { nowMono } from '../lib/clock.js';
 
 const WINDOW = { type: 'midnight_utc', hour: 0 };
@@ -138,8 +138,8 @@ test('a successful finish charges the usage the provider reported', async () => 
 
   const used = [...sonnet.state.tokenUsage.values()].reduce((a, e) => a + e.used, 0);
   assert.equal(used, 60, 'exactly the reported usage was charged');
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_A', Date.now()), 60);
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', Date.now()), 40);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', Date.now()).used, 60);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', Date.now()).remaining, 40);
 });
 
 test('two Sonnet requests accumulate to exhaustion, then rotate; Opus unaffected', async () => {
@@ -160,9 +160,9 @@ test('two Sonnet requests accumulate to exhaustion, then rotate; Opus unaffected
   pin(sonnet, 'KEY_A');
   await h.drain({ provider: 'test-provider', model: 'sonnet' }, sonnet);
 
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_A', now), 110, 'Sonnet/KEY_A used 110');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', now), 0, 'Sonnet/KEY_A exhausted');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_B', now), 100, 'Sonnet/KEY_B still available');
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', now).used, 110, 'Sonnet/KEY_A used 110');
+  assert.equal((getModelQuotaStatus(sonnet, 'KEY_A', now)?.remaining ?? null), 0, 'Sonnet/KEY_A exhausted');
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_B', now).remaining, 100, 'Sonnet/KEY_B still available');
 
   // The next Sonnet request must go to KEY_B even with the cursor on KEY_A.
   pin(sonnet, 'KEY_A');
@@ -175,9 +175,9 @@ test('two Sonnet requests accumulate to exhaustion, then rotate; Opus unaffected
   pin(opus, 'KEY_A');
   await h.drain({ provider: 'test-provider', model: 'opus' }, opus);
   assert.equal(h.dispatched.at(-1).pickedRef, 'secret-for-KEY_A', 'Opus still selects KEY_A');
-  assert.equal(getModelTokenUsage(opus, 'KEY_A', now), 20, 'Opus/KEY_A used 20');
-  assert.equal(getModelTokenRemaining(opus, 'KEY_A', now), 30, 'Opus/KEY_A remaining 30');
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_A', now), 110, 'Sonnet usage did not change');
+  assert.equal(getModelQuotaStatus(opus, 'KEY_A', now).used, 20, 'Opus/KEY_A used 20');
+  assert.equal(getModelQuotaStatus(opus, 'KEY_A', now).remaining, 30, 'Opus/KEY_A remaining 30');
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', now).used, 110, 'Sonnet usage did not change');
 });
 
 test('a request with no usage payload charges nothing and cannot exhaust a key', async () => {
@@ -185,7 +185,7 @@ test('a request with no usage payload charges nothing and cannot exhaust a key',
   const sonnet = h.modelPoolByProvider.get('test-provider').get('sonnet');
   await h.drain({ provider: 'test-provider', model: 'sonnet' }, sonnet);
   assert.equal(sonnet.state.tokenUsage.size, 0, 'no usage means no charge');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', Date.now()), 100);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', Date.now()).remaining, 100);
 });
 
 test('an error terminal never charges tokens', async () => {
@@ -248,7 +248,7 @@ test('a pool with no quotas behaves exactly as before', async () => {
   assert.equal(h.dispatched.length, 2);
   assert.equal(h.dispatched.map((d) => d.pickedRef).join(','), 'secret-for-KEY_A,secret-for-KEY_B',
     'plain round-robin rotation is unchanged');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', now), null, 'unlimited');
+  assert.equal((getModelQuotaStatus(sonnet, 'KEY_A', now)?.remaining ?? null), null, 'unlimited');
 });
 
 test('concurrent overshoot is bounded and never corrupts state', async () => {
@@ -273,12 +273,12 @@ test('concurrent overshoot is bounded and never corrupts state', async () => {
     h.drain({ provider: 'test-provider', model: 'sonnet' }, sonnet),
   ]);
 
-  const used = getModelTokenUsage(sonnet, 'KEY_A', Date.now());
+  const used = getModelQuotaStatus(sonnet, 'KEY_A', Date.now()).used;
   assert.equal(Number.isFinite(used), true, 'never NaN');
   assert.ok(used >= 0, 'never negative');
   assert.equal(used, before + 160, 'both concurrent requests were billed');
   assert.ok(used > 100, 'the bounded overshoot exceeds the configured limit');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', Date.now()), 0);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', Date.now()).remaining, 0);
   assert.equal(h.dispatched.length, 2, 'both requests were actually dispatched');
 });
 
@@ -295,7 +295,7 @@ test('a single exhausted credential stops further dispatches immediately', async
 
   // First request overshoots the limit in a single response.
   await h.drain({ provider: 'test-provider', model: 'sonnet' }, sonnet);
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_A', Date.now()), 150);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', Date.now()).used, 150);
 
   const before = h.dispatched.length;
   const out = await h.drain({ provider: 'test-provider', model: 'sonnet' }, sonnet);

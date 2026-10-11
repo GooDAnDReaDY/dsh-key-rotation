@@ -11,8 +11,6 @@ import {
   normalizeModelQuotas,
   hasModelQuotaConfig,
   getModelTokenLimit,
-  getModelTokenUsage,
-  getModelTokenRemaining,
   getModelQuotaStatus,
   isModelQuotaAvailable,
   anyModelQuotaAvailable,
@@ -105,7 +103,7 @@ test('no quota configured behaves as unlimited (legacy configuration)', () => {
   const pool = makePool(['KEY_A', 'KEY_B'], {});
   assert.equal(hasModelQuotaConfig(pool), false);
   assert.equal(getModelTokenLimit(pool, 'KEY_A'), null);
-  assert.equal(getModelTokenRemaining(pool, 'KEY_A', NOW), null);
+  assert.equal((getModelQuotaStatus(pool, 'KEY_A', NOW)?.remaining ?? null), null);
   assert.equal(getModelQuotaStatus(pool, 'KEY_A', NOW), null, 'status is null, not a zero budget');
   assert.equal(isModelQuotaAvailable(pool, 'KEY_A', NOW), true);
   assert.deepEqual(filterQuotaEligible(pool, pool.refs, NOW), ['KEY_A', 'KEY_B']);
@@ -133,8 +131,8 @@ test('consume accumulates, recomputes remaining, and flags exhaustion', () => {
   assert.equal(st.exhausted, false);
   st = consumeModelTokens(pool, 'KEY_A', 250, WINDOW, NOW);
   assert.equal(st.used, 500);
-  assert.equal(getModelTokenUsage(pool, 'KEY_A', NOW), 500);
-  assert.equal(getModelTokenRemaining(pool, 'KEY_A', NOW), 500);
+  assert.equal(getModelQuotaStatus(pool, 'KEY_A', NOW).used, 500);
+  assert.equal((getModelQuotaStatus(pool, 'KEY_A', NOW)?.remaining ?? null), 500);
   st = consumeModelTokens(pool, 'KEY_A', 500, WINDOW, NOW);
   assert.equal(st.used, 1000);
   assert.equal(st.remaining, 0);
@@ -170,7 +168,7 @@ test('missing usage never marks a key exhausted', () => {
   // A successful request that reported no usage at all.
   assert.equal(extractUsageTokens(undefined), null);
   assert.equal(consumeModelTokens(pool, 'KEY_A', extractUsageTokens(undefined), WINDOW, NOW), null);
-  assert.equal(getModelTokenRemaining(pool, 'KEY_A', NOW), 100);
+  assert.equal((getModelQuotaStatus(pool, 'KEY_A', NOW)?.remaining ?? null), 100);
   assert.equal(isModelQuotaAvailable(pool, 'KEY_A', NOW), true);
 });
 
@@ -181,11 +179,11 @@ test('lazy reset: counters survive until resetAt and clear after it', () => {
 
   // One millisecond before the boundary the budget is still spent.
   assert.equal(isModelQuotaAvailable(pool, 'KEY_A', NEXT_MIDNIGHT - 1), false);
-  assert.equal(getModelTokenUsage(pool, 'KEY_A', NEXT_MIDNIGHT - 1), 1000);
+  assert.equal(getModelQuotaStatus(pool, 'KEY_A', NEXT_MIDNIGHT - 1).used, 1000);
 
   // At the boundary the window rolls over lazily, with no timer involved.
   assert.equal(isModelQuotaAvailable(pool, 'KEY_A', NEXT_MIDNIGHT), true);
-  assert.equal(getModelTokenUsage(pool, 'KEY_A', NEXT_MIDNIGHT), 0);
+  assert.equal(getModelQuotaStatus(pool, 'KEY_A', NEXT_MIDNIGHT).used, 0);
   const status = getModelQuotaStatus(pool, 'KEY_A', NEXT_MIDNIGHT);
   assert.equal(status.used, 0);
   assert.equal(status.remaining, 1000);
@@ -197,9 +195,9 @@ test('resetModelQuotaIfNeeded only clears an elapsed stored window', () => {
   assert.equal(resetModelQuotaIfNeeded(pool, 'KEY_A', WINDOW, NOW), false, 'cold pool is a no-op');
   consumeModelTokens(pool, 'KEY_A', 100, WINDOW, NOW);
   assert.equal(resetModelQuotaIfNeeded(pool, 'KEY_A', WINDOW, NEXT_MIDNIGHT - 1), false);
-  assert.equal(getModelTokenUsage(pool, 'KEY_A', NEXT_MIDNIGHT - 1), 100);
+  assert.equal(getModelQuotaStatus(pool, 'KEY_A', NEXT_MIDNIGHT - 1).used, 100);
   assert.equal(resetModelQuotaIfNeeded(pool, 'KEY_A', WINDOW, NEXT_MIDNIGHT), true);
-  assert.equal(getModelTokenUsage(pool, 'KEY_A', NEXT_MIDNIGHT), 0);
+  assert.equal(getModelQuotaStatus(pool, 'KEY_A', NEXT_MIDNIGHT).used, 0);
 });
 
 test('wall-clock windows: midnight_pst and rolling_24h both produce finite resets', () => {
@@ -248,8 +246,8 @@ test('MODEL ISOLATION: an exhausted Sonnet key stays available for Opus', () => 
 
   // The same ref, another model pool: untouched.
   assert.equal(isModelQuotaAvailable(opus, 'KEY_A', NOW), true, 'Opus must remain available');
-  assert.equal(getModelTokenUsage(opus, 'KEY_A', NOW), 0);
-  assert.equal(getModelTokenRemaining(opus, 'KEY_A', NOW), 200);
+  assert.equal((getModelQuotaStatus(opus, 'KEY_A', NOW)?.used ?? 0), 0);
+  assert.equal(getModelQuotaStatus(opus, 'KEY_A', NOW).remaining, 200);
   assert.equal(getModelQuotaStatus(opus, 'KEY_A', NOW).exhausted, false);
 });
 
@@ -290,7 +288,7 @@ test('dynamic limit: shrinking below used exhausts immediately, growing restores
   const quotas = { KEY_A: { tokenLimit: 1000000 } };
   const pool = makePool(['KEY_A'], quotas);
   consumeModelTokens(pool, 'KEY_A', 700000, WINDOW, NOW);
-  assert.equal(getModelTokenRemaining(pool, 'KEY_A', NOW), 300000);
+  assert.equal((getModelQuotaStatus(pool, 'KEY_A', NOW)?.remaining ?? null), 300000);
 
   // Limit lowered under the consumed amount: exhausted at once, used preserved.
   pool.quotas = normalizeModelQuotas({ KEY_A: { tokenLimit: 500000 } });
@@ -338,7 +336,7 @@ test('usage never becomes NaN or negative under adversarial input', () => {
   for (const bad of [NaN, Infinity, -Infinity, -1, '5', null, undefined, {}, [], () => {}]) {
     consumeModelTokens(pool, 'KEY_A', bad, WINDOW, NOW);
   }
-  const used = getModelTokenUsage(pool, 'KEY_A', NOW);
+  const used = getModelQuotaStatus(pool, 'KEY_A', NOW).used;
   assert.equal(Number.isFinite(used), true);
   assert.ok(used >= 0);
   assert.equal(used, 0);
@@ -348,7 +346,7 @@ test('consumption saturates instead of overflowing to Infinity', () => {
   const pool = makePool(['KEY_A'], { KEY_A: { tokenLimit: Number.MAX_SAFE_INTEGER } });
   consumeModelTokens(pool, 'KEY_A', Number.MAX_SAFE_INTEGER, WINDOW, NOW);
   consumeModelTokens(pool, 'KEY_A', Number.MAX_SAFE_INTEGER, WINDOW, NOW);
-  const used = getModelTokenUsage(pool, 'KEY_A', NOW);
+  const used = getModelQuotaStatus(pool, 'KEY_A', NOW).used;
   assert.equal(Number.isFinite(used), true);
   assert.equal(used, Number.MAX_SAFE_INTEGER);
 });

@@ -13,7 +13,7 @@ import { createResolver } from '../lib/resolver.js';
 import { modelPoolsForRef } from '../lib/pool-index.js';
 import { selectPool } from '../lib/pool.js';
 import { initializePoolState } from '../lib/pool-state.js';
-import { consumeModelTokens, getModelTokenRemaining, getModelTokenUsage } from '../lib/model-quota.js';
+import { consumeModelTokens, getModelQuotaStatus } from '../lib/model-quota.js';
 
 const WINDOW = { type: 'midnight_utc', hour: 0 };
 const NOW = Date.UTC(2026, 0, 15, 12, 0, 0);
@@ -361,7 +361,7 @@ test('an exhausted key does not block a different model in the same provider', a
   // Opus is untouched and still routes normally.
   const hit = await h.asRequest(opus, 'CLAUDE_KEY_A');
   assert.equal(hit.value, 'secret-for-CLAUDE_KEY_A');
-  assert.equal(getModelTokenRemaining(opus, 'CLAUDE_KEY_A', NOW), 200000);
+  assert.equal(getModelQuotaStatus(opus, 'CLAUDE_KEY_A', NOW).remaining, 200000);
 });
 
 test('the end-to-end acceptance scenario', async () => {
@@ -393,9 +393,9 @@ test('the end-to-end acceptance scenario', async () => {
   assert.equal(r2.value, 'secret-for-KEY_A', 'still available at 60/100');
   consumeModelTokens(sonnet, 'KEY_A', 50, WINDOW, NOW);
 
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_A', NOW), 110);
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', NOW), 0);
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_B', NOW), 0);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', NOW).used, 110);
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', NOW).remaining, 0);
+  assert.equal((getModelQuotaStatus(sonnet, 'KEY_B', NOW)?.used ?? 0), 0);
 
   // The next Sonnet request must select KEY_B, whatever the cursor says.
   const r3 = await h.asRequest(sonnet, 'KEY_A', 'KEY_A');
@@ -407,10 +407,10 @@ test('the end-to-end acceptance scenario', async () => {
   consumeModelTokens(opus, 'KEY_A', 20, WINDOW, NOW);
 
   // Final asserted state.
-  assert.equal(getModelTokenUsage(sonnet, 'KEY_A', NOW), 110, 'Sonnet KEY_A used 110');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_A', NOW), 0, 'Sonnet KEY_A exhausted');
-  assert.equal(getModelTokenRemaining(sonnet, 'KEY_B', NOW), 100, 'Sonnet KEY_B available');
-  assert.equal(getModelTokenUsage(opus, 'KEY_A', NOW), 20, 'Opus KEY_A used 20');
-  assert.equal(getModelTokenRemaining(opus, 'KEY_A', NOW), 30, 'Opus KEY_A remaining 30');
-  assert.equal(getModelTokenRemaining(opus, 'KEY_B', NOW), 50, 'Opus KEY_B available');
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', NOW).used, 110, 'Sonnet KEY_A used 110');
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_A', NOW).remaining, 0, 'Sonnet KEY_A exhausted');
+  assert.equal(getModelQuotaStatus(sonnet, 'KEY_B', NOW).remaining, 100, 'Sonnet KEY_B available');
+  assert.equal(getModelQuotaStatus(opus, 'KEY_A', NOW).used, 20, 'Opus KEY_A used 20');
+  assert.equal(getModelQuotaStatus(opus, 'KEY_A', NOW).remaining, 30, 'Opus KEY_A remaining 30');
+  assert.equal(getModelQuotaStatus(opus, 'KEY_B', NOW).remaining, 50, 'Opus KEY_B available');
 });

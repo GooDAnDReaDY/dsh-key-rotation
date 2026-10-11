@@ -8,11 +8,10 @@ import {
   isSwitchableError,
   DEFAULT_SWITCH_CODES,
   SOFT_FAILURE_CODES,
-  isSoftFailureCode,
 } from '../lib/pool.js';
 import { classifyFailure } from '../lib/error-taxonomy.js';
 import { QUOTA_WINDOW_TYPES, poolResetAt, nextQuotaReset } from '../lib/quota-window.js';
-import { getModelTokenUsage, getModelTokenRemaining, getModelQuotaStatus } from '../lib/model-quota.js';
+import { getModelQuotaStatus } from '../lib/model-quota.js';
 import { createPoolIndex, addProviderPools, modelPoolsForRef } from '../lib/pool-index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -92,11 +91,11 @@ test('#451: all client fetch endpoints in client.js have signal attached', () =>
 });
 
 test('#452: all 6 audited exports have production and runtime references', () => {
-  // 1. SOFT_FAILURE_CODES & isSoftFailureCode
+  // 1. SOFT_FAILURE_CODES (used by classifyFailure)
   assert.ok(SOFT_FAILURE_CODES instanceof Set);
-  assert.ok(isSoftFailureCode('500'));
-  assert.ok(isSoftFailureCode('TIMEOUT'));
-  assert.ok(!isSoftFailureCode('AUTH'));
+  assert.ok(SOFT_FAILURE_CODES.has('500'));
+  assert.ok(SOFT_FAILURE_CODES.has('TIMEOUT'));
+  assert.ok(!SOFT_FAILURE_CODES.has('AUTH'));
   assert.equal(classifyFailure({ status: 500 }).soft, true);
   assert.equal(classifyFailure({ status: 401 }).soft, false);
 
@@ -108,14 +107,12 @@ test('#452: all 6 audited exports have production and runtime references', () =>
   const nextReset = nextQuotaReset({ type: 'midnight_utc', hour: 0 }, now);
   assert.equal(poolReset, nextReset);
 
-  // 3. getModelTokenUsage, getModelTokenRemaining, getModelQuotaStatus
+  // 3. getModelQuotaStatus
   const mockPool = {
     refs: ['KEY_1'],
     quotas: { KEY_1: { tokenLimit: 1000 } },
     state: { tokenUsage: new Map() },
   };
-  assert.equal(getModelTokenUsage(mockPool, 'KEY_1', now), 0);
-  assert.equal(getModelTokenRemaining(mockPool, 'KEY_1', now), 1000);
   const status = getModelQuotaStatus(mockPool, 'KEY_1', now);
   assert.equal(status.used, 0);
   assert.equal(status.remaining, 1000);

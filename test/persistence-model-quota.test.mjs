@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { StatePersistence } from '../lib/persistence.js';
 import { initializePoolState } from '../lib/pool-state.js';
 import { sweepExpired } from '../lib/pool.js';
-import { consumeModelTokens, getModelTokenRemaining, getModelTokenUsage } from '../lib/model-quota.js';
+import { consumeModelTokens, getModelQuotaStatus } from '../lib/model-quota.js';
 
 const WINDOW = { type: 'midnight_utc', hour: 0 };
 const NOW = Date.UTC(2026, 0, 15, 12, 0, 0);
@@ -42,8 +42,8 @@ test('tokenUsage round-trips through serialize/restore', () => {
   StatePersistence.restorePools(restored, JSON.parse(JSON.stringify(snapshot)));
   const restState = initializePoolState(restored.get('anthropic::claude-sonnet'));
   const restPool = poolFor(restState);
-  assert.equal(getModelTokenUsage(restPool, 'CLAUDE_KEY_A', NOW), 820000, 'usage survived the restart');
-  assert.equal(getModelTokenRemaining(restPool, 'CLAUDE_KEY_A', NOW), 180000);
+  assert.equal(getModelQuotaStatus(restPool, 'CLAUDE_KEY_A', NOW).used, 820000, 'usage survived the restart');
+  assert.equal(getModelQuotaStatus(restPool, 'CLAUDE_KEY_A', NOW).remaining, 180000);
 });
 
 test('a legacy snapshot without tokenUsage restores without error', () => {
@@ -139,7 +139,7 @@ test('a live pool that already charged tokens is not rolled back at startup', ()
     },
   };
   StatePersistence.restorePools(poolState, stale);
-  assert.equal(getModelTokenUsage(pool, 'CLAUDE_KEY_A', NOW), 500, 'the newer live usage survived');
+  assert.equal(getModelQuotaStatus(pool, 'CLAUDE_KEY_A', NOW).used, 500, 'the newer live usage survived');
 });
 
 test('sweepExpired rolls an elapsed window and prunes removed refs', () => {
