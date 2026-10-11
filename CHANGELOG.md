@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.54 - 2026-10-11
+
+### Added
+- **Shared Request Deadline and Attempt Budget Across Rotation & Cascade (#464)**:
+  - Added `createRequestBudget` in `lib/request-budget.js` with monotonic timer (`nowMono`) and `AbortSignal` merging.
+  - Added `maxDurationMs` and `maxAttempts` configuration options.
+  - Budget threads through rotation and cross-provider cascade recursively without resetting counters, terminating early with `BUDGET_DEADLINE_EXCEEDED` or `BUDGET_ATTEMPTS_EXCEEDED`.
+- **Key Selection Explanation & Request Attempt Trace (#461)**:
+  - Added `createSelectionTrace` in `lib/selection-trace.js` tracking candidate evaluation decisions, cooldown reasons, and dispatches.
+  - Added loopback-guarded endpoints `GET /dsh-key-rotation/trace` and `DELETE /dsh-key-rotation/trace` in `lib/ops-telemetry.js` with automatic secret redaction.
+- **Offline Rotation & Cascade Simulator (#462)**:
+  - Added `simulateRouting` engine in `lib/simulator.js` running over isolated in-memory state without HTTP requests, token charges, or credential resolution.
+  - Added `POST /dsh-key-rotation/simulate` endpoint in `lib/ops-telemetry.js` to preview failover decisions.
+- **Managed Key Draining and Graceful Replacement (#463)**:
+  - Added `lib/key-drain.js` tracking draining keys and in-flight stream concurrency.
+  - `rotate.js` excludes draining keys from new candidate dispatches while active in-flight streams finish cleanly.
+  - Added `GET / POST / DELETE /dsh-key-rotation/drain` endpoints in `lib/ops-keys.js`.
+
 ## 0.8.53 - 2026-10-09
 
 ### Fixed
