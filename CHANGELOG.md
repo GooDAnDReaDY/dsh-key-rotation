@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.56 - 2026-10-12
+
+### Fixed
+- **Prevent Soft Transient Errors from Triggering Key Quarantine (#473)**:
+  - In `lib/rotate.js`, soft failures (`TIMEOUT`, 5xx, socket disconnects) no longer increment `failCounts` nor trigger the 30-minute `brokenUntil` quarantine.
+  - Synchronized `rotate.js` quarantine checks with `recordFailure` in `lib/pool.js` which deliberately excludes soft failures from exponential penalties.
+  - Added unit test coverage verifying soft failures do not trip quarantine while 3 hard failures correctly trigger recoverable quarantine.
+
 ## 0.8.55 - 2026-10-11
 
 ### Fixed
