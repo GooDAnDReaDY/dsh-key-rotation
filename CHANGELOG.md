@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.8.57 - 2026-10-12
+
+### Added
+- **Tier-based / Cost-aware Routing (`tier-priority`) (#475)**:
+  - Added `tier-priority` routing strategy and optional per-key `tiers` configuration.
+  - Automatically sorts and routes requests through tier 1 keys first, gracefully falling back to tier 2 only when primary tier keys are cooling down or exhausted.
+- **Proactive Health Probing (#475)**:
+  - Added opt-in `proactiveHealthProbing` and `proactiveProbeIntervalMs` background lifecycle effect.
+  - Automatically sends lightweight probe pings for keys in cooldown or quarantine to restore healthy status proactively without waiting for user failover.
+- **RPM / TPM Micro-Throttling (#475)**:
+  - Added opt-in `microThrottling` and `microThrottleMaxMs` options.
+  - If a key hits rate limits but the sliding window resets within `microThrottleMaxMs` (default 1000ms), resolves inline micro-sleep rather than failing over prematurely.
+- **Early-Warning Alerts (#475)**:
+  - Added `earlyWarningNotify` and `earlyWarningKeyThreshold` options.
+  - Automatically dispatches webhook alerts when available healthy keys drop below threshold (e.g. 25%) before pool-wide exhaustion.
+- **Interactive Routing Simulator UI (#475)**:
+  - Integrated an interactive simulator section into Web Settings UI backed by `/dsh-key-rotation/simulate`.
+  - Enables playground testing of rotation, synthetic rate limits, and failure fallback traces without sending live upstream requests.
+
 ## 0.8.56 - 2026-10-12
 
 ### Fixed
