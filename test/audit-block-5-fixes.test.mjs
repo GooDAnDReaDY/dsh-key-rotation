@@ -48,11 +48,13 @@ test('Audit Block 5 - #427: Recoverable brokenUntil vs permanent REVOKED in auto
   assert.equal(pool.state.brokenUntil.has('k1'), false);
 });
 
-test('Audit Block 5 - #427: rotate sets recoverable brokenUntil quarantine after 3 consecutive non-auth failures', async () => {
+test('Audit Block 5 - #427: rotate sets recoverable brokenUntil quarantine after 3 consecutive non-auth hard failures', async () => {
+  const hardErr = new Error('rate limit reached');
+  hardErr.code = 'RATE_LIMIT';
   const rotate = createRotate({
-    ctx: { get: () => ({ stream: () => { throw new Error('upstream failure'); } }) },
+    ctx: { get: () => ({ stream: () => { throw hardErr; } }) },
     dispatchStorage: new AsyncLocalStorage(),
-    buildRuntime: () => ({ switchCodes: ['TRANSPORT'], cooldownMs: 0, concurrencyLimit: 0 }),
+    buildRuntime: () => ({ switchCodes: ['RATE_LIMIT'], cooldownMs: 0, concurrencyLimit: 0 }),
     pushEvent: () => {},
     finishError: (code, message) => new Error(code + ': ' + message),
     now: () => Date.now(),
@@ -97,4 +99,38 @@ test('Audit Block 5 - #428: AlertDebouncer aggregates rapid alert events into di
   assert.equal(sent[0].payload.digest, true);
   assert.equal(sent[0].payload.incidentCount, 2);
   assert.equal(sent[0].payload.events.length, 2);
+});
+
+test('#473: soft failures (TIMEOUT, 5xx, socket) do not count toward recoverable brokenUntil quarantine', async () => {
+  const timeoutErr = new Error('gateway request timeout after 30000ms');
+  timeoutErr.code = 'TIMEOUT';
+
+  const rotate = createRotate({
+    ctx: { get: () => ({ stream: () => { throw timeoutErr; } }) },
+    dispatchStorage: new AsyncLocalStorage(),
+    buildRuntime: () => ({ switchCodes: ['TIMEOUT'], cooldownMs: 0, concurrencyLimit: 0 }),
+    pushEvent: () => {},
+    finishError: (code, message) => new Error(code + ': ' + message),
+    now: () => Date.now(),
+    setRotateStartMs: () => {},
+    notifyExhaustion: () => {},
+  });
+
+  const pool = {
+    base: 'anthropic',
+    refs: ['k1'],
+    state: initializePoolState(),
+  };
+  // Start with failCounts = 2
+  pool.state.failCounts.set('k1', 2);
+  pool.state.lastUsed = 'k1';
+
+  const opt = { provider: 'anthropic', maxRetries: 0 };
+  try {
+    for await (const _ of rotate(opt, pool)) {}
+  } catch (_) {}
+
+  // Soft failure must NOT have incremented failCounts nor triggered brokenUntil
+  assert.equal(pool.state.failCounts.get('k1'), 2, 'failCounts unchanged on soft error');
+  assert.equal(pool.state.brokenUntil.has('k1'), false, 'must not be put in brokenUntil quarantine');
 });
