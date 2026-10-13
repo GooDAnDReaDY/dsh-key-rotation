@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.58 - 2026-10-13
+
+### Fixed
+- **Early-Warning Notification Dispatch (#477)**:
+  - Connected `notifyEarlyWarning` during key penalization in `lib/rotate.js` when healthy pool capacity drops to or below `earlyWarningKeyThreshold`.
+  - Added export `notifyEarlyWarning` in `lib/index.js` and wired dependency through `createRotate`.
+- **Proactive Health Probing Logging (#478)**:
+  - Replaced empty catch block in `lib/lifecycle.js` `setupProactiveHealthProbeEffect` with structured debug logging (`logger?.debug`), eliminating silent swallowed exceptions.
+- **Key Drain Lifecycle Teardown (#479)**:
+  - Registered `setupKeyDrainEffect` in `lib/lifecycle.js` to ensure module-level `drainingKeys` map is wiped cleanly on plugin teardown/dispose via `clearAllDraining()`.
+- **Quota Reset Window Schema Validation (#480)**:
+  - Connected `QUOTA_WINDOW_TYPES` into `SettingsSchema` via `Schema.union(QUOTA_WINDOW_TYPES).default('midnight_utc')`.
+  - Connected `isBlockedUntilReset` in `lib/ops-status.js` to accurately expose calendar-based reset lock status.
+
 ## 0.8.57 - 2026-10-12
 
 ### Added
