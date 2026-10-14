@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.59 - 2026-10-14
+
+### Refactored & Cleaned
+- **Legacy Settings Registration Removed (#482)**:
+  - Deleted dead legacy `settings.register` branch in `lib/index.js`, fixing static configuration liveness to use standard `createConfigReader`.
+- **Dead Subscriptions & Settings Fallbacks Removed (#482)**:
+  - Removed dead `ctx.on('config')` subscription in `lib/config-compat.js`.
+  - Removed unreachable legacy `settings.get` fallback in `createProviderProfilesReader` in favor of standard `settings.describe`.
+- **Test Harness Synchronization (#482)**:
+  - Updated test fixtures for modern descriptor caching and multi-listener lifecycle events.
+
 ## 0.8.58 - 2026-10-13
 
 ### Fixed
