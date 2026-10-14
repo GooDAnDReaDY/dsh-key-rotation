@@ -124,10 +124,10 @@ try { peerMod = await import('../lib/index.js'); } catch { peerMod = null; }
 // Exercise apply()/settings/hook wiring, not just the breaker class in isolation.
 async function hostHarness(initial) {
   const plugin = await import(`../lib/index.js?host=${initial.name}`);
-  let config = { persistenceEnabled: false, providers: [{ provider: 'demo', keys: ['DUMMY_KEY'] }], ...initial };
-  const hooks = new Map();
+  const config = { persistenceEnabled: false, providers: [{ provider: 'demo', keys: ['DUMMY_KEY'] }], ...initial };
+  const listeners = [];
   const profiles = { demo: { apiKeyEnv: 'DUMMY_KEY' } };
-  const settings = { get: () => ({ providers: profiles }), register: () => ({ get: () => config }) };
+  const settings = { describe: () => [{ ns: 'llm-pi-ai', value: { providers: profiles } }] };
   let calls = 0;
   const ctx = {
     webServer: { register: () => () => {} },
@@ -135,17 +135,22 @@ async function hostHarness(initial) {
       calls++; plugin.getRuntime().poolByRef.get('DUMMY_KEY').state.lastUsed = 'DUMMY_KEY';
       yield finish('error', 'QUOTA');
     } } : null,
-    effect: (fn, label) => {
-      if (label === 'dsh-key-rotation: llm/stream' || label === 'dsh-key-rotation: agent/request-error') fn();
-    },
-    on: (name, fn) => { hooks.set(name, fn); return () => {}; },
+    effect: (fn) => fn(),
+    on: (name, fn) => { listeners.push({ name, fn }); return () => {}; },
     inject: (_, fn) => fn(ctx),
   };
   plugin.apply(ctx, config);
+  const getHook = (name) => listeners.find((l) => l.name === name)?.fn;
   return {
-    run: () => collect(hooks.get('llm/stream')({ provider: 'demo' }, () => { throw new Error('unexpected bypass'); })),
-    error: () => hooks.get('agent/request-error')({ provider: 'demo', failure: { code: 'QUOTA', message: 'quota exhausted' } }, () => null),
-    update: (changes) => { config = { ...config, ...changes }; }, calls: () => calls,
+    run: () => collect(getHook('llm/stream')({ provider: 'demo' }, () => { throw new Error('unexpected bypass'); })),
+    error: () => getHook('agent/request-error')({ provider: 'demo', failure: { code: 'QUOTA', message: 'quota exhausted' } }, () => null),
+    update: (changes) => {
+      Object.assign(config, changes);
+      for (const l of listeners) {
+        if (l.name === 'settings/document-updated' || l.name === 'loader/volatile-update') l.fn();
+      }
+    },
+    calls: () => calls,
   };
 }
 test('apply wires configured threshold into the breaker actually used for dispatch', async (t) => {

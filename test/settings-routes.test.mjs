@@ -142,7 +142,7 @@ test('modern provider profile lookup caches descriptors and refreshes on documen
   key = 'B'; callback(); assert.equal(reader().a.apiKeyEnv, 'B'); assert.equal(calls, 2);
 });
 
-test('provider profile lookup caches settings.get across N calls and invalidates on document update (#350)', () => {
+test('provider profile lookup caches descriptors across N calls and invalidates on document update (#350, #482)', () => {
   let callback, calls = 0, key = 'A';
   const ctx = {
     effect: fn => fn(),
@@ -150,19 +150,19 @@ test('provider profile lookup caches settings.get across N calls and invalidates
     get: () => settings,
   };
   const settings = {
-    get(ns) {
+    describe() {
       calls++;
-      return { providers: { a: { apiKeyEnv: key } } };
+      return [{ ns: 'llm-pi-ai', value: { providers: { a: { apiKeyEnv: key } } } }];
     },
   };
   const reader = createProviderProfilesReader(ctx, 'llm-pi-ai');
 
-  // N calls without document update must invoke settings.get only once
+  // N calls without document update must invoke settings.describe only once
   for (let i = 0; i < 25; i++) {
     const res = reader();
     assert.equal(res.a.apiKeyEnv, 'A');
   }
-  assert.equal(calls, 1, 'settings.get called only once for 25 reads');
+  assert.equal(calls, 1, 'settings.describe called only once for 25 reads');
 
   // Triggering document-updated invalidates cache
   key = 'B';
@@ -171,7 +171,7 @@ test('provider profile lookup caches settings.get across N calls and invalidates
     const res = reader();
     assert.equal(res.a.apiKeyEnv, 'B');
   }
-  assert.equal(calls, 2, 'settings.get called once more after invalidation');
+  assert.equal(calls, 2, 'settings.describe called once more after invalidation');
 });
 
 test('createConfigReader with ctx caches unwrapped config across N calls and invalidates on event (#350)', () => {
@@ -206,13 +206,9 @@ test('createConfigReader with ctx caches unwrapped config across N calls and inv
   assert.equal(getCalls, 2, 'volatile getter called only once after invalidation');
 });
 
-test('provider profile lookup: ctx.get returns fresh proxy each call; 100 calls invoke get/describe only once (#350)', () => {
-  let docCallback, serviceCallback, getCalls = 0, describeCalls = 0;
+test('provider profile lookup: ctx.get returns fresh proxy each call; 100 calls invoke describe only once (#350, #482)', () => {
+  let docCallback, serviceCallback, describeCalls = 0;
   const rawSettings = {
-    get(ns) {
-      getCalls++;
-      return { providers: { a: { apiKeyEnv: 'KEY_A' } } };
-    },
     describe() {
       describeCalls++;
       return [{ ns: 'llm-pi-ai', value: { providers: { a: { apiKeyEnv: 'KEY_A' } } } }];
@@ -232,13 +228,12 @@ test('provider profile lookup: ctx.get returns fresh proxy each call; 100 calls 
 
   const reader = createProviderProfilesReader(ctx, 'llm-pi-ai');
 
-  // 100 calls without event must call get/describe exactly ONCE
+  // 100 calls without event must call describe exactly ONCE
   for (let i = 0; i < 100; i++) {
     const res = reader();
     assert.equal(res.a.apiKeyEnv, 'KEY_A');
   }
-  assert.equal(getCalls, 1, 'settings.get called exactly once despite 100 new Proxy instances from ctx.get');
-  assert.equal(describeCalls, 0);
+  assert.equal(describeCalls, 1, 'settings.describe called exactly once despite 100 new Proxy instances from ctx.get');
 
   // Invalidation via settings/document-updated causes exactly 1 re-read
   docCallback();
@@ -246,7 +241,7 @@ test('provider profile lookup: ctx.get returns fresh proxy each call; 100 calls 
     const res = reader();
     assert.equal(res.a.apiKeyEnv, 'KEY_A');
   }
-  assert.equal(getCalls, 2, 'settings.get called once more after document update');
+  assert.equal(describeCalls, 2, 'settings.describe called once more after document update');
 
   // Invalidation via internal/service ('settings') causes exactly 1 re-read
   serviceCallback('settings');
@@ -254,24 +249,24 @@ test('provider profile lookup: ctx.get returns fresh proxy each call; 100 calls 
     const res = reader();
     assert.equal(res.a.apiKeyEnv, 'KEY_A');
   }
-  assert.equal(getCalls, 3, 'settings.get called once more after internal/service');
+  assert.equal(describeCalls, 3, 'settings.describe called once more after internal/service');
 
   // Unrelated service event does not invalidate
   serviceCallback('other-service');
   for (let i = 0; i < 50; i++) {
     reader();
   }
-  assert.equal(getCalls, 3, 'unrelated service event did not invalidate cache');
+  assert.equal(describeCalls, 3, 'unrelated service event did not invalidate cache');
 });
 
-test('buildRuntime: ctx.get returns fresh proxy each call; 100 calls result in exactly one settings.get call (#350)', async () => {
+test('buildRuntime: ctx.get returns fresh proxy each call; 100 calls result in exactly one settings.describe call (#350, #482)', async () => {
   const plugin = await import('../lib/index.js?t=proxyCordisTest350');
   const listeners = [];
-  let settingsGetCalls = 0;
+  let settingsDescribeCalls = 0;
   const rawSettings = {
-    get(ns) {
-      settingsGetCalls++;
-      return { providers: { demo: { apiKeyEnv: 'KEY_PROXY' } } };
+    describe() {
+      settingsDescribeCalls++;
+      return [{ ns: 'llm-pi-ai', value: { providers: { demo: { apiKeyEnv: 'KEY_PROXY' } } } }];
     },
   };
   const ctx = {
@@ -294,36 +289,36 @@ test('buildRuntime: ctx.get returns fresh proxy each call; 100 calls result in e
   // 100 calls to getRuntime() / buildRuntime()
   const r1 = plugin.getRuntime();
   assert.ok(r1);
-  assert.equal(settingsGetCalls, 1);
+  assert.equal(settingsDescribeCalls, 1);
 
   for (let i = 0; i < 100; i++) {
     const r = plugin.getRuntime();
     assert.strictEqual(r, r1);
   }
-  assert.equal(settingsGetCalls, 1, '100 calls to buildRuntime executed with exactly 1 settings.get call');
+  assert.equal(settingsDescribeCalls, 1, '100 calls to buildRuntime executed with exactly 1 settings.describe call');
 
   // Trigger document-updated
   for (const l of listeners) {
     if (l.name === 'settings/document-updated') l.fn();
   }
   const r2 = plugin.getRuntime();
-  assert.equal(settingsGetCalls, 2);
+  assert.equal(settingsDescribeCalls, 2);
 
   for (let i = 0; i < 100; i++) {
     const r = plugin.getRuntime();
     assert.strictEqual(r, r2);
   }
-  assert.equal(settingsGetCalls, 2);
+  assert.equal(settingsDescribeCalls, 2);
 });
 
-test('buildRuntime: N calls without settings change result in exactly one settings.get call (#350)', async () => {
+test('buildRuntime: N calls without settings change result in exactly one settings.describe call (#350, #482)', async () => {
   const plugin = await import('../lib/index.js?t=buildRuntime350');
   const listeners = [];
-  let settingsGetCalls = 0;
+  let settingsDescribeCalls = 0;
   const settings = {
-    get(ns) {
-      settingsGetCalls++;
-      return { providers: { demo: { apiKeyEnv: 'KEY_A' } } };
+    describe() {
+      settingsDescribeCalls++;
+      return [{ ns: 'llm-pi-ai', value: { providers: { demo: { apiKeyEnv: 'KEY_A' } } } }];
     },
   };
   const ctx = {
@@ -345,24 +340,24 @@ test('buildRuntime: N calls without settings change result in exactly one settin
   // Initial call through getRuntime() -> buildRuntime()
   const r1 = plugin.getRuntime();
   assert.ok(r1);
-  assert.equal(settingsGetCalls, 1);
+  assert.equal(settingsDescribeCalls, 1);
 
-  // 50 subsequent calls without settings changes must not invoke settings.get again
+  // 50 subsequent calls without settings changes must not invoke settings.describe again
   for (let i = 0; i < 50; i++) {
     const r = plugin.getRuntime();
     assert.strictEqual(r, r1);
   }
-  assert.equal(settingsGetCalls, 1, '50 calls to buildRuntime executed with exactly 1 settings.get call');
+  assert.equal(settingsDescribeCalls, 1, '50 calls to buildRuntime executed with exactly 1 settings.describe call');
 
   // Document update invalidates and triggers a single re-fetch
   for (const fn of listeners) fn();
   const r2 = plugin.getRuntime();
-  assert.equal(settingsGetCalls, 2, 'single settings.get call triggered after document update');
+  assert.equal(settingsDescribeCalls, 2, 'single settings.describe call triggered after document update');
   for (let i = 0; i < 20; i++) {
     const r = plugin.getRuntime();
     assert.strictEqual(r, r2);
   }
-  assert.equal(settingsGetCalls, 2);
+  assert.equal(settingsDescribeCalls, 2);
 });
 
 test('auto-unbreak interval can be enabled/changed/disabled live and cannot restart after disposal', async () => {
