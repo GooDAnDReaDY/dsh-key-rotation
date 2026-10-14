@@ -21,6 +21,9 @@ test('no bare ctx.llm property access (#275)', () => {
   assert.doesNotMatch(rotate, /ctx\.llm\./);
 });
 
-test('settings service via get (#275)', () => {
-  assert.match(index, /sctx\.get\('settings'\)/);
+test('no bare ctx.settings property access (#275, #482)', () => {
+  assert.doesNotMatch(index, /sctx\.settings/);
+  assert.doesNotMatch(index, /ctx\.settings/);
+  const compat = fs.readFileSync(path.join(root, 'lib/config-compat.js'), 'utf8');
+  assert.ok(compat.includes("ctx?.get?.('settings')"), "config-compat must read settings via ctx?.get?.('settings')");
 });
