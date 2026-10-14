@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.60 - 2026-10-14
+
+### Changed
+- **PeerDependencies Expanded for DSH Core 0.2.1-alpha.2 (#484)**:
+  - Updated `@deepseek-ai/dsh-llm` peerDependency range to `^0.1.7-rc.2 || >=0.2.0-rc.1 <0.2.1-0 || >=0.2.1-alpha.1 <0.2.2-0`.
+  - Fixes plugin skipping under DSH core `0.2.1-alpha.2` caused by `<0.2.1-0` SemVer prerelease boundary in `evaluatePluginCompatibility`.
+  - Verified full runtime compatibility with `dsh-llm@0.2.1-alpha.2` API, key failover rotation on 429 errors, and `/dsh-key-rotation/status` reporting.
+  - Added acceptance test suite `test/dsh-llm-021-alpha2.test.mjs`.
+
 ## 0.8.59 - 2026-10-14
 
 ### Refactored & Cleaned
