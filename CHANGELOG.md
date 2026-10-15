@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.61 - 2026-10-15
+
+### Fixed
+- **Prevent Transient Rate Limit Deadlocks from Calendar Quota Locks (#486 / GitHub #24)**:
+  - Upstream errors returning transient 429, RPM/TPM exhaustion, or concurrency limits (such as SenseNova `{"message":"rpm exhausted","type":"quota_exceeded_error"}` or `{"message":"inference exceeds tpm/rpm limit","code":"insufficient_quota"}`) are now classified as `isRateThrottling` and excluded from `isQuota`.
+  - Transient rate limits receive standard short backoff (`cooldownMs` with jitter) rather than being locked out until next UTC midnight.
+  - Cleared `pool.state.quotaWindows` in `recordSuccess` upon first successful request.
+  - Extended background `autoUnbreakBrokenKeys` and proactive health probing to probe keys with calendar quota locks, restoring healthy keys immediately upon receiving 200 OK from upstream.
+  - Added `INSUFFICIENT_QUOTA` and present-tense regex matches to switchable error classification.
+
+### Added
+- **Sticky Key Routing Strategy to Preserve Prompt Caching (#487 / GitHub #23)**:
+  - Added `'sticky'` routing strategy option in settings and provider configurations.
+  - In `'sticky'` mode, the resolver retains the same active key across consecutive requests as long as it remains healthy, maximizing prefix prompt cache hit rate on providers that cache per API key (Anthropic, DeepSeek, OpenAI).
+  - Automatically fails over to the next healthy key in the pool if the sticky key experiences an error or cooldown, then sticks to the new key.
+  - Added UI dropdown selection in the Key Rotation Settings Card with English and Chinese localizations.
+
 ## 0.8.60 - 2026-10-14
 
 ### Changed
