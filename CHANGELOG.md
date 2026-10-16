@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.62 - 2026-10-16
+
+### Added
+- **Session-Aware Sticky Routing Affinity for Prompt Caching (#489)**:
+  - Enhanced `sticky` routing strategy with LRU session affinity (`pool.state.sessionSticky`, capped at 500 active sessions).
+  - Parallel DSH chat sessions or multi-agent subtasks retain dedicated sticky keys based on `sessionId` (`options.sessionId` / `options.session` / `options.metadata.sessionId`), preventing cross-session cache evictions and maximizing prompt prefix cache hit rates for Anthropic, DeepSeek, and OpenAI.
+  - Graceful failover to the next healthy candidate if a session's pinned key is in cooldown or quota-exhausted; automatic eviction from session map on error.
+- **1-Click Test Matrix Dashboard (#490)**:
+  - Added `/dsh-key-rotation/test-matrix` endpoint in `lib/ops-test.js` supporting batch validation of all configured keys across all pools with bounded concurrency (5 workers) and latency tracking.
+  - Added "⚡ Test All Keys" action button in the WebUI Settings Card with an interactive results modal displaying operational key status, latency in milliseconds, and error details.
+- **Zero-Config Pool Auto-Discovery & 1-Click Import (#491)**:
+  - Added `/dsh-key-rotation/discover` and `/dsh-key-rotation/auto-import` endpoints in `lib/ops-keys.js`.
+  - Automatically scans `~/.dsh/.credentials.yaml` and environment variables for unconfigured provider keys matching standard patterns (`DEEPSEEK_API_KEY`, `OPENCODE_GO_API_KEY_*`, `OPENAI_API_KEY`, `GROQ_API_KEY`, etc.), excluding keys already assigned to rotation pools.
+  - Added smart auto-discovery banner to the Settings Card with 1-click import into provider pools.
+
 ## 0.8.61 - 2026-10-15
 
 ### Fixed
