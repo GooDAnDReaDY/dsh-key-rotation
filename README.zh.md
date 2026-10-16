@@ -378,3 +378,4 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 | `circuitBreakerThreshold` | number | `5` | 连续失败阈值 |
 | `circuitBreakerOpenMs` | number | `30000` | 打开时长 ms |
 | `circuitBreakerHalfOpenProbes` | number | `1` | 半开探测次数 |
+| `showChatHeaderChip` | boolean | `true` | 在会话界面顶部工具栏显示密钥池状态按钮 (#25) |

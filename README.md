@@ -378,6 +378,7 @@ dsh-key-rotation:
 | `circuitBreakerOpenMs` | `number` | `30000` | How long the circuit stays open (ms). |
 | `circuitBreakerHalfOpenProbes` | `number` | `1` | Probe requests allowed in half-open state. |
 | `verboseLogging` | `boolean` | `false` | Per-request rotation logs (noisy; off by default). |
+| `showChatHeaderChip` | `boolean` | `true` | Show or hide the pool status button in conversation header toolbar (#25). |
 | `concurrencyLimit` | `number` | `0` (disabled) | Max concurrent in-flight streams per key (0 = unlimited). |
 | `quotaResetWindow` | `object` | `null` | Calendar reset alignment for both provider-reported quota cooldowns and local per-model token budgets (`midnight_utc`, `midnight_pst`, `rolling_24h`). |
 | `cascade` | `array` | `[]` | Fallback provider chain when primary pool is completely exhausted. |

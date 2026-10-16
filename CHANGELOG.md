@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.63 - 2026-10-16
+
+### Added
+- **Configurable Switch to Disable Chat Header Status Chip (#493 / GitHub #25)**:
+  - Added `showChatHeaderChip` boolean setting (defaults to `true` for 100% backward compatibility) in `SettingsSchema` and runtime configuration.
+  - Added user-facing toggle in the Settings card ("Chat Header Status Chip" / "聊天头部状态按钮") under rotation settings.
+  - `KeyRotationHeaderChip` (`conversation.session.header.utilities`) dynamically subscribes to settings and checks server health state, cleanly returning `null` when disabled without taking up conversational header toolbar space.
+  - Additive field `showChatHeaderChip` exposed in `/dsh-key-rotation/status` and `/dsh-key-rotation/health`.
+
 ## 0.8.62 - 2026-10-16
 
 ### Added
