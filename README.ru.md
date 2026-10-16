@@ -409,6 +409,7 @@ MIT © [GooDAnDReaDY](https://github.com/GooDAnDReaDY)
 | `circuitBreakerOpenMs` | number | `30000` | Длительность open, мс |
 | `circuitBreakerHalfOpenProbes` | number | `1` | Проб в half-open |
 | `verboseLogging` | boolean | `false` | Подробные логи rotation (шумно) |
+| `showChatHeaderChip` | boolean | `true` | Показывать кнопку статуса пула в шапке чата (#25) |
 
 Status API (v0.8.0): у каждого провайдера `circuit`, в корне ответа `meta.expectedClones` и `meta.notifyQueue`.
 

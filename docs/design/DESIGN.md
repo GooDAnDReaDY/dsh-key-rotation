@@ -9,7 +9,7 @@
 - **Web/UI**: Карточка настроек плагина в DSH WebUI (`settings.plugin.item`, ключ `dsh-key-rotation`; собственной строки `settings.section` нет — #275), компактный чип статуса пула в шапке (`header.status`).
 - **DSH UI / settings / slots**:
   - Слот `settings.plugin.item`: key `dsh-key-rotation`, `locale: 'dsh-key-rotation'`.
-  - Слот `header.status`: живой индикатор доступности ключей (зелёный/жёлтый/красный) с тултипом активного пула.
+  - Слот `header.status` / `conversation.session.header.utilities`: живой индикатор доступности ключей (зелёный/жёлтый/красный) с тултипом активного пула (отключаемый через `showChatHeaderChip`, #493 / GitHub #25).
 - **API**: HTTP-эндпоинты плагина для DSH WebUI:
   - `GET /dsh-key-rotation/status`: сводка пулов, активных ключей, ошибок и метрик задержки.
   - `GET/PUT /dsh-key-rotation/config`: конфигурационный мост (адаптер для DSH settings).
