@@ -147,6 +147,11 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 
 ## Locked Design Decisions (append)
 
+- 2026-10-16 — Session-Aware Sticky Routing & Operations Dashboard (#489, #490, #491):
+  - `routingStrategy: 'sticky'` supports per-session key stickiness via `pool.state.sessionSticky` LRU Map (max 500 entries) keyed by `sessionId` (`options.sessionId`, `session`, `metadata.sessionId`). Eliminates cross-session prompt cache thrashing for parallel chat sessions.
+  - `/dsh-key-rotation/test-matrix` provides parallel bounded key validation across all pools.
+  - `/dsh-key-rotation/discover` and `/dsh-key-rotation/auto-import` enable zero-config onboarding from `~/.dsh/.credentials.yaml` and environment variables.
+
 - 2026-09-16 — `export const name` stays the short cordis id `dsh-key-rotation` (same as `dsh-image-gen`); npm/loader identity remains the scoped name in `package.json`, `cordis.patch.yml` `name:`, and `load({ id })`. Preflight 4th-place FAIL is accepted family convention. Revisit only if a consumer injects the scoped name as a cordis service.
 - 2026-09-16 — Intentional best-effort side effects use `lib/best-effort.js` (`bestEffort(label, fn, logger?)`) instead of empty `catch {}`; client factory uses a local equivalent. Adds debug logging without failing the host.
 
@@ -184,6 +189,9 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 | `/dsh-key-rotation/webhook-action` | POST | Bearer token (`webhookActionToken`) | `timingSafeEqual`, таймаут Telegram 10с | 401 / 405 |
 | `/dsh-key-rotation/config` | GET, PUT, DELETE, OPTIONS | `isTrustedBridgeRequest` (Origin match loopback) | Конфигурационный мост настроек | 403 / 405 |
 | `/api/dsh-key-rotation/update` | GET, HEAD, POST | `isTrustedUpdateRequest` (loopback / same-origin) | POST: запуск `pnpm add` с проверкой пакета | 403 / 405 |
+| `/dsh-key-rotation/test-matrix` | GET, POST | `isTrustedBridgeRequest` (Origin match loopback) | Параллельный тест всех ключей пулов (конкарренси 5) | 403 / 405 |
+| `/dsh-key-rotation/discover` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Сканирование ~/.dsh/.credentials.yaml и env | 403 / 405 |
+| `/dsh-key-rotation/auto-import` | POST | `isTrustedBridgeRequest` (Origin match loopback) | 1-click импорт нераспределённых ключей в пулы | 403 / 405 |
 
 ## Что публикуется (What is Published)
 
