@@ -1,6 +1,10 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Failover & Discovery (v0.8.64)**:
+  - Permanent Auth Pause (#501): 401/403 failures immediately freeze dead keys (`Infinity` cooldown), fan-out across all model/provider pools sharing the ref. Probing via test matrix auto-unpauses.
+  - Soft Errors (#501): 502/503/504 and timeouts receive short flat cooldown (<=10s) without exponential penalty escalation.
+  - Model Capabilities Discovery (#500): Dynamic `/models` parsing records verified model sets per key, gating candidate selection to prevent sending models to incompatible keys.
 - **Назначение**: Прозрачная балансировка, автоматическая ротация API-ключей, превентивное обнаружение лимитов (429 / Quota) и каскадный failover для провайдеров DeepSeek Harness (DSH).
 - **Аудитория**: Разработчики и операторы DeepSeek Harness, использующие пулы ключей (OpenCode, DeepSeek Official, Groq, Ollama и др.) без прерывания пользовательских сессий.
 - **Статус**: Production (активный релизный цикл, семантическое версионирование).
