@@ -1,6 +1,9 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Traffic Smoothing & Dynamic Limits (v0.8.65)**:
+  - Traffic Smoothing Micro-Queue (#496): Leaky bucket smoother (`lib/traffic-smoother.js`) absorbs sub-second bursts with configurable burst limit and `maxQueueWaitMs` (800ms), rotating early upon queue overflow.
+  - Provider Limits & Presets (#503): Dynamic response header parsing (`extractProviderLimits`), canonical presets catalog (`CANONICAL_PROVIDER_PRESETS`), `/dsh-key-rotation/preset-limits` route, and 1-click `⚡ Preset Limits` UI button.
 - **Failover & Discovery (v0.8.64)**:
   - Permanent Auth Pause (#501): 401/403 failures immediately freeze dead keys (`Infinity` cooldown), fan-out across all model/provider pools sharing the ref. Probing via test matrix auto-unpauses.
   - Soft Errors (#501): 502/503/504 and timeouts receive short flat cooldown (<=10s) without exponential penalty escalation.

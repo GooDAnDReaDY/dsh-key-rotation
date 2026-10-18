@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.65 - 2026-10-18
+
+### Features
+- **Traffic Smoothing Micro-Queue (#496)**:
+  - Leaky bucket traffic smoother (`lib/traffic-smoother.js`) absorbs short micro-bursts ($\le 1$s) across multi-agent workflows without tripping upstream per-second or per-minute rate limits or triggering cooldown churning.
+  - Configurable `trafficSmoothingBurst` (default 5 or `ceil(rpmLimit/12)`) and `maxQueueWaitMs` (default 800ms).
+  - If scheduled micro-queue delay exceeds `maxQueueWaitMs`, the smoother flags burst overflow, immediately rotating to the next candidate key in the pool.
+  - Live metric `smoothedRequests` exposed on provider status, with `TRAFFIC_SMOOTHED` audit events.
+- **Accurate Dynamic Provider Limits & Canonical Presets (#503)**:
+  - Header limits detector (`lib/provider-limits-detector.js`): extracts dynamic rate limit headers (`x-ratelimit-limit-*`, `x-ratelimit-remaining-*`, `x-ratelimit-reset-*`, `anthropic-ratelimit-*`, `retry-after`) from upstream provider HTTP responses into `pool.state.detectedLimits`.
+  - Canonical provider presets catalog for DeepSeek, Groq, OpenCode, Anthropic, OpenAI, SiliconFlow, Mistral, Gemini, and OpenRouter with standard RPM, TPM, burst capacity, and calendar reset window specifications.
+  - Endpoint `GET/POST /dsh-key-rotation/preset-limits` to query and auto-apply canonical limits to configured providers.
+  - WebUI button `⚡ Preset Limits` for 1-click rate limit configuration and live upstream limits indicator badge (`⚡ 60 RPM · 100k TPM`).
+
 ## 0.8.64 - 2026-10-18
 
 ### Features
