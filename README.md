@@ -67,6 +67,10 @@
 - **📡 Status extras**: per-provider `circuit` plus `meta.expectedClones` / `meta.notifyQueue`.
 - **🧪 Smoke harness**: scripted 429 → next-key → success path in `test/smoke-rotation-080.test.mjs`.
 
+### 🚀 What's New in v0.8.65
+- **⚡ Leaky Bucket Traffic Smoothing (#496)**: Micro-queue smoothing absorbs rapid multi-agent burst spikes ($\le 1$s) without triggering unnecessary 429 errors or cooldown churning, with zero-delay burst capacity and early failover rotation on queue overflow.
+- **📊 Dynamic Upstream Rate Limits & Presets (#503)**: Dynamic parsing of provider rate limit headers (`x-ratelimit-*`, `anthropic-ratelimit-*`, `retry-after`), live badge display on keys, and 1-click `⚡ Preset Limits` button applying canonical RPM/TPM presets for DeepSeek, Groq, Anthropic, OpenAI, Gemini, and more.
+
 ### 🛠️ What's New in v0.7.33 (Stability & Bugfix Release)
 - **🔍 Resolved Key Probing BaseURL**: Fixed `resolveBaseUrl` to map key credential refs to owning provider pools, restoring live `probeModels` testing.
 - **🛡️ Guarded Cascade Recursion**: Prevented call stack overflow in cross-provider failover when circular cascade chains occur.
