@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.64 - 2026-10-18
+
+### Features
+- **Permanent Auth Pause & Granular Error Policies (#501)**:
+  - Differentiated error actions: upstream authentication failures (HTTP 401, 403, `invalid_api_key`, `unauthorized`) immediately place the failing key into a permanent auth pause state (`pausedRefs.add`, `pauseReasons.set('AUTH_FAILURE_PAUSED')`, `failedUntil: Infinity`, `KEY_AUTH_PAUSED`).
+  - Dead or unauthorized keys are stopped from waking up repeatedly every 60s cooldown, preventing repetitive broken dispatches.
+  - Granular soft error handling: transient infrastructure drops (HTTP 502, 503, 504, `TIMEOUT`, socket drops) receive a short flat cooldown (<=10s) without doubling exponential penalty counters or incrementing toward recoverable quarantine.
+  - Successful Test Matrix / manual re-test probe automatically unpauses the key.
+- **Automatic Model Capabilities Discovery & Routing (#500)**:
+  - In `lib/sandbox.js` (`probeModels`), parse and return array of supported model IDs from upstream `/models` (`body.data.map(m => m.id)`).
+  - Discovered model capabilities are cached per key (`pool.state.modelCapabilities: Map<ref, Set<modelId>>`).
+  - In `lib/resolver.js` and `lib/rotate.js`, filter candidate keys for a requested model so prompts are never dispatched to a key that doesn't support that model (e.g., DeepSeek-R1 vs DeepSeek-Chat V3). Keys not yet probed are optimistically allowed.
+  - Atomic persistence across restarts: `pausedRefs`, `pauseReasons`, and `modelCapabilities` serialize and restore atomically via `lib/persistence.js`.
+  - Settings Card UI: Display `Auth Paused (401/403)` status badge and discovered model count badges (`🤖 Nm`) on configured keys.
+
 ## 0.8.63 - 2026-10-16
 
 ### Added
