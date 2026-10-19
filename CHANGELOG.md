@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.8.67 - 2026-10-19
+
+### Features
+- **Full Pool Configuration Export & Import (#504)**:
+  - Masked export: exports topology and pools with masked credentials (`sk-...cdef`) and hidden webhook secrets, safe for bug reports and sharing.
+  - Full backup export with AES-256-GCM encryption: optional passphrase encrypts configuration with PBKDF2 (100,000 iterations) using standard `node:crypto`.
+  - Config import route `POST /dsh-key-rotation/config-import`: supports file upload, raw JSON, or encrypted payload with passphrase decryption.
+  - Diff preview mode: `dryRun: true` returns summary of created/updated/removed providers and keys count before applying.
+  - Interactive UI in Settings card: modal drawers for Export (masked vs full, optional passphrase) and Import (file upload, merge vs replace modes, diff preview, apply).
+- **Quick Key Actions in Chat Header Popover (#499)**:
+  - Extended `KeyRotationHeaderChip` popover: displays active provider and key tail (`...abcd`) for each configured pool.
+  - Interactive inline action buttons:
+    - ⏭️ **Skip**: advances active key cursor to the next healthy candidate in the pool without leaving chat.
+    - 🔄 **Reset**: immediately resets failure counts, cooldowns, and circuit breaker for the active provider.
+    - ⏸️ **Pause**: toggles pause state on the currently active key for immediate fault isolation.
+  - Endpoint `POST /dsh-key-rotation/quick-action`: secure loopback-validated operational route executing skip, reset, and pause commands with audit telemetry events.
+
 ## 0.8.66 - 2026-10-19
 
 ### Features

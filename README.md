@@ -67,6 +67,10 @@
 - **📡 Status extras**: per-provider `circuit` plus `meta.expectedClones` / `meta.notifyQueue`.
 - **🧪 Smoke harness**: scripted 429 → next-key → success path in `test/smoke-rotation-080.test.mjs`.
 
+### 🚀 What's New in v0.8.67
+- **📥 Full Pool Config Export & Import (#504)**: Masked export for safe sharing, full backup export with AES-256-GCM encryption (PBKDF2), diff preview mode, and import with merge/replace strategies.
+- **⚡ Quick Actions in Chat Header Popover (#499)**: Instant key management directly from the conversation toolbar — skip to next key, reset cooldowns, or pause problematic keys via `/dsh-key-rotation/quick-action`.
+
 ### 🚀 What's New in v0.8.66
 - **⏳ Dynamic Reset Scheduler (#498)**: Reads upstream `retry-after` and `x-ratelimit-reset-*` headers to set exact cooldowns (+250ms safety jitter) and schedules immediate unref wake-up timers when the upstream reset window rolls over.
 - **💰 Upstream Balance Inspector & Credit Tracking (#495)**: Live balance checks for DeepSeek, SiliconFlow, OpenRouter, and OpenAI via `/dsh-key-rotation/balance`, pre-emptive empty balance protection (`EMPTY_BALANCE_PAUSED`), persistent balance cache, and WebUI `💰 Balance` pills.
