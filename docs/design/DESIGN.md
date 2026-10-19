@@ -1,6 +1,9 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Config Export/Import & Quick Actions (v0.8.67)**:
+  - Full Pool Configuration Export & Import (#504): Masked safe export, AES-256-GCM encrypted backup, `/dsh-key-rotation/export`, `/dsh-key-rotation/config-import`, diff preview and merge/replace modes.
+  - Quick Key Actions in Chat Header (#499): Interactive popover on `KeyRotationHeaderChip` with active key tail, `/dsh-key-rotation/quick-action` endpoint for Skip, Reset, and Pause operations.
 - **Dynamic Reset & Balance Inspector (v0.8.66)**:
   - Dynamic Reset Scheduler (#498): Rate-limit cooldowns sync directly to upstream `retry-after` and `x-ratelimit-reset-*` headers with precise unref wakeup timers and `resetReason` tracking.
   - Upstream Balance Inspector (#495): Real-time balance and credit checks (`/user/balance`, `/v1/user/info`, `/api/v1/auth/key`), pre-emptive `EMPTY_BALANCE_PAUSED` soft pause, persistent cache, and WebUI balance badges.
