@@ -355,3 +355,29 @@ test('rotate: records promptCache and 24h request outcome on streaming finish', 
   assert.equal(pool.state.analytics24h.requests[0].success, true);
   assert.equal(pool.state.analytics24h.requests[0].attempts, 1);
 });
+
+test('Issue #511: compactPromptCache purges expired prompt cache day history in pool state', () => {
+  const pool = {
+    base: 'deepseek',
+    provider: 'deepseek',
+    state: {},
+  };
+
+  const now = 1791150000000;
+  recordPromptCache(pool, 'KEY_TEST', 'deepseek-chat', {
+    prompt_cache_hit_tokens: 5000,
+    prompt_tokens: 6000,
+  }, now);
+
+  assert.equal(pool.state.promptCache.days.size, 1);
+
+  // Calling compactPromptCache within 30 days retains the day
+  const retained = compactPromptCache(pool, 30, now + 10 * 86400000);
+  assert.equal(retained, 0);
+  assert.equal(pool.state.promptCache.days.size, 1);
+
+  // Calling compactPromptCache beyond 30 days purges the expired day
+  const purged = compactPromptCache(pool, 30, now + 35 * 86400000);
+  assert.equal(purged, 1);
+  assert.equal(pool.state.promptCache.days.size, 0);
+});
