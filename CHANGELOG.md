@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.68 - 2026-10-19
+
+### Features
+- **24h Error Breakdown & Load Distribution Analytics (#505)**:
+  - Rolling 24-hour analytics engine (`lib/ops-analytics.js`): tracks sliding 24-hour request outcomes, key load distribution percentages, failovers, and cascade occurrences without memory leaks via bounded ring buffers.
+  - Multi-category failure classification: categorizes upstream errors into `429 Rate Limit`, `5xx Server`, `Timeout`, `Quota`, `Auth`, and `Other`.
+  - Health Index indicator: calculates the percentage of requests served clean on first attempt without failovers or retries (`cleanRequests / totalRequests * 100%`).
+  - Cooldown recovery telemetry: computes the average recovery time (`avgCooldownRecoveryMs`) from recent failure and recovery events.
+  - Settings Card UI: renders interactive Health Index badges (`🛡️ Health Index: 98% (clean)`), 24h error breakdown pills (`429: 2`, `5xx: 1`, `Timeout: 0`), cascade counters (`🔀 Cascades: X`), and average recovery time pills.
+- **Prompt Cache Savings Dashboard & Calculator (#497)**:
+  - Multi-provider prompt cache parser (`lib/prompt-cache.js`): extracts prefix cache hit and miss tokens across streaming and non-streaming responses from DeepSeek (`prompt_cache_hit_tokens`), Anthropic (`cache_read_input_tokens`), and OpenAI (`prompt_tokens_details.cached_tokens`).
+  - Financial savings engine: computes real-time USD cost savings based on provider-specific token discount tariffs (~90% discount on cache hits).
+  - Multi-window rolling aggregation: aggregates cached tokens, total input tokens, hit ratio (%), and dollar savings across 24h (`d1`), 7d (`d7`), and 30d (`d30`) sliding windows, plus per-model and per-key breakdowns.
+  - Settings Card Widget: compact «⚡ Prompt Cache Savings» card displaying 24h, 7d, and 30d cache hit tokens, effective cache hit ratio (%), and cumulative dollar savings.
+  - Telemetry & reporting: exposes prompt cache summaries and 24h analytics in `/dsh-key-rotation/status` and `/dsh-key-rotation/usage`.
+
 ## 0.8.67 - 2026-10-19
 
 ### Features
