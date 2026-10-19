@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.69 - 2026-10-19
+
+### Features
+- **Automated Clone Route Lifecycle & Settings Synchronization (#502)**:
+  - Added `lib/clone-lifecycle.js` orchestrating automatic configuration, key pools, and parameter synchronization for auxiliary clone routes.
+  - Cloned worker routes dynamically inherit primary model, temperature, top-p, context window limits, and token buckets while isolating per-key rotation states.
+  - Supported graceful route drain via `key-drain.js` (`getInFlight` & `getActive`), ensuring active in-flight requests finish cleanly before clone route teardown.
+
+### Bug Fixes
+- **Prompt Cache Periodic Maintenance Sweep (#511)**:
+  - Wired `compactPromptCache(pool, 30, now)` into the plugin's periodic maintenance sweep alongside `compactUsage`.
+  - Automatically purges prompt cache telemetry entries older than 30 days to prevent unbound memory growth during continuous production uptime.
+
+### Refactoring & Code Quality
+- **Core File Modularization (< 600 Lines Standard) (#512)**:
+  - Decomposed oversized monolithic modules to comply with `dsh-plugin-authoring` and `dsh-plugin-preflight` standards.
+  - Extracted key selection algorithms and sticky session routing from `lib/pool.js` into `lib/pool-selection.js` (bringing `pool.js` down from 654 to 521 lines).
+  - Extracted streaming success telemetry and proactive limit detection from `lib/rotate.js` into `lib/stream-metrics.js` and deduplicated cascade fallbacks (bringing `rotate.js` down from 716 to 595 lines).
+  - Decomposed monolithic UI card component `lib/client-src/50-card-main.js` (2,141 lines) into modular fragments: `50-card-main.js` (550 lines), `51-card-pool-mutators.js` (501 lines), `52-card-pool-rows.js` (590 lines), and `53-card-dialogs-and-render.js` (500 lines), ensuring 100% deterministic compilation and <600 lines for every source fragment.
+
 ## 0.8.68 - 2026-10-19
 
 ### Features
