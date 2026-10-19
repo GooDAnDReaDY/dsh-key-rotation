@@ -38,6 +38,10 @@
 
 ## ⚡ 概述与核心痛点
 
+### 🚀 v0.8.66 新特性
+- **⏳ 基于限流响应头的动态重置调度器 (#498)**: 解析上游 `retry-after` 与 `x-ratelimit-reset-*` 响应头，设定精确冷却时间（+250ms抖动保护），并通过独立 unref 定时器在窗口重置瞬间立刻唤醒可用密钥，无需等待30秒周期性轮询。
+- **💰 上游余额与信用额度巡检 (#495)**: 支持 DeepSeek、SiliconFlow、OpenRouter、OpenAI 实时余额查询 (`/dsh-key-rotation/balance`)，零余额前置软暂停 (`EMPTY_BALANCE_PAUSED`)，持久化余额状态以及 WebUI 密钥卡片实时余额标签 (`💰 15.50 CNY`)。
+
 ### 🚀 v0.8.65 新特性
 - **⚡ 流量平滑微队列 (Traffic Smoothing Micro-Queue) (#496)**: 漏桶微队列平滑多智能体调用中的毫秒级突发并发，避免触发不必要的429限流与冷却流转。队列等待超限时自动轮转至池中下一个候选密钥。
 - **📊 动态上游限制检测与预设规则 (#503)**: 自动提取上游响应头中的限流数据 (`x-ratelimit-*`, `anthropic-ratelimit-*`, `retry-after`)，并在前端展示实时配额状态；支持一键应用 DeepSeek、Groq、Anthropic、OpenAI、Gemini 等官方规范预设限制。

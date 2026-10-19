@@ -67,6 +67,10 @@
 - **📡 Status extras**: per-provider `circuit` plus `meta.expectedClones` / `meta.notifyQueue`.
 - **🧪 Smoke harness**: scripted 429 → next-key → success path in `test/smoke-rotation-080.test.mjs`.
 
+### 🚀 What's New in v0.8.66
+- **⏳ Dynamic Reset Scheduler (#498)**: Reads upstream `retry-after` and `x-ratelimit-reset-*` headers to set exact cooldowns (+250ms safety jitter) and schedules immediate unref wake-up timers when the upstream reset window rolls over.
+- **💰 Upstream Balance Inspector & Credit Tracking (#495)**: Live balance checks for DeepSeek, SiliconFlow, OpenRouter, and OpenAI via `/dsh-key-rotation/balance`, pre-emptive empty balance protection (`EMPTY_BALANCE_PAUSED`), persistent balance cache, and WebUI `💰 Balance` pills.
+
 ### 🚀 What's New in v0.8.65
 - **⚡ Leaky Bucket Traffic Smoothing (#496)**: Micro-queue smoothing absorbs rapid multi-agent burst spikes ($\le 1$s) without triggering unnecessary 429 errors or cooldown churning, with zero-delay burst capacity and early failover rotation on queue overflow.
 - **📊 Dynamic Upstream Rate Limits & Presets (#503)**: Dynamic parsing of provider rate limit headers (`x-ratelimit-*`, `anthropic-ratelimit-*`, `retry-after`), live badge display on keys, and 1-click `⚡ Preset Limits` button applying canonical RPM/TPM presets for DeepSeek, Groq, Anthropic, OpenAI, Gemini, and more.

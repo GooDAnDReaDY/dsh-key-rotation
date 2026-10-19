@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.66 - 2026-10-19
+
+### Features
+- **Dynamic Reset Scheduler Based on Rate-Limit Headers (#498)**:
+  - Exact cooldown alignment: parses upstream `retry-after`, `x-ratelimit-reset-*`, and `anthropic-ratelimit-*-reset` headers or message duration patterns upon rate-limit failures, setting precise cooldown `failedUntil = now + dynamicCooldownMs` (+250ms safety jitter, bounded by `maxCooldownMs`) with `resetReason = 'header'`.
+  - Immediate unref recovery timer: schedules an exact unref `setTimeout` wake-up for the penalised key right when the upstream window rolls over, rather than waiting up to 30s for the periodic sweep.
+  - Exposes `resetReason` and `headerResetMs` in `/dsh-key-rotation/status` and WebUI countdown badge (`⏳ reset in Xs (header)`).
+- **Upstream Balance Inspector & Credit Tracking (#495)**:
+  - Multi-provider balance checker (`lib/balance-inspector.js`): queries live account balances and remaining credits for DeepSeek (`/user/balance`), SiliconFlow (`/v1/user/info`), OpenRouter (`/api/v1/auth/key`), and OpenAI (`/v1/dashboard/billing/credit_grants`).
+  - Balance ops route `GET/POST /dsh-key-rotation/balance` (`lib/ops-balance.js`): queries cached balances or triggers immediate live balance inspection across provider keys.
+  - Pre-emptive empty balance protection: keys with confirmed zero balance (`isZero: true`) enter a soft pause (`EMPTY_BALANCE_PAUSED`), avoiding upstream dispatch failures, and auto-resume immediately when refreshed with positive balance.
+  - Persistent balance state: balances are cached in `pool.state.balances` and persisted across harness restarts via `lib/persistence.js`.
+  - WebUI integration: interactive `Check Balances` action button in provider footer and real-time balance badge pills (`💰 15.50 CNY`, `💰 $4.20`) on key cards.
+
 ## 0.8.65 - 2026-10-18
 
 ### Features

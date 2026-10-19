@@ -1,6 +1,9 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Dynamic Reset & Balance Inspector (v0.8.66)**:
+  - Dynamic Reset Scheduler (#498): Rate-limit cooldowns sync directly to upstream `retry-after` and `x-ratelimit-reset-*` headers with precise unref wakeup timers and `resetReason` tracking.
+  - Upstream Balance Inspector (#495): Real-time balance and credit checks (`/user/balance`, `/v1/user/info`, `/api/v1/auth/key`), pre-emptive `EMPTY_BALANCE_PAUSED` soft pause, persistent cache, and WebUI balance badges.
 - **Traffic Smoothing & Dynamic Limits (v0.8.65)**:
   - Traffic Smoothing Micro-Queue (#496): Leaky bucket smoother (`lib/traffic-smoother.js`) absorbs sub-second bursts with configurable burst limit and `maxQueueWaitMs` (800ms), rotating early upon queue overflow.
   - Provider Limits & Presets (#503): Dynamic response header parsing (`extractProviderLimits`), canonical presets catalog (`CANONICAL_PROVIDER_PRESETS`), `/dsh-key-rotation/preset-limits` route, and 1-click `⚡ Preset Limits` UI button.
