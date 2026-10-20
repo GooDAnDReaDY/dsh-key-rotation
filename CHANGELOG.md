@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.70 - 2026-10-20
+
+### Bug Fixes
+- **Fix Fatal Crash in sweepExpired & Isolate Clone Metadata (#513, GitHub #26)**:
+  - Guarded `sweepExpired` in `lib/pool.js` and the periodic sweep timer in `lib/index.js` with `if (!st || !(st.failedUntil instanceof Map)) continue;` to safely skip non-pool-state values.
+  - Isolated clone route metadata tracking inside `CloneLifecycleManager` (`this.knownClones`) rather than polluting `poolState` with `Set` objects (`${provider}:clones`).
+  - Added regression test `test/github-issue-26-sweep-expired.test.mjs` verifying `sweepExpired` robustness with heterogeneous data and clean `poolState` boundaries.
+
 ## 0.8.69 - 2026-10-19
 
 ### Features
