@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.71 - 2026-10-22
+
+### Bug Fixes
+- **Complete Chinese (zh) Localization for Interactive Routing Simulator (#514, PR #515)**:
+  - Added 13 missing Chinese translations to `zh` dictionary in `lib/client-src/10-locales.js` for the Interactive Routing Simulator dialog (`simulatorTitle`, `simulatorDesc`, `simulatorRun`, `simulatorRunning`, `simulatorSelectProvider`, `simulatorSelectModel`, `simulatorMaxAttempts`, `simulatorEvent`, `simulatorEventSuccess`, `simulatorEventRateLimit`, `simulatorEventServer500`, `simulatorResults`, `simulatorNoResults`).
+  - Recompiled `lib/client.js` bundle (194,681 bytes) meeting strict size and line constraints.
+  - Added automated test `test/issue-514-i18n-zh-simulator.test.mjs` verifying 100% key parity between English and Chinese dictionaries (248 keys each).
+
 ## 0.8.70 - 2026-10-20
 
 ### Bug Fixes
