@@ -160,6 +160,10 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 
 ## Locked Design Decisions (append)
 
+- 2026-10-23 — Repository Hygiene & Canonical Lockfile (#517):
+  - Canonical package manager is `pnpm` (declared via `package.json` `"packageManager": "pnpm@10.33.2"`). Removed redundant `package-lock.json`; `pnpm-lock.yaml` is the single source of truth for dependencies.
+  - Removed dead `.github/workflows/` (`ci.yml`, `publish-npm.yml`, `tests.yml`) and `docs/deployment/github-npm-provenance.md`. Releases and CI are managed on MiniAI/Gitea; the GitHub mirror is a sanitized product mirror (`scripts/publish-github.sh`), not an Actions runner.
+
 - 2026-10-23 — Fail-Closed Write Origin Guard & Positive Desktop Shell Identification (#516):
   - `isTrustedBridgeRequest` enforces fail-closed authorization on all mutating methods (`POST`, `PUT`, `PATCH`, `DELETE`). LAN / Tailscale requests forwarded through loopback proxies (e.g. `dsh-lanmode`) without `Origin` and without positive Desktop shell credentials receive `403 Forbidden`.
   - Positive Desktop shell identification via `isDesktopShellRequest`: requires `@deepseek-ai/dsh-desktop/` in `User-Agent` AND session auth token `dsh-auth-` in `Cookie` (matches `dsh-ollama-cloud-provider` and official Desktop `forwardWebRequest` renderer behavior).
