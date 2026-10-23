@@ -112,7 +112,7 @@ const guardedRoutes = [
   { path: '/dsh-key-rotation/config', method: 'DELETE' },
 ];
 
-test('desktop compatibility (#465 / GitHub #22): every guarded route accepts loopback requests missing Origin header', async () => {
+test('desktop compatibility (#465 / #516): every guarded route accepts loopback requests with Desktop shell credentials missing Origin header', async () => {
   const { routes } = setupEnvironment();
   for (const { path, method, body } of guardedRoutes) {
     const route = routes.get(path);
@@ -121,10 +121,31 @@ test('desktop compatibility (#465 / GitHub #22): every guarded route accepts loo
     const res = await invoke(route.handler, {
       method,
       remoteAddress: '127.0.0.1',
-      headers: { host: '127.0.0.1:3080' }, // NO Origin header (Desktop forwardWebRequest behavior)
+      headers: {
+        host: '127.0.0.1:3080',
+        'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+        cookie: 'dsh-auth-session=valid',
+      }, // Desktop forwardWebRequest carries UA and session cookie
       body,
     });
-    assert.notEqual(res.status, 403, `route ${method} ${path} must accept loopback request without Origin`);
+    assert.notEqual(res.status, 403, `route ${method} ${path} must accept Desktop shell request without Origin`);
+  }
+});
+
+test('issue #516 write-origin guard: mutating routes reject Origin-less requests without Desktop credentials', async () => {
+  const { routes } = setupEnvironment();
+  for (const { path, method, body } of guardedRoutes) {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(method)) continue;
+    const route = routes.get(path);
+    assert.ok(route, `route ${path} must be registered`);
+
+    const res = await invoke(route.handler, {
+      method,
+      remoteAddress: '127.0.0.1',
+      headers: { host: '127.0.0.1:3080' }, // Plain LAN client without Origin and without Desktop shell
+      body,
+    });
+    assert.equal(res.status, 403, `route ${method} ${path} must reject LAN request without Origin or Desktop shell`);
   }
 });
 

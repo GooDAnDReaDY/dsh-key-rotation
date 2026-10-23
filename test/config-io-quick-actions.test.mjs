@@ -188,7 +188,7 @@ test('Route CONFIG_IMPORT_PATH: handles preview and application of config', asyn
     const raw = Buffer.from(JSON.stringify(body));
     return {
       method: 'POST',
-      headers: { host: '127.0.0.1:3000' },
+      headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000' },
       socket: { remoteAddress: ip },
       on: (evt, cb) => {
         if (evt === 'data') cb(raw);
@@ -277,7 +277,7 @@ test('Route QUICK_ACTION_PATH: skip, reset, and pause controls', async () => {
     const raw = Buffer.from(JSON.stringify(body));
     return {
       method: 'POST',
-      headers: { host: '127.0.0.1:3000' },
+      headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000' },
       socket: { remoteAddress: ip },
       on: (evt, cb) => {
         if (evt === 'data') cb(raw);

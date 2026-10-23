@@ -265,7 +265,7 @@ claude-sonnet 请求
 * **配置零明文**：插件配置仅保存环境变量引用名（如 `MY_PROVIDER_API_KEY`）。
 * **宿主安全存储**：真实密钥持久化保存在 `$DSH_HOME/.credentials.yaml`。
 * **前台 5 字符脱敏**：前端仅展示密钥后 5 位字符进行视觉区分。对于长度 <= 5 的短密钥，返回统一脱敏占位符 (`***`)，防止凭证完整泄露。
-* **Fail-Closed 环回同源安全隔离**：管理接口严格通过 `isTrustedBridgeRequest` 校验：套接字对端与 `Host` 头必须均为环回地址（`127.0.0.1`、`::1`、`localhost`），并始终拒绝 `sec-fetch-site: cross-site`。若请求携带 `Origin`，则必须是 http(s) 环回源且与 `Host` 完全一致。`POST`/`PUT`/`PATCH`/`DELETE` 必须携带 `Origin`，而 `GET`/`HEAD`/`OPTIONS` 允许省略——因为浏览器在同源读取请求中不会发送该头，强制要求会连带拒绝设置面板自身的请求。
+* **Fail-Closed 环回同源安全隔离及写操作 Origin 守卫**：管理接口严格通过 `isTrustedBridgeRequest` 校验：套接字对端与 `Host` 头必须均为环回地址（`127.0.0.1`、`::1`、`localhost`），并始终拒绝 `sec-fetch-site: cross-site`。若请求携带 `Origin`，则必须是 http(s) 环回源且与 `Host` 完全一致。变更方法（`POST`/`PUT`/`PATCH`/`DELETE`）无 `Origin` 时，仅允许通过明确 Desktop 外壳身份识别（`User-Agent` 含 `@deepseek-ai/dsh-desktop/` 且 Cookie 含 `dsh-auth-`）或同源 `Referer` 的请求。`GET`/`HEAD`/`OPTIONS` 保持不限制，因为浏览器同源读取时不发送 `Origin`。
 * **凭证池耗尽 Fail-Closed 熔断**：当受管凭证池中所有密钥均被耗尽、暂停、过期或触发 RPM/TPM 限制时，解析器立即返回 `LOCAL_POOL_EXHAUSTED` 错误熔断，杜绝静默回退泄漏未受控原始密钥。
 * **SSRF 与 DNS 重绑定防护**：远程配置导入严格仅支持 HTTPS，全面校验解析 IP 并拦截 IPv4-mapped/IPv4-compatible 等各类 IPv6 环回变体（如 `::ffff:127.0.0.1`、`::ffff:7f00:1`、`64:ff9b::/96`），并通过 undici 调度器执行连接时（connect-time）DNS 校验，从根本上防御 TOCTOU DNS 重绑定。
 * **跨池吊销与状态继承**：模型子池自动继承基础提供商的暂停、吊销与过期时间；运行时 401 永久认证失败将即时在所有关联共享池中统一标记吊销。
