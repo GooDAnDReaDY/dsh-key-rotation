@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.72] — 2026-10-23
+
+### Security
+- **Fail-closed write-origin guard (#516):** Mutating HTTP methods (`POST`, `PUT`, `PATCH`, `DELETE`) without `Origin` header are now rejected with `403 Forbidden` unless positively identified as the Desktop shell (UA contains `@deepseek-ai/dsh-desktop/` AND Cookie contains `dsh-auth-`). Previously, any LAN/Tailscale client whose requests were forwarded via `dsh-lanmode` (loopback socket) could bypass source validation on all write routes.
+- **`/auto-import` fail-closed body validation (#516):** Invalid JSON body now returns `400 Bad Request` instead of silently importing all discovered keys. Auto-import requires explicit `refs` array or `all: true`.
+
+### Added
+- `isDesktopShellRequest(req)` predicate in `lib/pool.js` for positive Desktop shell identification.
+- `test/issue-516-write-origin-guard.test.mjs` — dedicated regression test suite (3 tests).
+
+### Changed
+- `isTrustedBridgeRequest` in `lib/pool.js`: absent Origin on write requests now checks Desktop shell credentials or same-origin Referer before passing.
+- Client card `runAutoImport` sends `{ all: true }` instead of `{}`.
+- Updated 7 existing test files to match new fail-closed semantics.
+- Updated `README.md`, `README.zh.md`, `docs/design/DESIGN.md`.
+
 ## 0.8.71 - 2026-10-22
 
 ### Bug Fixes
