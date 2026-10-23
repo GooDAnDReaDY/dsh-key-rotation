@@ -160,6 +160,11 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 
 ## Locked Design Decisions (append)
 
+- 2026-10-23 — Fail-Closed Write Origin Guard & Positive Desktop Shell Identification (#516):
+  - `isTrustedBridgeRequest` enforces fail-closed authorization on all mutating methods (`POST`, `PUT`, `PATCH`, `DELETE`). LAN / Tailscale requests forwarded through loopback proxies (e.g. `dsh-lanmode`) without `Origin` and without positive Desktop shell credentials receive `403 Forbidden`.
+  - Positive Desktop shell identification via `isDesktopShellRequest`: requires `@deepseek-ai/dsh-desktop/` in `User-Agent` AND session auth token `dsh-auth-` in `Cookie` (matches `dsh-ollama-cloud-provider` and official Desktop `forwardWebRequest` renderer behavior).
+  - `/dsh-key-rotation/auto-import` fails closed: unparseable request body returns HTTP `400 Bad Request` instead of defaulting to importing all keys. Auto-import strictly requires an explicit `refs` array or `all: true`. Client card sends `{ all: true }`.
+
 - 2026-10-16 — Session-Aware Sticky Routing & Operations Dashboard (#489, #490, #491):
   - `routingStrategy: 'sticky'` supports per-session key stickiness via `pool.state.sessionSticky` LRU Map (max 500 entries) keyed by `sessionId` (`options.sessionId`, `session`, `metadata.sessionId`). Eliminates cross-session prompt cache thrashing for parallel chat sessions.
   - `/dsh-key-rotation/test-matrix` provides parallel bounded key validation across all pools.

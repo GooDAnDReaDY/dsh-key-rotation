@@ -66,12 +66,25 @@ test('a same-origin GET with no Origin and no Fetch Metadata is trusted', async 
   });
 });
 
-test('an Origin-less mutation is accepted when peer and Host are loopback (#465 / GitHub #22)', async () => {
+test('an Origin-less mutation is refused without desktop credentials (#516), accepted with desktop shell credentials', async () => {
   await withServer(async (port) => {
-    // Official Desktop shell forwardWebRequest strips Origin. Peer socket & Host are verified loopback.
+    // Without Desktop shell credentials or Referer: mutating requests fail closed (#516)
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
       const res = await raw(port, { method, headers: { accept: 'application/json' } });
-      assert.equal(res.body.trusted, true, `${method} without Origin on verified loopback must be trusted`);
+      assert.equal(res.body.trusted, false, `${method} without Origin and without Desktop shell credentials must be refused`);
+    }
+
+    // With Desktop shell forwardWebRequest credentials (UA + cookie): accepted (#516)
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      const res = await raw(port, {
+        method,
+        headers: {
+          accept: 'application/json',
+          'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+          cookie: 'dsh-auth-session=valid',
+        },
+      });
+      assert.equal(res.body.trusted, true, `${method} without Origin but with Desktop shell credentials must be trusted`);
     }
   });
 });

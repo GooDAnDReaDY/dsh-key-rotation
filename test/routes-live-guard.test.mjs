@@ -117,18 +117,30 @@ test('GET /config still refuses a cross-site request', async () => {
   );
 });
 
-test('PUT /config accepts loopback mutations without Origin (#465 / GitHub #22 Desktop compatibility)', async () => {
+test('PUT /config accepts loopback mutations without Origin only with Desktop shell credentials (#516)', async () => {
   const { ctx } = makeCtx();
   await serve(
     (req, res) => handleConfigBridge(ctx, req, res, () => new Set()),
     async (port) => {
-      // Desktop forwardWebRequest strips Origin; on verified loopback this passes
-      const res = await call(port, {
+      // Plain request without Origin or Desktop credentials must be refused (#516)
+      const refused = await call(port, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ section: { providers: [] }, expectedRevision: 3 }),
       });
-      assert.notEqual(res.status, 403, 'an Origin-less mutation on loopback must pass the network gate');
+      assert.equal(refused.status, 403, 'an Origin-less mutation without desktop credentials must be refused (403)');
+
+      // Desktop forwardWebRequest carries UA and auth cookie; this passes (#516)
+      const res = await call(port, {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json',
+          'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+          cookie: 'dsh-auth-session=valid',
+        },
+        body: JSON.stringify({ section: { providers: [] }, expectedRevision: 3 }),
+      });
+      assert.notEqual(res.status, 403, 'Desktop shell mutation without Origin passes the network gate');
 
       // A same-origin Origin is also accepted through the guard
       const ok = await call(port, {

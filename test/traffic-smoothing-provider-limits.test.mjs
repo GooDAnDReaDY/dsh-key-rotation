@@ -154,7 +154,7 @@ function mockReqRes({ method = 'GET', url = '/', headers = {}, body = null, remo
   const req = Readable.from(body ? [Buffer.from(typeof body === 'string' ? body : JSON.stringify(body))] : []);
   req.method = method;
   req.url = url;
-  req.headers = { host: '127.0.0.1:3000', ...headers };
+  req.headers = { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000', ...headers };
   req.socket = { remoteAddress };
 
   let status = 200;
