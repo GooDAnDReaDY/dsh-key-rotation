@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const SRC = fs.readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8');
 const ROTATE_SRC = fs.readFileSync(new URL('../lib/rotate.js', import.meta.url), 'utf8');
-const ALL_SRC = SRC + '\n' + ROTATE_SRC;
+let PENALTY_SRC = '';
+try { PENALTY_SRC = fs.readFileSync(new URL('../lib/rotate-penalty.js', import.meta.url), 'utf8'); } catch (_) {}
+const ALL_SRC = SRC + '\n' + ROTATE_SRC + '\n' + PENALTY_SRC;
 
 let mod = null;
 try { mod = await import('../lib/index.js'); } catch { mod = null; }

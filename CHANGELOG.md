@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.81 (2026-10-30)
+
+### Direct Extension Pipeline & Pure Key Resolution (Block 9 Release)
+- **Direct Extension Pipeline without Monkey-Patching (Issue #526)**: Introduced clean credential injection and direct resolution pipeline via `resolveKeyDirectly` (`lib/resolver.js`). Bypasses monkey-patching of global `credentials.resolve` and direct mutations on foreign services.
+- **Explicit Stream Options Delivery (`lib/rotate.js`)**: Passes resolved secrets directly through `directOpts` (`apiKey`, `headers.Authorization`, `_rotationKeyRef`) into `llm.stream`, allowing provider adapters to consume credentials without touching global process state. Preserved `dispatchStorage` as backward-compatible fallback for legacy runtimes.
+- **Dedicated Key Penalty Manager (`lib/rotate-penalty.js`)**: Extracted `penalizeKey` into dedicated module (<200 lines) with dynamic header rate-limit tracking, backoff computation, quota window synchronization, early warning notifications, and cross-pool permanent pause fan-out, maintaining `lib/rotate.js` well below the 600-line modularity limit.
+
+## 0.8.80 (2026-10-30)
+
+### Layered Core Decoupling, Append-Only Journal & Dynamic Cordis Injection (Block 8 Release)
+- **Layered Core Architecture (Issue #530)**: Reorganized algorithmic core into `lib/core/` (`state-machine.js`, `concurrency.js`, `quota.js`, `pool.js`, `rotate.js`, `index.js`) with backwards-compatible top-level facades in `lib/*.js`.
+- **Dynamic Cordis Injection (Issue #528)**: Decoupled optional dependencies via dynamic `ctx.inject(['webServer'], ...)`, minimizing static requirements to `['llm']` and ensuring smooth headless/CLI execution.
+- **Append-Only Journal Persistence (Issue #525)**: Implemented incremental append-only journaling (`*-journal.jsonl`) in `StatePersistence`, eliminating O(N) full-disk state serialization on routine key cooldowns and rotation events with automated rotation upon `flush()`.
+
+## 0.8.79 (2026-10-30)
+
+### Modular Route Layer, Schemastery Volatile & Key State Machine (Block 7 Release)
+- **Modular Route Structure (Issue #522)**: Extracted route handlers into dedicated `lib/routes/` directory (`status.js`, `keys.js`, `metrics.js`, `balance.js`, `telemetry.js`, `testing.js`, `webhook.js`, `config.js`, `quick-action.js`, `guard.js`, `paths.js`) with legacy compatibility facades in `lib/ops-*.js`.
+- **Schemastery Volatile Config Migration (Issue #551)**: Implemented `unwrapVolatileConfig` and deprecation headers (`X-DSH-Deprecated`, `Deprecation`) on deprecated config endpoints.
+- **Key State Machine (Issue #529)**: Introduced finite state machine `KeyStateMachine` (`lib/key-state-machine.js`) with strict transition matrix (`VALID_TRANSITIONS`), audit trail, and state statistics.
+
 ## 0.8.78 (2026-10-30)
 
 ### Network Transports, Model Catalog & Predictive Quota Runway (Block 6 Release)
