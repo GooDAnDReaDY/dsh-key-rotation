@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.73 (2026-10-30)
+
+### Security & Hardening (Block 1 Security Release)
+- **Origin & Bridge Guard**: Reject unauthenticated mutating requests without Origin/Referer (#516).
+- **Key Endpoint Protection**: Forbid plaintext credential reveal via `GET /dsh-key-rotation/key` (403 Forbidden) (#543).
+- **Safe Export Webhook Masking**: Mask real `notifyWebhook` URLs and embedded credentials during masked config exports (#532).
+- **Secure Export Passphrase Transport**: Passphrase for encrypted exports is now transmitted via `POST` JSON body instead of URL query string (#552).
+- **Selection Trace Sanitization**: Redact upstream API tokens and error details before recording steps to selection trace (#537).
+- **Fail-Closed Balance & Probe Inspection**: Prevent sending ciphertext credentials (`enc:v1:...`) upstream if decryption fails (#539).
+- **PBKDF2 Iteration Bounds & Async KDF**: Enforce strict iteration limits (`10000..200000`) and async derivation to eliminate event-loop blocking DoS (#542).
+
 ## [0.8.72] — 2026-10-23
 
 ### Security
