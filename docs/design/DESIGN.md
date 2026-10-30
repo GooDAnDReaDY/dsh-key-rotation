@@ -1,6 +1,10 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Security Hardening, DNS Pinning & Mutation Integrity (v0.8.76)**:
+  - SSRF DNS Rebinding Prevention (#557): Connect-time socket IP validation (`createSafeLookup`) on native HTTPS requests (`fetchNativeJson`) eliminates TOCTOU DNS rebinding, maintaining hostname TLS certificate validation while rejecting private/loopback socket destinations with zero runtime dependencies.
+  - Write-Origin Guard & Desktop Spoofing Elimination (#516): Loopback write endpoints detect non-loopback forwarding (`x-forwarded-for`, `x-real-ip`) from LAN reverse proxies. Desktop exemptions (`dsh-app://app`, absent Origin for desktop UA) are strictly blocked for LAN clients, ensuring only authentic local Desktop processes or same-origin browser sessions can mutate plugin state.
+  - Config Import Concurrency & Revision Conflict Handling (#553): Unified optimistic concurrency in `POST /dsh-key-rotation/config-import`. Preview returns `revision`, WebUI client preserves revision and provides `expectedRevision` upon apply. Revision mismatches and `SETTINGS_CONFLICT` from `settings.replace` reliably return HTTP 409 Conflict with automatic UI preview reset.
 - **Dependencies, Cleanup & Audit Finalization (v0.8.75)**:
   - Zero Runtime Dependencies (#520, #535): Replaced `undici` with standard `globalThis.fetch`, eliminating 5 production vulnerabilities (`pnpm audit --prod` reports 0 vulnerabilities).
   - Atomic File I/O Safety (#521): Guaranteed deletion of intermediate `.tmp` files on failure in `atomicWriteFile`, with automatic stale temp file cleanup on lifecycle initialization (`cleanupStaleTmpFiles`).

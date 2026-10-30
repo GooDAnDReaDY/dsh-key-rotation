@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-import { isTrustedBridgeRequest, isDesktopShellRequest } from '../lib/pool.js';
+import { isTrustedBridgeRequest, isDesktopShellRequest, hasNonLoopbackForwarding } from '../lib/pool.js';
 import { registerKeyRoutes } from '../lib/ops-keys.js';
 import { AUTO_IMPORT_PATH } from '../lib/ops-paths.js';
 
-test('Issue #516: isDesktopShellRequest predicate', () => {
+test('Issue #516: isDesktopShellRequest predicate and forwarding guards', () => {
   // Positive identification
   assert.equal(
     isDesktopShellRequest({
@@ -16,6 +16,31 @@ test('Issue #516: isDesktopShellRequest predicate', () => {
     }),
     true,
     'must trust request with both Desktop UA and dsh-auth- cookie'
+  );
+
+  // Rejection when proxied from LAN / remote IP (#516)
+  assert.equal(
+    isDesktopShellRequest({
+      headers: {
+        'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+        cookie: 'dsh-auth-session=abc123xyz',
+        'x-forwarded-for': '192.168.1.150',
+      },
+    }),
+    false,
+    'must reject Desktop credentials proxied from remote LAN client via x-forwarded-for'
+  );
+
+  assert.equal(
+    isDesktopShellRequest({
+      headers: {
+        'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+        cookie: 'dsh-auth-session=abc123xyz',
+        'x-real-ip': '10.0.0.5',
+      },
+    }),
+    false,
+    'must reject Desktop credentials with remote x-real-ip'
   );
 
   // Negative cases
@@ -45,12 +70,17 @@ test('Issue #516: isDesktopShellRequest predicate', () => {
   assert.equal(isDesktopShellRequest(null), false);
 });
 
-test('Issue #516: isTrustedBridgeRequest write-origin-guard', () => {
+test('Issue #516: isTrustedBridgeRequest write-origin-guard and spoofing protection', () => {
   const loopbackReq = (method, headers = {}) => ({
     method,
     headers: { host: '127.0.0.1:3000', ...headers },
     socket: { remoteAddress: '127.0.0.1' },
   });
+
+  const desktopHeaders = {
+    'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+    cookie: 'dsh-auth-session=secret',
+  };
 
   // Read methods (GET/HEAD/OPTIONS) pass without Origin (browsers omit it on same-origin reads)
   assert.equal(isTrustedBridgeRequest(loopbackReq('GET')), true);
@@ -67,10 +97,6 @@ test('Issue #516: isTrustedBridgeRequest write-origin-guard', () => {
   }
 
   // Write methods without Origin but WITH Desktop credentials must PASS
-  const desktopHeaders = {
-    'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
-    cookie: 'dsh-auth-session=secret',
-  };
   for (const m of ['POST', 'PUT', 'DELETE', 'PATCH']) {
     assert.equal(
       isTrustedBridgeRequest(loopbackReq(m, desktopHeaders)),
@@ -99,10 +125,29 @@ test('Issue #516: isTrustedBridgeRequest write-origin-guard', () => {
     true
   );
 
-  // Write methods with dsh-app://app Origin pass
+  // dsh-app://app Origin on direct local loopback passes (#22, #465)
   assert.equal(
     isTrustedBridgeRequest(loopbackReq('POST', { origin: 'dsh-app://app' })),
-    true
+    true,
+    'POST with dsh-app Origin on direct local loopback must pass'
+  );
+
+  // Authentic dsh-app://app Origin WITH desktop credentials passes
+  assert.equal(
+    isTrustedBridgeRequest(loopbackReq('POST', { origin: 'dsh-app://app', ...desktopHeaders })),
+    true,
+    'POST with authentic Desktop origin and credentials must pass'
+  );
+
+  // dsh-app://app Origin proxied from remote LAN client must FAIL CLOSED (#516)
+  assert.equal(
+    isTrustedBridgeRequest(loopbackReq('POST', {
+      origin: 'dsh-app://app',
+      ...desktopHeaders,
+      'x-forwarded-for': '192.168.1.150',
+    })),
+    false,
+    'POST with dsh-app Origin proxied from remote LAN must be refused'
   );
 
   // Non-loopback remoteAddress is refused even with desktop UA or valid Origin
@@ -182,11 +227,25 @@ test('Issue #516: /auto-import fails closed on invalid body and unauthenticated 
     assert.equal(mutatedSettings, false, 'settings must not be mutated on 403');
   }
 
+  // 2. Request from LAN via proxy without Origin -> 403 Forbidden (#516)
+  {
+    mutatedSettings = false;
+    const { req, res, getStatus, getData } = makeReqRes('{"all":true}', {
+      'x-forwarded-for': '192.168.1.150',
+      'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
+      cookie: 'dsh-auth-session=fake',
+    });
+    await autoImportHandler(req, res);
+    assert.equal(getStatus(), 403);
+    assert.equal(getData().error.code, 'forbidden');
+    assert.equal(mutatedSettings, false, 'settings must not be mutated on proxied LAN request');
+  }
+
   const authHeaders = {
     origin: 'http://127.0.0.1:3000',
   };
 
-  // 2. Non-JSON body "x" -> 400 Bad Request (reproducer for issue #516 incident)
+  // 3. Non-JSON body "x" -> 400 Bad Request (reproducer for issue #516 incident)
   {
     mutatedSettings = false;
     const { req, res, getStatus, getData } = makeReqRes('x', authHeaders);
@@ -196,7 +255,7 @@ test('Issue #516: /auto-import fails closed on invalid body and unauthenticated 
     assert.equal(mutatedSettings, false, 'settings must not be mutated on invalid JSON body');
   }
 
-  // 3. Empty JSON body "{}" -> 400 Bad Request (requires refs or all: true)
+  // 4. Empty JSON body "{}" -> 400 Bad Request (requires refs or all: true)
   {
     mutatedSettings = false;
     const { req, res, getStatus, getData } = makeReqRes('{}', authHeaders);
@@ -207,7 +266,7 @@ test('Issue #516: /auto-import fails closed on invalid body and unauthenticated 
     assert.equal(mutatedSettings, false, 'settings must not be mutated on empty object');
   }
 
-  // 4. Body with { all: false } -> 400 Bad Request
+  // 5. Body with { all: false } -> 400 Bad Request
   {
     mutatedSettings = false;
     const { req, res, getStatus, getData } = makeReqRes(JSON.stringify({ all: false }), authHeaders);
@@ -216,7 +275,7 @@ test('Issue #516: /auto-import fails closed on invalid body and unauthenticated 
     assert.equal(mutatedSettings, false);
   }
 
-  // 5. Body with { all: true } -> 200 OK (performs import when all: true is explicitly requested)
+  // 6. Body with { all: true } -> 200 OK (performs import when all: true is explicit)
   {
     mutatedSettings = false;
     const { req, res, getStatus, getData } = makeReqRes(JSON.stringify({ all: true }), authHeaders);

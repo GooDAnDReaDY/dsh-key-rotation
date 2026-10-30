@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.76 (2026-10-30)
+
+### Security Hardening, DNS Pinning & Mutation Integrity (Block 4 Release)
+- **SSRF DNS Rebinding Prevention (Issue #557)**: Replaced single-shot DNS precheck with connect-time socket IP validation (`createSafeLookup`) via native HTTPS request handling (`fetchNativeJson`). Enforces loopback and private IP rejection at the exact moment the socket establishes connection across all attempts and redirects, completely neutralizing TOCTOU DNS rebinding with zero runtime dependencies.
+- **Write-Origin Guard & Desktop Spoofing Elimination (Issue #516)**: Added `hasNonLoopbackForwarding` to detect requests proxied through LAN reverse proxies (`x-forwarded-for`, `x-real-ip`). Refused mutating requests (POST/PUT/DELETE/PATCH) lacking Origin or attempting to spoof Desktop headers (`@deepseek-ai/dsh-desktop/` User-Agent, `dsh-auth-` cookies, or `dsh-app://app` Origin) over LAN; ensured `/auto-import` strictly validates bodies and fails closed.
+- **Config Import Optimistic Concurrency & Revision Integrity (Issue #553)**: End-to-end optimistic revision tracking in config import; dry-run preview returns settings revision, WebUI client (`50-card-main.js`) stores preview revision and transmits `expectedRevision` upon apply; backend validates revision match and converts `SETTINGS_CONFLICT` during `settings.replace` into HTTP 409 Conflict with clear preview invalidation guidance instead of generic 500 errors.
+
 ## 0.8.75 (2026-10-30)
 
 ### Dependencies, Cleanup & Audit Finalization (Block 3 Release)
