@@ -55,6 +55,13 @@
 - **Fail-Closed Balance & Probe Inspection**: Prevent sending ciphertext credentials (`enc:v1:...`) upstream if decryption fails (#539).
 - **PBKDF2 Iteration Bounds & Async KDF**: Enforce strict iteration limits (`10000..200000`) and async derivation to eliminate event-loop blocking DoS (#542).
 
+## [0.8.80] - 2026-10-30
+
+### Changed
+- **#530 (M) Domain Core Layer (`lib/core/`)**: Structured domain core modules under `lib/core/` (`state-machine.js`, `concurrency.js`, `quota.js`, `pool.js`, `rotate.js`, `index.js`) while maintaining transparent backwards-compatible root facades.
+- **#528 (M) Cordis Dynamic Dependency Injection**: Reduced required static `inject` array to minimal `['llm']`. Wrapped HTTP routes and WebServer lifecycle in `ctx.inject(['webServer'], ...)`, enabling fully headless/CLI operation without crashing when WebServer or settings are unmounted.
+- **#525 (M) Append-Only Event Journal Persistence**: Introduced incremental append-only event journaling (`*-journal.jsonl`) alongside debounced periodic atomic snapshots. Eliminates heavy O(N) full state tree disk rewrites on routine key switches and cooldowns, automatically compacting and rotating upon snapshot flush.
+
 ## [0.8.79] - 2026-10-30
 
 ### Changed
