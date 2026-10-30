@@ -1,6 +1,13 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Dependencies, Cleanup & Audit Finalization (v0.8.75)**:
+  - Zero Runtime Dependencies (#520, #535): Replaced `undici` with standard `globalThis.fetch`, eliminating 5 production vulnerabilities (`pnpm audit --prod` reports 0 vulnerabilities).
+  - Atomic File I/O Safety (#521): Guaranteed deletion of intermediate `.tmp` files on failure in `atomicWriteFile`, with automatic stale temp file cleanup on lifecycle initialization (`cleanupStaleTmpFiles`).
+  - Request Budget Inheritance & Signal Management (#464): Integrated `maxAttempts` and `maxDurationMs` into runtime and pool builder objects; added external `AbortSignal` listener cleanup in `createRequestBudget.dispose()`; bound `trafficSmoother` to `budget.signal` and ensured budget disposal in `rotate.js` `finally`.
+  - Comprehensive Selection Tracing (#461): Full auditable reasoning for key skips (`PAUSED`, `REVOKED`, `BROKEN`, `DRAINING`, `COOLDOWN`, `CAPABILITY_MISMATCH`, `QUOTA_EXHAUSTED`) before dispatch; interactive trace viewer in settings card.
+  - Managed Key Drain UI (#463): Added UI dashboard for active key draining with in-flight count and cancellation controls; enhanced ConcurrencyTracker with `touch()` and 30m stale threshold.
+  - Offline Simulation Parity (#462): Verified full parity with core rotation logic after Block 2 simulator fixes.
 - **Rotation & Routing Reliability (v0.8.74)**:
   - Error Status Normalization (#545): `isSwitchableError` recognizes both string and numeric `code: "429"` / `429` as HTTP status even if `status` field is missing, preventing stuck keys on standard 429 rate limits.
   - Skip Quick Action Synchronization (#540): `handleQuickAction` skip operation updates both `targetPool.state.pointer` and `cursor`, ensuring resolver round-robin picks the newly advanced key immediately.
