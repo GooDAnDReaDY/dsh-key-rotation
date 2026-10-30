@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.75 (2026-10-30)
+
+### Dependencies, Cleanup & Audit Finalization (Block 3 Release)
+- **Zero Runtime Dependencies & Security Hardening (Issues #520, #535)**: Completely removed `undici` dependency and eliminated 5 high/moderate vulnerabilities (`pnpm audit --prod` reports 0 vulnerabilities); `safe-fetch.js` rewritten using standard `globalThis.fetch` and pure Node.js DNS/IP validation.
+- **Atomic I/O Cleanup (Issue #521)**: Crash-safe file writes now safely clean up `.tmp` files on write/sync/rename errors, and `cleanupStaleTmpFiles` purges abandoned temporary files on startup.
+- **Request Budget Inheritance & Signal Management (Issue #464)**: `maxAttempts` and `maxDurationMs` properly propagated from settings to `buildRuntime()` and `pool-builder`; `createRequestBudget` removes caller `AbortSignal` listeners upon `dispose()`; guaranteed cleanup in `rotate.js` `finally` block; traffic smoother now receives `budget.signal`.
+- **Selection Trace Diagnosability (Issue #461)**: Candidate evaluation now logs detailed `SKIPPED` steps (`PAUSED`, `REVOKED`, `BROKEN`, `DRAINING`, `COOLDOWN`, `CAPABILITY_MISMATCH`, `QUOTA_EXHAUSTED`); added interactive Selection Trace UI inspector in settings card.
+- **Managed Key Drain UI & Concurrency Robustness (Issue #463)**: Added interactive Managed Key Drain section in settings card; enhanced `ConcurrencyTracker` with `touch()` and prolonged 30m stale threshold for long-running streaming generation.
+- **Offline Simulator Parity (Issue #462)**: Audit verification finalized following Block 2 quarantine cloning, Map lookup, and per-Context isolation fixes.
+
 ## 0.8.74 (2026-10-30)
 
 ### Rotation & Routing Reliability (Block 2 Release)
