@@ -1,6 +1,14 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Rotation & Routing Reliability (v0.8.74)**:
+  - Error Status Normalization (#545): `isSwitchableError` recognizes both string and numeric `code: "429"` / `429` as HTTP status even if `status` field is missing, preventing stuck keys on standard 429 rate limits.
+  - Skip Quick Action Synchronization (#540): `handleQuickAction` skip operation updates both `targetPool.state.pointer` and `cursor`, ensuring resolver round-robin picks the newly advanced key immediately.
+  - Tiers & Tier-Priority Routing Strategy (#541): `p.tiers` correctly propagated to pool options and items; fixed `typeof tiers === 'object'` syntax error; added `'tier-priority'` to Schemastery routing strategies and resolver priority ordering.
+  - Traffic Smoothing Slot Reservation (#538): GCRA leaky bucket algorithm atomically reserves future slots ahead of sleeping, preventing race conditions where multiple requests claim the same slot.
+  - Simulator State Parity & Provider Map Lookup (#534, #536): `simulateRouting` accurately clones `brokenUntil`, `tokenUsage`, and `quotaWindows` into simulator pool state to exclude exhausted keys, and correctly reads `runtime.providerToPool` as a Map with 404 fallback for missing providers.
+  - Config Import Concurrency & Fail-Closed Guard (#553, #533): `handleConfigImport` performs optimistic concurrency validation via `expectedRevision` returning 409 Conflict on mismatch, and fails closed with 503 Service Unavailable if `settings.replace` is not available.
+  - Instance & Context Isolation (#544): `KeyDrainManager`, `SelectionTraceStore`, and `DiagBuffer` are scoped per plugin instance/Cordis Context. Disposal of one instance cleans up only its own state without affecting other active instances or routes.
 - **Security & Data Protection Hardening (v0.8.73)**:
   - Strong Write & Bridge Guard (#516): Reject mutating bridge requests without valid origin/referer. Disallow spoofed desktop headers or unverified local loopback bypass on mutating operations.
   - Plaintext Key Endpoint Deprecation / Strict Protection (#543): `GET /dsh-key-rotation/key` rejects non-session/non-trusted requests, never exposes plaintext credentials over untrusted bridges.
