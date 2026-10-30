@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.77 (2026-10-30)
+
+### Session Routing, Typed Error Taxonomy & Pre-First-Token Failover (Block 5 Release)
+- **Pre-First-Token Failover & Request Attempt Loop (Issue #527)**: Introduced transaction-safe pre-first-token retry loop in `lib/rotate.js` with canonical `isContentChunk` detector (distinguishes model-visible tokens from stream envelopes and metadata). Stream metadata (such as `block-start`, `response-metadata`) emitted prior to the first content chunk is securely buffered; upon upstream failures (HTTP 429, 502, 503, connection drops) before any content token yields, the buffered metadata is cleanly discarded and the request seamlessly transitions to the next available healthy key without chat UI disruption or duplicate blocks.
+- **Typed Error Taxonomy & Canonical classifyResponseError (Issue #547)**: Implemented `lib/errors.js` with structured envelope parsing for OpenAI, Anthropic, Google Gemini, Groq, and Ollama. Added robust RFC 1123 HTTP-Date and numeric seconds parser for `Retry-After` headers converting to exact millisecond cooldowns; mapped provider failures into typed `@deepseek-ai/dsh-llm` `LlmError` instances (`QUOTA`, `ACCOUNT_QUOTA`, `RATE_LIMIT`, `CONTEXT_WINDOW_EXCEEDED`, `INVALID_CREDENTIAL`, `SERVER`, `TIMEOUT`); updated `isSwitchableError` and `classifyFailure` to replace brittle text regex matching with structured JSON payload classification.
+- **Bounded SessionRouter with LRU & Proactive Unsticking (Issue #548)**: Created standalone domain service `SessionRouter` (`lib/session-router.js`) with capacity limit (`MAX_SESSIONS = 1000`) and automatic 24-hour TTL expiration (`SESSION_TTL_MS`). Integrated Least-Used Initial Assignment to distribute new incoming sessions across least-loaded keys; implemented `unstickKey(failedKey)` in `lib/pool-selection.js` and key penalization to proactively unbind all sessions pinned to failed or cooling keys, guaranteeing seamless transparent failover on consecutive prompts.
+
 ## 0.8.76 (2026-10-30)
 
 ### Security Hardening, DNS Pinning & Mutation Integrity (Block 4 Release)
