@@ -55,6 +55,13 @@
 - **Fail-Closed Balance & Probe Inspection**: Prevent sending ciphertext credentials (`enc:v1:...`) upstream if decryption fails (#539).
 - **PBKDF2 Iteration Bounds & Async KDF**: Enforce strict iteration limits (`10000..200000`) and async derivation to eliminate event-loop blocking DoS (#542).
 
+## [0.8.79] - 2026-10-30
+
+### Changed
+- **#522 (M) Routes Modularization (`lib/routes/`)**: Unified HTTP operational routes structure. Extracted individual route registrars (`status.js`, `keys.js`, `metrics.js`, `balance.js`, `telemetry.js`, `testing.js`, `webhook.js`, `config.js`, `quick-action.js`, `guard.js`) with backwards-compatible re-export facades in `lib/ops-*.js` and `lib/routes-ops.js`.
+- **#551 (M) Schemastery Volatile Config Migration**: Eliminated custom HTTP config bridge dependency in favor of native Schemastery `.volatile()` schema and `unwrapVolatileConfig()`. Added deprecation warnings and `X-DSH-Deprecated` headers on legacy `/dsh-key-rotation/config` endpoints.
+- **#529 (M) Key State Machine (`lib/key-state-machine.js`)**: Encapsulated key rotation state transitions into a formal, deterministic State Machine (`ACTIVE`, `COOLDOWN`, `PROBING`, `EXHAUSTED`, `PAUSED`, `REVOKED`) with transition history tracking, strict transition rule enforcement, and state distribution statistics.
+
 ## [0.8.72] — 2026-10-23
 
 ### Security

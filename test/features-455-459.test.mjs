@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createResolver } from '../lib/resolver.js';
 import { buildPools } from '../lib/pool-builder.js';
 import { pushDiag, getDiagBuffer } from '../lib/ops-telemetry.js';
@@ -73,7 +73,7 @@ test('Issue #456: User-defined key labels (labels array aligned with keys)', () 
 
 test('Issue #457: Plaintext key reveal endpoint (GET /dsh-key-rotation/key)', async () => {
   assert.equal(KEY_PATH, '/dsh-key-rotation/key');
-  const code = readFileSync(new URL('../lib/ops-keys.js', import.meta.url), 'utf8');
+  const code = existsSync(new URL('../lib/routes/keys.js', import.meta.url)) ? readFileSync(new URL('../lib/routes/keys.js', import.meta.url), 'utf8') : readFileSync(new URL('../lib/ops-keys.js', import.meta.url), 'utf8');
   assert.ok(code.includes("req.method === 'GET'"), 'GET handler must be present');
   assert.ok(code.includes('decryptSecret(raw)'), 'Must decrypt raw secret');
   assert.ok(code.includes('isTrustedBridgeRequest(req)'), 'Must guard with trusted bridge');

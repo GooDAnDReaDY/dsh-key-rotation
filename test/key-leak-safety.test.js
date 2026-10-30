@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -15,7 +15,8 @@ test('server source: no full secret value placeholder is hardcoded', () => {
 });
 
 test('status route: only the trailing KEY_TAIL_CHARS characters of a key may travel to the browser', () => {
-  const idx = readFileSync(join(root, 'lib/ops-status.js'), 'utf8');
+  const statusFile = existsSync(join(root, 'lib/routes/status.js')) ? join(root, 'lib/routes/status.js') : join(root, 'lib/ops-status.js');
+  const idx = readFileSync(statusFile, 'utf8');
   const start = idx.indexOf('STATUS_PATH');
   assert.ok(start >= 0, 'STATUS_PATH constant not found');
   const handler = idx.indexOf('handler: async (req, res) => {', start);
@@ -29,7 +30,8 @@ test('status route: only the trailing KEY_TAIL_CHARS characters of a key may tra
 });
 
 test('key route: PUT/DELETE response never includes the stored value', () => {
-  const idx = readFileSync(join(root, 'lib/ops-keys.js'), 'utf8');
+  const keyFile = existsSync(join(root, 'lib/routes/keys.js')) ? join(root, 'lib/routes/keys.js') : join(root, 'lib/ops-keys.js');
+  const idx = readFileSync(keyFile, 'utf8');
   const start = idx.indexOf('KEY_PATH');
   const handler = idx.indexOf('handler: async (req, res) => {', start);
   const end = idx.indexOf("'dsh-key-rotation: key route'", handler);
@@ -44,7 +46,7 @@ test('README / docs: no real API key strings published', () => {
   const shipped = [
     'package.json', 'cordis.patch.yml', 'README.md', 'LICENSE',
     'lib/index.js', 'lib/client.js', 'lib/pool.js', 'lib/rotate.js', 'lib/http-bridge.js', 'lib/routes-ops.js',
-    'lib/ops-paths.js', 'lib/ops-status.js', 'lib/ops-telemetry.js', 'lib/ops-keys.js', 'lib/ops-test.js', 'lib/ops-webhook.js', 'lib/safe-fetch.js',
+    'lib/ops-paths.js', 'lib/ops-status.js', 'lib/ops-telemetry.js', 'lib/ops-keys.js', 'lib/ops-test.js', 'lib/ops-webhook.js', 'lib/safe-fetch.js', 'lib/routes/status.js', 'lib/routes/keys.js', 'lib/routes/paths.js', 'lib/routes/testing.js', 'lib/routes/webhook.js', 'lib/routes/telemetry.js',
   ];
   const keyPattern = /(sk-[A-Za-z0-9]{16,})|(sk_live_[A-Za-z0-9]{16,})|(AKIA[0-9A-Z]{12,})/g;
   for (const f of shipped) {

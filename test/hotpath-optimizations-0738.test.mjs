@@ -5,6 +5,13 @@ import fs from 'node:fs';
 const INDEX_SRC = fs.readFileSync(new URL('../lib/index.js', import.meta.url), 'utf8');
 const ROTATE_SRC = fs.readFileSync(new URL('../lib/rotate.js', import.meta.url), 'utf8');
 const OPS_FILES = [
+  '../lib/routes/index.js',
+  '../lib/routes/paths.js',
+  '../lib/routes/status.js',
+  '../lib/routes/telemetry.js',
+  '../lib/routes/keys.js',
+  '../lib/routes/testing.js',
+  '../lib/routes/webhook.js',
   '../lib/routes-ops.js',
   '../lib/ops-paths.js',
   '../lib/ops-status.js',
