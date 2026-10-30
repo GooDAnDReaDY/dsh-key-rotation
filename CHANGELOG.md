@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.74 (2026-10-30)
+
+### Rotation & Routing Reliability (Block 2 Release)
+- **Error Status Normalization (Issue #545)**: `isSwitchableError` now normalizes string and numeric `code: "429"` / `429` to HTTP 429 when `status` is absent, ensuring default `switchCodes` trigger key rotation.
+- **Quick Action Skip (Issue #540)**: Quick action skip now atomically synchronizes both `targetPool.state.pointer` and `cursor`, ensuring resolver round-robin picks the newly advanced key immediately.
+- **Tiers & Tier-Priority Routing (Issue #541)**: Propagate `p.tiers` to `pool-builder` options, fix `typeof tiers === 'object'` syntax error, and add `tier-priority` strategy to Schemastery and resolver.
+- **Traffic Smoothing Leaky Bucket (Issue #538)**: Implemented Generic Cell Rate Algorithm (GCRA) in `TrafficSmoother` to atomically reserve micro-queue slots ahead of sleep, preventing two concurrent requests from claiming the same time slot.
+- **Simulator Quota & Broken Key Parity (Issue #534)**: `simulateRouting` now clones `brokenUntil`, `tokenUsage`, and `quotaWindows` into simulator pool state, properly filtering out unavailable keys.
+- **Simulator Provider Map Lookup (Issue #536)**: Corrected `runtime.providerToPool` Map resolution in `ops-telemetry` simulator route, returning 404 for unrecognized providers.
+- **Config Import Concurrency (Issue #553)**: Added optimistic revision check via `expectedRevision` in `handleConfigImport`, returning 409 Conflict upon concurrent modification.
+- **Config Import Fail-Closed (Issue #533)**: `handleConfigImport` fails closed with 503 Service Unavailable when `settings.replace` is unavailable, preventing false-positive `{ applied: true }`.
+- **Instance & Context Isolation (Issue #544)**: Introduced `KeyDrainManager`, `SelectionTraceStore`, and `DiagBuffer` classes with per-context lifecycle binding; disposal of one plugin instance cleanly purges only its own draining keys and telemetry without corrupting peer instances.
+
 ## 0.8.73 (2026-10-30)
 
 ### Security & Hardening (Block 1 Security Release)
