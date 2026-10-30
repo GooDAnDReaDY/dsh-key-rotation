@@ -41,7 +41,7 @@ test('client.js dead mountDashboard is removed (#240)', () => {
 test('client.js settings card is localized with independent seat registration (#19, #236, #275)', () => {
   assert.ok(CLIENT_SRC.includes("plugins.bundle.config"), 'the bundle config seat must be registered');
   assert.ok(CLIENT_SRC.includes("settings.plugin.item"), 'the settings plugin item seat must be registered');
-  assert.ok(CLIENT_SRC.includes("t('title')"), 'Card must use t(title)');
+  assert.ok(/t\(['"]title['"]\)/.test(CLIENT_SRC), 'Card must use t(title)');
   assert.ok(CLIENT_SRC.includes("locale: NS"), 'Card must include locale: NS');
   assert.ok(!CLIENT_SRC.includes("name: 'settings.section'"), 'No settings.section registration (#275)');
 });

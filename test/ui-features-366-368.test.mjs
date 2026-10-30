@@ -13,14 +13,14 @@ test('client.js includes parseBulkKeys helper and Sparkline component', () => {
 });
 
 test('client.js defines bulkImport and pauseKey localization tokens in en and zh', () => {
-  assert.match(clientSrc, /bulkImport:\s*'Bulk Import'/);
-  assert.match(clientSrc, /keyPaused:\s*'Paused'/);
-  assert.match(clientSrc, /bulkImport:\s*'批量导入'/);
-  assert.match(clientSrc, /keyPaused:\s*'已暂停'/);
+  assert.match(clientSrc, /bulkImport:\s*['"]Bulk Import['"]/);
+  assert.match(clientSrc, /keyPaused:\s*['"]Paused['"]/);
+  assert.match(clientSrc, /bulkImport:\s*['"]批量导入['"]/);
+  assert.match(clientSrc, /keyPaused:\s*['"]已暂停['"]/);
 });
 
 test('client.js renders pause toggle button and bulk import trigger', () => {
-  assert.match(clientSrc, /key:\s*'pause-btn'/);
+  assert.match(clientSrc, /key:\s*['"]pause-btn['"]/);
   assert.match(clientSrc, /togglePauseKey\(pIndex,\s*kIndex\)/);
   assert.match(clientSrc, /applyBulkImport\(pIndex\)/);
   assert.match(clientSrc, /sparklineTraffic/);

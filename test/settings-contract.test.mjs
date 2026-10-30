@@ -48,7 +48,7 @@ test('the namespace is the profile entry id, not the package name', () => {
   const entryId = read('cordis.patch.yml').match(/^\s*- id:\s*([\w-]+)/m)[1]
   assert.equal(entryId, ENTRY_ID, 'the id in cordis.patch.yml is the namespace')
   assert.ok(code(host).includes("'" + entryId + "'"), 'host must key on the entry id')
-  assert.ok(code(client).includes("'" + entryId + "'"), 'client must key on the entry id')
+  assert.ok(code(client).includes("'" + entryId + "'") || code(client).includes('"' + entryId + '"'), 'client must key on the entry id')
   assert.equal(JSON.parse(read('package.json')).name, PKG)
 })
 
@@ -97,7 +97,7 @@ test('the host never calls the removed settings.register', () => {
 
 test('the card is on a live seat', () => {
   const c = code(client)
-  const live = [...c.matchAll(/'(plugins\.[a-z.]+)'/g)].map((m) => m[1])
+  const live = [...c.matchAll(/['"](plugins\.[a-z.]+)['"]/g)].map((m) => m[1])
   assert.ok(live.includes('plugins.row.config'),
     'plugins.row.config must be registered; settings.plugin.item is a deliberate '
     + 'older-host fallback here and is allowed to stay')

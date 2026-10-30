@@ -79,11 +79,11 @@ test('#451: all client fetch endpoints in client.js have signal attached', () =>
   const clientJs = fs.readFileSync(path.join(__dirname, '../lib/client.js'), 'utf-8');
 
   // Verify write operations and background polls include signal
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/key',"), 'client has /key fetch');
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/reset',"), 'client has /reset fetch');
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/test',"), 'client has /test fetch');
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/health',"), 'client has /health fetch');
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/status',"), 'client has /status fetch');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/key['"],/.test(clientJs), 'client has /key fetch');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/reset['"],/.test(clientJs), 'client has /reset fetch');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/test['"],/.test(clientJs), 'client has /test fetch');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/health['"],/.test(clientJs), 'client has /health fetch');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/status['"],/.test(clientJs), 'client has /status fetch');
 
   // Verify AbortSignal / signal is wired to calls
   const matches = clientJs.match(/fetch\([^)]+\)/g) || [];

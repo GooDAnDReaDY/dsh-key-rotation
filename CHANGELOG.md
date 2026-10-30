@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.82 (2026-10-30)
+
+### Modernized UI Builder & JSX Pipeline (Block 10 Release)
+- **Modern JSX/TSX Build Pipeline via esbuild (Issue #523)**: Replaced mechanical text concatenation with modern compiler-based build pipeline (`scripts/build-client.mjs`) using `esbuild`. Supports native JSX syntax with `React.createElement` transpilation.
+- **Component JSX Modernization**: Migrated key client components (such as `Sparkline` and `KeyRotationHeaderChip`) to idiomatic JSX, improving clarity and maintainability while preserving strict modular scoping and zero runtime overhead.
+- **Deterministic & Compliant Bundle Assembly**: Automated atomic output writing with size verification (< 256 KiB DSH Store limit, actual: ~207 KiB), UTF-8 charset preservation for multi-language localization (en, zh, ru), inline legal comments, and syntax verification (`node --check`).
+- **CI/CD Drift Prevention**: Built-in `--check` mode in `build-client.mjs` ensuring `lib/client.js` is always strictly in sync with `lib/client-src/`.
+
 ## 0.8.81 (2026-10-30)
 
 ### Direct Extension Pipeline & Pure Key Resolution (Block 9 Release)

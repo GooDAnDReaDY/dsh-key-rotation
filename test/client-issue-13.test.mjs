@@ -19,5 +19,5 @@ test('Issue #13: client validateBeforeSave extracts server error message', () =>
   // Check that validateBeforeSave normalizes data.error.message
   assert.match(clientSrc, /resData\s*=\s*!r\.ok\s*&&\s*data\.error/);
   // Check that saveSecret reads vres.message ?? vres.error?.message
-  assert.match(clientSrc, /const msg = vres\.message \?\? vres\.error\?\.message \?\? 'validation failed'/);
+  assert.match(clientSrc, /const msg = vres\.message \?\? vres\.error\?\.message \?\? ['"]validation failed['"]/);
 });

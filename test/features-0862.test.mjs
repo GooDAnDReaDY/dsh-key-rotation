@@ -162,9 +162,9 @@ test('Issue #490 & #491: Client bundle includes test-matrix and discovery tokens
   assert.ok(clientJs.includes('autoImportBtn:'), 'en has autoImportBtn');
 
   // Endpoints and signals
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/discover',"), 'client fetches /discover');
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/test-matrix',"), 'client fetches /test-matrix');
-  assert.ok(clientJs.includes("fetch('/dsh-key-rotation/auto-import',"), 'client fetches /auto-import');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/discover['"],/.test(clientJs), 'client fetches /discover');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/test-matrix['"],/.test(clientJs), 'client fetches /test-matrix');
+  assert.ok(/fetch\(['"]\/dsh-key-rotation\/auto-import['"],/.test(clientJs), 'client fetches /auto-import');
 
   // Clean CSS verification (no rgba or hex)
   assert.doesNotMatch(clientJs, /rgba\(|#[0-9a-fA-F]{6}/, 'client.js must not contain hardcoded rgba or 6-digit hex colors');

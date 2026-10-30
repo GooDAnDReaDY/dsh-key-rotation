@@ -18,13 +18,13 @@ test('registers English and Chinese dictionaries (#277 / authoring skill)', () =
 
 test('active locale falls back via navigator.languages then en (#277)', () => {
   assert.match(client, /navigator\.languages/);
-  assert.match(client, /return 'en';/);
+  assert.match(client, /return ['"]en['"];/);
   assert.doesNotMatch(client, /navigator\.language\s*\|\|\s*''\)\)\.slice/);
 });
 
 test('uses props.t via resolveT, no private ru/zh fork (#277)', () => {
   assert.match(client, /function resolveT\(props\)/);
-  assert.match(client, /typeof props\.t === 'function'/);
+  assert.match(client, /typeof props\.t === ['"]function['"]/);
 });
 
 test('no hardcoded Russian UI strings in client.js (#277)', () => {

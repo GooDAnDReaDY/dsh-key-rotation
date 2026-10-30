@@ -23,17 +23,17 @@ test('Config schema includes showChatHeaderChip with default true', () => {
 });
 
 test('client.js includes localization tokens for showChatHeaderChip in en and zh', () => {
-  assert.match(clientSrc, /showChatHeaderChipLabel:\s*'Chat Header Status Chip'/);
-  assert.match(clientSrc, /showChatHeaderChipDesc:\s*'Show pool status chip in conversation header'/);
-  assert.match(clientSrc, /showChatHeaderChipLabel:\s*'聊天头部状态按钮'/);
-  assert.match(clientSrc, /showChatHeaderChipDesc:\s*'在会话界面顶部工具栏显示密钥池状态按钮'/);
+  assert.match(clientSrc, /showChatHeaderChipLabel:\s*['"]Chat Header Status Chip['"]/);
+  assert.match(clientSrc, /showChatHeaderChipDesc:\s*['"]Show pool status chip in conversation header['"]/);
+  assert.match(clientSrc, /showChatHeaderChipLabel:\s*['"]聊天头部状态按钮['"]/);
+  assert.match(clientSrc, /showChatHeaderChipDesc:\s*['"]在会话界面顶部工具栏显示密钥池状态按钮['"]/);
 });
 
 test('client.js renders showChatHeaderChip toggle in settings card', () => {
   assert.match(clientSrc, /val\.showChatHeaderChip \?\? true/);
   assert.match(clientSrc, /showChatHeaderChip:\s*e\.target\.checked/);
-  assert.match(clientSrc, /t\('showChatHeaderChipLabel'\)/);
-  assert.match(clientSrc, /t\('showChatHeaderChipDesc'\)/);
+  assert.match(clientSrc, /t\(['"]showChatHeaderChipLabel['"]\)/);
+  assert.match(clientSrc, /t\(['"]showChatHeaderChipDesc['"]\)/);
 });
 
 test('client.js KeyRotationHeaderChip hides when showChatHeaderChip is false', () => {

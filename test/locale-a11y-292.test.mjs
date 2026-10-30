@@ -15,8 +15,8 @@ test('client.js has no Cyrillic in string literals', () => {
 });
 
 test('modal a11y attributes present', () => {
-  assert.match(clientSrc, /role:\s*'dialog'/);
-  assert.match(clientSrc, /'aria-modal':\s*'true'/);
+  assert.match(clientSrc, /role:\s*['"]dialog['"]/);
+  assert.match(clientSrc, /['"]aria-modal['"]:\s*['"]true['"]/);
   assert.match(clientSrc, /Escape/);
   assert.match(clientSrc, /focusables/);
 });
@@ -25,7 +25,7 @@ test('card states present', () => {
   assert.match(clientSrc, /emptyTitle/);
   assert.match(clientSrc, /unavailableTitle/);
   assert.match(clientSrc, /errorTitle/);
-  assert.match(clientSrc, /role:\s*'status'/);
+  assert.match(clientSrc, /role:\s*['"]status['"]/);
 });
 
 test('bulk remove goes through confirm modal', () => {
