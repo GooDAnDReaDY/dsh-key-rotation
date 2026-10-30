@@ -1,6 +1,14 @@
 # DESIGN.md — @goodandready/dsh-key-rotation
 
 ## Product / Purpose
+- **Security & Data Protection Hardening (v0.8.73)**:
+  - Strong Write & Bridge Guard (#516): Reject mutating bridge requests without valid origin/referer. Disallow spoofed desktop headers or unverified local loopback bypass on mutating operations.
+  - Plaintext Key Endpoint Deprecation / Strict Protection (#543): `GET /dsh-key-rotation/key` rejects non-session/non-trusted requests, never exposes plaintext credentials over untrusted bridges.
+  - Safe Export Webhook Masking (#532): Mask real `notifyWebhook` secret URLs with bearer/query tokens during masked config exports.
+  - Secure Export Passphrase Delivery (#552): Passphrase for encrypted exports is delivered via POST request body (`/dsh-key-rotation/export`), removing passphrase from GET query string URLs.
+  - Upstream Error Message & Trace Sanitization (#537): Redact sensitive tokens and raw messages before appending to `selection-trace` history.
+  - Fail-Closed Decryption Guard (#539): Balance inspector and test matrix fail closed immediately if credential decryption fails, preventing ciphertext (`enc:v1:...`) leakage to upstreams.
+  - DoS Protection on Encrypted Imports (#542): Enforce upper bound on PBKDF2 iterations and use async KDF to prevent event-loop blocking.
 - **Config Export/Import & Quick Actions (v0.8.67)**:
   - Full Pool Configuration Export & Import (#504): Masked safe export, AES-256-GCM encrypted backup, `/dsh-key-rotation/export`, `/dsh-key-rotation/config-import`, diff preview and merge/replace modes.
   - Quick Key Actions in Chat Header (#499): Interactive popover on `KeyRotationHeaderChip` with active key tail, `/dsh-key-rotation/quick-action` endpoint for Skip, Reset, and Pause operations.
