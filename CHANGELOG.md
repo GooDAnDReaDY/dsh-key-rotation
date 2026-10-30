@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.78 (2026-10-30)
+
+### Network Transports, Model Catalog & Predictive Quota Runway (Block 6 Release)
+- **Network Transports & Canonical Token Normalization (Issue #546)**: Introduced dedicated `lib/transports/` layer separating wire protocol streaming and usage normalization. Created `lib/transports/tokens.js` with `normalizeUsageTokens` mapping heterogeneous usage payloads across OpenAI, Anthropic, Google Gemini, Ollama, and DeepSeek into canonical `{ inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, totalTokens }`. Created `lib/transports/sse.js` providing zero-dependency streaming Server-Sent Events parser (`createSseDecoder`, `parseSseStream`) with cross-chunk buffering, comment filtering, `[DONE]` stripping, and clean `AbortSignal` handling. Added wire parsers for OpenAI chat streams (`openai.js`) and Anthropic Claude Messages (`anthropic.js`) with split-event usage accumulation. Integrated canonical usage into `lib/stream-metrics.js`.
+- **Central ModelCatalog with Cache Stampede Protection (Issue #550)**: Implemented domain service `ModelCatalog` (`lib/model-catalog.js`) with TTL-based caching and in-flight promise deduplication (`inflight = new Map<string, Promise<ModelMeta[]>>()`). Eliminates Cache Stampede by guaranteeing only one upstream `/models` request executes when multiple concurrent sessions query model capabilities simultaneously. Provides model capability normalization (context window, max tokens, reasoning, tools, vision) and resilient offline fallback (`KNOWN_MODELS_FALLBACK`).
+- **Predictive Quota Runway & Burn Rate Preemption (Issue #549)**: Introduced `QuotaRunway` (`lib/quota-runway.js`) replacing reactive 429 rate-limiting with conservative predictive preemption. Calculates window burn rates (`percentUsed / elapsed`) and projected time to exhaustion (`etaMs = (100 - percentUsed) / rate`). Identifies keys projected to exhaust before provider reset windows (`exhaustsBeforeReset: etaMs < timeToReset`). Integrated directly into `sortAttemptList` in `lib/pool-selection.js`: keys risking quota exhaustion are preemptively deprioritized in favor of healthy credentials before encountering HTTP 429 failures.
+
 ## 0.8.77 (2026-10-30)
 
 ### Session Routing, Typed Error Taxonomy & Pre-First-Token Failover (Block 5 Release)

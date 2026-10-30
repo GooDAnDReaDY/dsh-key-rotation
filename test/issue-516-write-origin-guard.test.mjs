@@ -278,11 +278,18 @@ test('Issue #516: /auto-import fails closed on invalid body and unauthenticated 
   // 6. Body with { all: true } -> 200 OK (performs import when all: true is explicit)
   {
     mutatedSettings = false;
-    const { req, res, getStatus, getData } = makeReqRes(JSON.stringify({ all: true }), authHeaders);
-    await autoImportHandler(req, res);
-    assert.equal(getStatus(), 200);
-    assert.equal(getData().ok, true);
-    assert.ok(typeof getData().importedCount === 'number');
-    assert.equal(mutatedSettings, true, 'settings must be mutated when all: true is explicit');
+    const prevKey = process.env.DEEPSEEK_API_KEY;
+    process.env.DEEPSEEK_API_KEY = 'sk-test-fake-key-516';
+    try {
+      const { req, res, getStatus, getData } = makeReqRes(JSON.stringify({ all: true }), authHeaders);
+      await autoImportHandler(req, res);
+      assert.equal(getStatus(), 200);
+      assert.equal(getData().ok, true);
+      assert.ok(typeof getData().importedCount === 'number');
+      assert.equal(mutatedSettings, true, 'settings must be mutated when all: true is explicit');
+    } finally {
+      if (prevKey !== undefined) process.env.DEEPSEEK_API_KEY = prevKey;
+      else delete process.env.DEEPSEEK_API_KEY;
+    }
   }
 });
