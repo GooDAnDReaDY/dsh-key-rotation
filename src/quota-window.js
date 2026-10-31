@@ -1,0 +1,47 @@
+import { nowWall } from './clock.js';
+// quota-window.js — calendar-based quota reset windows (issue #197).
+
+export const QUOTA_WINDOW_TYPES = ['midnight_utc', 'midnight_pst', 'rolling_24h'];
+
+export function nextQuotaReset(quotaResetWindow, now) {
+  now = now || nowWall();
+  const win = typeof quotaResetWindow === 'string' ? { type: quotaResetWindow === 'daily' ? 'midnight_utc' : quotaResetWindow } : quotaResetWindow;
+  if (!win || typeof win !== 'object') return null;
+  const type = win.type === 'daily' ? 'midnight_utc' : win.type;
+  const hour = Number.isFinite(win.hour) ? win.hour : 0;
+
+  if (type === 'rolling_24h') {
+    const d = new Date(now);
+    d.setUTCHours(d.getUTCHours() + 24, 0, 0, 0);
+    return d.getTime();
+  }
+
+  if (type === 'midnight_utc') {
+    const d = new Date(now);
+    d.setUTCHours(hour, 0, 0, 0);
+    if (d.getTime() <= now) d.setUTCDate(d.getUTCDate() + 1);
+    return d.getTime();
+  }
+
+  if (type === 'midnight_pst') {
+    const PST_OFFSET_MS = -8 * 3600_000; // PST is UTC-8
+    const shifted = now + PST_OFFSET_MS;
+    const d = new Date(shifted);
+    d.setUTCHours(hour, 0, 0, 0);
+    if (d.getTime() <= shifted) d.setUTCDate(d.getUTCDate() + 1);
+    return d.getTime() - PST_OFFSET_MS;
+  }
+
+  return null;
+}
+
+export function poolResetAt(pool, quotaResetWindow, now) {
+  return nextQuotaReset(quotaResetWindow, now);
+}
+
+export function isBlockedUntilReset(failedUntil, resetAt, now) {
+  now = now || nowWall();
+  if (!Number.isFinite(failedUntil)) return false;
+  if (resetAt === null || resetAt === undefined) return false;
+  return failedUntil >= resetAt;
+}

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.83 (2026-10-31)
+
+### TypeScript Migration & Type-Safe Core Architecture (Block 11 Release)
+- **TypeScript Server-Side Architecture (Issue #524)**: Migrated server-side codebase to TypeScript with `src/` directory structure, strict `tsconfig.json`, and `tsdown` build pipeline generating `lib/index.d.ts`.
+- **Domain Type Definitions (`src/types/`)**: Defined comprehensive TypeScript types for configuration schemas (`PoolConfig`, `ModelQuotaConfig`, `FailoverConfig`, `PluginConfig`), pool & key state machines (`KeyState`, `KeyStatus`, `PoolItem`, `ResolvedKey`, `RoutingDecision`, `QuotaWindow`), and Cordis service interaction contracts (`Context`, `LlmService`, `WebServerService`, `SettingsService`, `CredentialsService`).
+- **Static Type Safety & Tooling**: Integrated `npm run typecheck` (`tsc --noEmit`) into `npm run check`, guaranteeing compile-time type safety across all configuration fields, service bindings, and event handlers with 0 errors.
+- **Zero Runtime Dependencies**: All TypeScript build tools (`typescript`, `tsdown`, `@types/node`) maintained strictly in `devDependencies`, with `dependencies: {}` preserved.
+
 ## 0.8.82 (2026-10-30)
 
 ### Modernized UI Builder & JSX Pipeline (Block 10 Release)

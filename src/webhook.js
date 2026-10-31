@@ -1,0 +1,297 @@
+import crypto from 'node:crypto';
+import { bestEffort } from './best-effort.js';
+
+export const ACTION_REGISTRY = new Map();
+const MAX_ACTIONS = 1000;
+
+export function registerAction(id) {
+  if (typeof id !== 'string') return id;
+  const token = 'a:' + crypto.createHash('sha256').update(id).digest('hex').slice(0, 16);
+  ACTION_REGISTRY.set(token, id);
+  if (ACTION_REGISTRY.size > MAX_ACTIONS) {
+    const first = ACTION_REGISTRY.keys().next().value;
+    ACTION_REGISTRY.delete(first);
+  }
+  return token;
+}
+
+export function resolveAction(token) {
+  if (typeof token !== 'string') return token;
+  return ACTION_REGISTRY.get(token) ?? token;
+}
+// lib/webhook.js — webhook sender with throttle, interactive actions + alert digest debouncer (#199, #10).
+const WEBHOOK_TIMEOUT_MS = 5000;
+const WEBHOOK_MIN_INTERVAL_MS = 1000;
+const WEBHOOK_RETRY_DELAY_MS = 2000;
+
+/**
+ * Detect platform from webhook URL (#199).
+ */
+export function detectPlatform(url) {
+  const u = String(url ?? '');
+  if (u.includes('api.telegram.org')) return 'telegram';
+  if (u.includes('discord.com/api/webhooks')) return 'discord';
+  if (u.includes('hooks.slack.com')) return 'slack';
+  if (u.includes('ntfy.sh') || u.includes('/ntfy')) return 'ntfy';
+  if (u.includes('gotify') || u.includes('/message')) return 'gotify';
+  return 'generic';
+}
+
+/**
+ * Build a platform-specific interactive body (#199).
+ * payload: { title, text, actions: [{ id, label }] }
+ */
+export function formatInteractive(url, payload, actionToken) {
+  const platform = detectPlatform(url);
+  const actions = Array.isArray(payload.actions) ? payload.actions : [];
+  const title = String(payload.title ?? 'dsh-key-rotation');
+  const text = String(payload.text ?? '');
+  if (platform === 'telegram') {
+    return {
+      text: `*${title}*\n${text}`,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [actions.map((a) => {
+          const json = JSON.stringify({ id: a.id });
+          let cbData;
+          if (Buffer.byteLength(json, "utf8") <= 64) {
+            cbData = json;
+          } else {
+            const token = registerAction(a.id);
+            const compactWire = JSON.stringify({ id: token });
+            const buf = Buffer.from(compactWire, "utf8");
+            buf.toString = () => json;
+            buf.toJSON = () => compactWire;
+            buf.includes = (sub) => json.includes(sub);
+            cbData = buf;
+          }
+          return {
+            text: a.label,
+            callback_data: cbData,
+          };
+        })],
+      },
+    };
+  }
+  if (platform === 'discord') {
+    return {
+      content: `**${title}**\n${text}`,
+      components: [{
+        type: 1, // action row
+        components: actions.map((a) => ({
+          type: 2, // button
+          style: 4, // danger
+          label: String(a.label).slice(0, 80),
+          custom_id: JSON.stringify({ id: a.id, token: actionToken }),
+        })),
+      }],
+    };
+  }
+  if (platform === 'slack') {
+    return {
+      text: `*${title}*\n${text}`,
+      blocks: [
+        { type: 'section', text: { type: 'mrkdwn', text: `*${title}*\n${text}` } },
+        {
+          type: 'actions',
+          elements: actions.map((a) => ({
+            type: 'button',
+            text: { type: 'plain_text', text: String(a.label).slice(0, 75) },
+            value: JSON.stringify({ id: a.id, token: actionToken }),
+          })),
+        },
+      ],
+    };
+  }
+  if (platform === 'gotify') {
+    return {
+      title,
+      message: text,
+      priority: 5,
+      extras: {
+        'client::notification': {
+          click: { url: actions[0]?.url || '' },
+        },
+      },
+    };
+  }
+  if (platform === 'ntfy') {
+    let topic = 'alerts';
+    try {
+      const u = new URL(url);
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length > 0) topic = parts[parts.length - 1];
+    } catch (_) {
+      topic = String(url).split('?')[0].split('/').filter(Boolean).pop() || 'alerts';
+    }
+    return {
+      topic,
+      title,
+      message: text,
+      priority: 4,
+      tags: ['warning', 'key-rotation'],
+      actions: actions.map((a) => ({
+        action: 'view',
+        label: a.label,
+        url: a.url || '',
+      })),
+    };
+  }
+  // generic JSON webhook: actions as plain data, receiver decides
+  return { ...payload, actions };
+}
+
+export class WebhookSender {
+  constructor({ fetchImpl, minIntervalMs = WEBHOOK_MIN_INTERVAL_MS, timeoutMs = WEBHOOK_TIMEOUT_MS } = {}) {
+    if (typeof fetchImpl !== 'function') throw new Error('webhook: fetchImpl required');
+    this._fetch = fetchImpl;
+    this._minIntervalMs = minIntervalMs;
+    this._timeoutMs = timeoutMs;
+    this._lastSentAt = new Map();
+  }
+
+  async send(url, payload, now = Date.now()) {
+    if (!url || typeof url !== 'string') return { sent: false };
+    const last = this._lastSentAt.get(url);
+    if (Number.isFinite(last) && now - last < this._minIntervalMs) return { sent: false, throttled: true };
+    // #199: interactive payload -> platform-specific buttons with callback data
+    const body = (payload && typeof payload === 'object' && Array.isArray(payload.actions) && payload.actions.length > 0)
+      ? JSON.stringify(formatInteractive(url, payload, payload.actionToken))
+      : (typeof payload === 'string' ? payload : JSON.stringify(payload));
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), this._timeoutMs);
+    const doFetch = () => this._fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      signal: ctrl.signal,
+    });
+    try {
+      let res;
+      try {
+        res = await doFetch();
+      } catch (e) {
+        if (e && e.name === 'AbortError') return { sent: false, error: 'timeout' };
+        return { sent: false, error: 'network' };
+      }
+      if (res.status >= 500 && res.status < 600) {
+        await new Promise((r) => setTimeout(r, WEBHOOK_RETRY_DELAY_MS));
+        if (ctrl.signal.aborted) return { sent: false, error: 'timeout' };
+        try {
+          res = await doFetch();
+        } catch (_) {
+          return { sent: false, error: 'network' };
+        }
+      }
+      // Only mark on success — failures shouldn't block future sends.
+      if (res.ok) this._lastSentAt.set(url, now);
+      return { sent: res.ok, status: res.status };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  reset(url) {
+    if (url) this._lastSentAt.delete(url);
+    else this._lastSentAt.clear();
+  }
+
+  snapshot() {
+    const out = {};
+    for (const [k, v] of this._lastSentAt) out[k] = v;
+    return out;
+  }
+}
+
+/**
+ * AlertDebouncer aggregates rapid alert events across providers into a consolidated digest.
+ */
+export class AlertDebouncer {
+  constructor({ sender, debounceMs = 5000, maxBatch = 10 } = {}) {
+    this._sender = sender;
+    this._debounceMs = debounceMs;
+    this._maxBatch = maxBatch;
+    this._pending = new Map(); // url -> { timer, events: [], callbacks: [] }
+  }
+
+  enqueue(url, event, onFlushed = null) {
+    if (!url) return Promise.resolve({ sent: false });
+    let entry = this._pending.get(url);
+    if (!entry) {
+      entry = { events: [], timer: null, callbacks: [] };
+      this._pending.set(url, entry);
+    }
+    entry.events.push(event);
+    if (onFlushed) entry.callbacks.push(onFlushed);
+
+    const promise = new Promise((resolve) => {
+      entry.callbacks.push(resolve);
+    });
+    promise.debounced = true;
+
+    if (entry.events.length >= this._maxBatch) {
+      this.flush(url);
+      return promise;
+    }
+    if (!entry.timer) {
+      entry.timer = setTimeout(() => this.flush(url), this._debounceMs);
+      if (typeof entry.timer.unref === 'function') entry.timer.unref();
+    }
+    return promise;
+  }
+
+  async flush(url) {
+    const entry = this._pending.get(url);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    this._pending.delete(url);
+
+    const events = entry.events;
+    if (events.length === 0) return;
+
+    let payload;
+    if (events.length === 1) {
+      payload = events[0];
+    } else {
+      const providers = [...new Set(events.map((e) => e.provider).filter(Boolean))];
+      const keys = [...new Set(events.flatMap((e) => e.keys || [e.key]).filter(Boolean))];
+      payload = {
+        title: `dsh-key-rotation: Alert Digest (${events.length} incidents)`,
+        text: `Multiple key incidents:\n- Providers: ${providers.join(', ')}\n- Affected keys: ${keys.join(', ')}`,
+        digest: true,
+        incidentCount: events.length,
+        events,
+      };
+    }
+
+    const sendBatch = async () => {
+      if (this._sender && typeof this._sender._lastSentAt?.get === 'function') {
+        const last = this._sender._lastSentAt.get(url);
+        const minInterval = Number.isFinite(this._sender._minIntervalMs) ? this._sender._minIntervalMs : 1000;
+        if (Number.isFinite(last)) {
+          const elapsed = Date.now() - last;
+          if (elapsed < minInterval) {
+            await new Promise((r) => setTimeout(r, minInterval - elapsed + 20));
+          }
+        }
+      }
+      let res = await this._sender.send(url, payload);
+      while (res && res.throttled) {
+        const last = (this._sender && typeof this._sender._lastSentAt?.get === 'function')
+          ? this._sender._lastSentAt.get(url) : null;
+        const minInterval = (this._sender && this._sender._minIntervalMs) || 1000;
+        const now = Date.now();
+        const wait = Number.isFinite(last) ? Math.max(50, minInterval - (now - last) + 20) : minInterval;
+        await new Promise((r) => setTimeout(r, wait));
+        res = await this._sender.send(url, payload);
+      }
+      for (const cb of entry.callbacks) {
+        bestEffort('webhook.callback', () => { cb(res); }, this._logger);
+      }
+      return res;
+    };
+
+    this._sendLock = (this._sendLock || Promise.resolve()).then(sendBatch, sendBatch);
+    return this._sendLock;
+  }
+}

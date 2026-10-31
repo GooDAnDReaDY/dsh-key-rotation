@@ -1,6 +1,6 @@
 {
   "name": "@goodandready/dsh-key-rotation",
-  "version": "0.8.82",
+  "version": "0.8.83",
   "packageManager": "pnpm@10.33.2",
   "description": "Per-provider API key rotation for DeepSeek Harness: a key pool per provider, auto-created clone routes, and switching to the next key on quota/rate-limit errors. Includes a Settings section (Key Rotation) to edit the key pools, cooldown and switch codes.",
   "keywords": [
@@ -24,7 +24,10 @@
   "type": "module",
   "main": "lib/index.js",
   "exports": {
-    ".": "./lib/index.js",
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
     "./client": "./lib/client.js",
     "./transports": "./lib/transports/index.js",
     "./catalog": "./lib/model-catalog.js",
@@ -67,9 +70,12 @@
   "scripts": {
     "test": "node tools/test.mjs",
     "test:core": "node tools/test.mjs --core",
-    "check": "node tools/check.mjs",
+    "check": "npm run typecheck && node tools/check.mjs",
     "build:client": "node scripts/build-client.mjs",
-    "pretest": "node scripts/build-client.mjs"
+    "pretest": "node scripts/build-client.mjs",
+    "typecheck": "tsc --noEmit",
+    "build:server": "tsdown",
+    "build": "npm run build:server && npm run build:client"
   },
   "devDependencies": {
     "react": "18.3.1",
@@ -78,7 +84,11 @@
     "@deepseek-ai/dsh-llm": "^0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "semver": "^7.6.3",
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "typescript": "^5.7.2",
+    "tsdown": "^0.22.14",
+    "@types/node": "^22.0.0"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "types": "./lib/index.d.ts"
 }

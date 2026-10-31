@@ -1,0 +1,96 @@
+// lib/config-compat.js — Schemastery volatile decoding and config resolution (#551).
+// Decode modern volatile Config references while retaining stable identities for
+// the request hot path. Legacy cores pass ordinary resolved configuration.
+// If ctx is provided, invalidation listeners cache the unwrapped tree so the hot
+// path never recursively walks volatile nodes on unchanged configuration.
+
+/** Read each volatile field through its live reference, if the loader installed one (#551). */
+export function unwrapVolatileConfig(config) {
+  if (!config || typeof config !== 'object') return {};
+  const source = config;
+  const out = {};
+  for (const key of Object.keys(source)) {
+    const value = source[key];
+    out[key] = (value !== null && typeof value === 'object' && typeof value.get === 'function')
+      ? value.get()
+      : value;
+  }
+  return out;
+}
+
+export function createConfigReader(config, ctx) {
+  let previous;
+  let dirty = true;
+  if (ctx && typeof ctx.on === 'function') {
+    const markDirty = () => { dirty = true; };
+    if (typeof ctx.effect === 'function') {
+      ctx.effect(() => ctx.on('settings/document-updated', markDirty));
+      ctx.effect(() => ctx.on('loader/volatile-update', markDirty));
+    } else {
+      ctx.on('settings/document-updated', markDirty);
+      ctx.on('loader/volatile-update', markDirty);
+    }
+  }
+
+  const read = (value, held) => {
+    if (value && typeof value.get === 'function') value = value.get();
+    if (!value || typeof value !== 'object') return value;
+    const keys = Object.keys(value);
+    const next = Array.isArray(value) ? [] : {};
+    let same = held && typeof held === 'object' && Array.isArray(value) === Array.isArray(held)
+      && keys.length === Object.keys(held).length;
+    for (const key of keys) {
+      Object.defineProperty(next, key, { value: read(value[key], held?.[key]), writable: true, enumerable: true, configurable: true });
+      if (!held || !Object.hasOwn(held, key) || !Object.is(next[key], held[key])) same = false;
+    }
+    return same ? held : next;
+  };
+
+  return () => {
+    if (ctx && !dirty && previous !== undefined) {
+      return previous;
+    }
+    const unwrapped = unwrapVolatileConfig(config);
+    previous = read(unwrapped, previous);
+    dirty = false;
+    return previous;
+  };
+}
+
+// Modern settings owns descriptors rather than the removed get(namespace) API.
+// Cache by document invalidation; clone-producing describe() and tree-materializing
+// settings.get() on 0.1.7+ must not execute on every request.
+// Invalidation occurs strictly on settings/document-updated or internal/service ('settings').
+// Never compare ctx.get('settings') by reference: Cordis wraps services in fresh
+// traceable Proxies on every get() call, which would invalidate the cache on every request.
+export function createProviderProfilesReader(ctx, namespace) {
+  let dirty = true, held = null;
+  const markDirty = () => { dirty = true; };
+  if (typeof ctx?.effect === 'function') {
+    ctx.effect(() => ctx.on('settings/document-updated', markDirty));
+    ctx.effect(() => ctx.on('internal/service', (name) => {
+      if (!name || name === 'settings') markDirty();
+    }));
+  } else if (typeof ctx?.on === 'function') {
+    ctx.on('settings/document-updated', markDirty);
+    ctx.on('internal/service', (name) => {
+      if (!name || name === 'settings') markDirty();
+    });
+  }
+
+  return () => {
+    if (!dirty) {
+      return held;
+    }
+    const settings = ctx?.get?.('settings');
+    if (!settings || typeof settings.describe !== 'function') return null;
+    try {
+      held = settings.describe({ redactSecrets: true }).find(row => row.ns === namespace)?.value?.providers ?? null;
+      dirty = false;
+    } catch (_) {
+      held = null;
+      dirty = false;
+    }
+    return held;
+  };
+}
