@@ -100,5 +100,6 @@ test('Issue #484: peerDependencies admits dsh-llm 0.2.1-alpha.2', async () => {
   assert.ok(semver.satisfies('0.2.1-alpha.2', peer), 'Must satisfy 0.2.1-alpha.2 without includePrerelease (package manager install)');
   assert.ok(semver.satisfies('0.2.0-rc.2', peer, { includePrerelease: true }), 'Must continue to satisfy 0.2.0-rc.2');
   assert.ok(semver.satisfies('0.1.7-rc.2', peer, { includePrerelease: true }), 'Must continue to satisfy 0.1.7-rc.2');
-  assert.ok(!semver.satisfies('0.2.2-alpha.1', peer, { includePrerelease: true }), 'Must not admit 0.2.2 prereleases');
+  assert.ok(semver.satisfies('0.2.2-alpha.2', peer, { includePrerelease: true }), 'Must admit 0.2.2-alpha.2 prereleases (#567)');
+  assert.ok(!semver.satisfies('0.2.3-alpha.1', peer, { includePrerelease: true }), 'Must not admit 0.2.3 prereleases');
 });

@@ -1,3 +1,4 @@
+import { getWebServer } from './guard.js';
 import { json, readJson, isTrustedBridgeRequest } from '../http-bridge.js';
 import { QUICK_ACTION_PATH } from './paths.js';
 import { keyTail, isKeyPaused } from '../pool.js';
@@ -9,7 +10,7 @@ import { keyTail, isKeyPaused } from '../pool.js';
 export function registerQuickActionRoutes(ctx, deps) {
   const { buildRuntime, pushEvent, circuitBreaker } = deps;
 
-  ctx.effect(() => ctx.webServer.register({
+  ctx.effect(() => getWebServer(ctx).register({
     kind: 'exact',
     path: QUICK_ACTION_PATH,
     handler: async (req, res) => {

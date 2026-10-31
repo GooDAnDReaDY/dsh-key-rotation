@@ -1,3 +1,4 @@
+import { getWebServer } from './guard.js';
 // lib/ops-balance.js — operational HTTP routes for balance inspection (#495).
 
 import {
@@ -18,7 +19,7 @@ export function registerBalanceRoutes(ctx, deps) {
     buildRuntime,
   } = deps;
 
-  ctx.effect(() => ctx.webServer.register({
+  ctx.effect(() => getWebServer(ctx).register({
     kind: 'exact',
     path: BALANCE_PATH,
     handler: async (req, res) => {

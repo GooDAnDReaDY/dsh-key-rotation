@@ -1,3 +1,4 @@
+import { getWebServer } from './guard.js';
 import { decryptSecret, encryptSecret } from '../crypto-storage.js';
 // lib/ops-keys.js — key store + cooldown reset + import routes (#312 split from routes-ops.js).
 import {
@@ -156,7 +157,7 @@ export async function discoverUnconfiguredKeys(ctx, runtimePools = []) {
 
 export function registerKeyRoutes(ctx, deps) {
 
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: DRAIN_PATH,
   handler: async (req, res) => {
@@ -219,7 +220,7 @@ ctx.effect(() => ctx.webServer.register({
 // it is never sent back, only its last few characters are (see the status
 // route) — and the route is loopback- and same-origin-gated like the config
 // bridge next to it.
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: KEY_PATH,
   handler: async (req, res) => {
@@ -289,7 +290,7 @@ ctx.effect(() => ctx.webServer.register({
 
 
 // ── reset route: clear cooldown for a provider (or a single ref) ──
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: RESET_PATH,
   handler: async (req, res) => {
@@ -374,7 +375,7 @@ ctx.effect(() => ctx.webServer.register({
 }), 'dsh-key-rotation: reset route');
 
 
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: IMPORT_PATH,
   handler: async (req, res) => {
@@ -411,7 +412,7 @@ ctx.effect(() => ctx.webServer.register({
 // Health for external panels (Beszel/Uptime)
 
 // ── discover unconfigured keys route (#491) ──
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: DISCOVER_PATH,
   handler: async (req, res) => {
@@ -434,7 +435,7 @@ ctx.effect(() => ctx.webServer.register({
 }), 'dsh-key-rotation: discover route');
 
 // ── auto-import discovered keys into pools (#491) ──
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: AUTO_IMPORT_PATH,
   handler: async (req, res) => {
@@ -528,7 +529,7 @@ ctx.effect(() => ctx.webServer.register({
   },
 }), 'dsh-key-rotation: auto-import route');
 
-  ctx.effect(() => ctx.webServer.register({
+  ctx.effect(() => getWebServer(ctx).register({
     kind: 'exact',
     path: PRESET_LIMITS_PATH,
     handler: async (req, res) => {

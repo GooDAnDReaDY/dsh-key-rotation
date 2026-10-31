@@ -36,6 +36,7 @@ import { CircuitBreaker } from './circuit-breaker.js';
 import { NotifyQueue } from './notify-queue.js';
 import { classifyFailure } from './error-taxonomy.js';
 import { registerOpsRoutes } from './routes-ops.js';
+import { getWebServer } from './routes/guard.js';
 import { registerPluginUpdater } from './plugin-updater.js';
 import { notifySwitch, notifyExhaustion, notifyEarlyWarning, pushEvent } from './notify-events.js';
 import { QUOTA_WINDOW_TYPES } from './quota-window.js';
@@ -178,7 +179,7 @@ export const Config = typeof Schema.number().volatile === 'function'
   : SettingsSchema;
 
 function registerConfigBridge(ctx, getCloneIds) {
-  return ctx.webServer.register({
+  return getWebServer(ctx).register({
     kind: 'exact',
     path: CONFIG_PATH,
     handler: (req, res) => {
@@ -246,9 +247,11 @@ export function apply(ctx, config = {}) {
 
   setupAutoUnbreakEffect(ctx, getConfig, buildRuntime, ensureSandboxRunner, logger);
 
-  // Dynamic webServer registration (#528)
+  // Dynamic webServer registration (#528, #567)
   const setupWebRoutes = (webCtx = ctx) => {
-    const target = webCtx?.webServer ? webCtx : ctx;
+    const target = getWebServer(webCtx) ? webCtx : ctx;
+    const ws = getWebServer(target);
+    if (!ws) return;
     registerConfigBridge(target, () => buildRuntime().cloneIds);
     registerOpsRoutes(target, {
       buildRuntime,
@@ -265,7 +268,7 @@ export function apply(ctx, config = {}) {
       selectionTraceStore,
       diagBuffer,
     });
-    if (typeof target.webServer?.register === 'function') {
+    if (typeof ws?.register === 'function') {
       registerPluginUpdater(target, {
         endpoint: '/api/dsh-key-rotation/update',
         packageName: '@goodandready/dsh-key-rotation',
@@ -274,10 +277,12 @@ export function apply(ctx, config = {}) {
     }
   };
 
-  if (ctx.webServer) {
+  if (Object.prototype.hasOwnProperty.call(ctx, 'webServer') && ctx.webServer) {
     setupWebRoutes(ctx);
   } else if (typeof ctx.inject === 'function') {
     ctx.inject(['webServer'], setupWebRoutes);
+  } else if (getWebServer(ctx)) {
+    setupWebRoutes(ctx);
   }
 
   // Periodic sweep of expired cooldowns

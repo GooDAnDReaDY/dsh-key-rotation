@@ -1,3 +1,4 @@
+import { getWebServer } from './guard.js';
 // lib/ops-metrics.js — Prometheus / OpenMetrics export route (#373).
 import { METRICS_PATH } from './paths.js';
 import { isTrustedBridgeRequest, isKeyPaused, isKeyRevoked } from '../pool.js';
@@ -10,7 +11,7 @@ import { hasModelQuotaConfig, isModelQuotaAvailable } from '../model-quota.js';
 export function registerMetricsRoutes(ctx, deps) {
   const { buildRuntime, poolState } = deps;
 
-  ctx.effect(() => ctx.webServer.register({
+  ctx.effect(() => getWebServer(ctx).register({
     kind: 'exact',
     path: METRICS_PATH,
     handler: async (req, res) => {

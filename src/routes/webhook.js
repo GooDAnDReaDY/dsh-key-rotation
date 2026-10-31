@@ -1,3 +1,4 @@
+import { getWebServer } from './guard.js';
 import crypto from 'node:crypto';
 // lib/ops-webhook.js — webhook interactive action route (#312 split from routes-ops.js, #388 telegram secret-token & answerCallbackQuery).
 import {
@@ -36,7 +37,7 @@ export function registerWebhookActionRoute(ctx, deps) {
     circuitBreaker,
   } = deps;
 
-ctx.effect(() => ctx.webServer.register({
+ctx.effect(() => getWebServer(ctx).register({
   kind: 'exact',
   path: WEBHOOK_ACTION_PATH,
   handler: async (req, res) => {

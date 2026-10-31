@@ -38,8 +38,10 @@ test('Issue #484: peerDependencies compatibility check with DSH evaluatePluginCo
   assert.ok(evaluateCompatibility(peerRange, '0.2.0'), 'Must preserve 0.2.0');
   assert.ok(evaluateCompatibility(peerRange, '0.1.7-rc.2'), 'Must preserve 0.1.7-rc.2');
 
-  // 5. Upper bound guards against untested future 0.2.2 line
-  assert.ok(!evaluateCompatibility(peerRange, '0.2.2-alpha.1'), 'Must not admit 0.2.2 line prereleases');
+  // 5. Admits 0.2.2 line (including alpha/rc) and guards against untested 0.2.3 line (#567)
+  assert.ok(evaluateCompatibility(peerRange, '0.2.2-alpha.1'), 'Must admit 0.2.2-alpha.1');
+  assert.ok(evaluateCompatibility(peerRange, '0.2.2-alpha.2'), 'Must admit 0.2.2-alpha.2');
+  assert.ok(!evaluateCompatibility(peerRange, '0.2.3-alpha.1'), 'Must not admit 0.2.3 line prereleases');
 });
 
 test('Issue #484: Launch, key rotation, and pool status on dsh-llm 0.2.1-alpha.2 runtime', async () => {
