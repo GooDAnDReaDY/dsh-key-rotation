@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.88 (2026-11-03)
+
+### Subagent Concurrency Partitions & Task Isolation (Block 15 Release)
+- **Subagent Partitions Module (Issue #575)**: Introduced `src/subagent-partitions.js` to detect child tasks and background subagents (`extractSubagentContext`) and partition pool capacity (`partitionPoolKeys`).
+- **Primary Chat Immunity**: Protects main user conversations from rate limit spikes and concurrency starvation caused by parallel background tasks by reserving dedicated subagent keys (`subagentReservedKeysCount`) or applying isolated partitioning (`subagentPartitionStrategy: 'isolated' | 'shared-burst'`).
+- **Per-Key Subagent Concurrency Caps**: Implemented `subagentMaxConcurrencyPerKey` (default: 2) to cap parallel subagent calls per key, preventing sudden RPM/TPM exhaustion.
+- **Config & Schemastery Support**: Added `subagentPartitionsEnabled`, `subagentReservedKeysCount`, `subagentPartitionStrategy`, and `subagentMaxConcurrencyPerKey` across Schemastery configuration, pool builders, and TypeScript types.
+
 ## 0.8.87 (2026-11-03)
 
 ### Cache-Affinity Router for Hot Prompt Cache (Block 14 Release)

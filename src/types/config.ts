@@ -43,6 +43,10 @@ export interface PoolConfig {
   cacheAffinityEnabled?: boolean;
   cacheAffinityTtlMs?: number;
   cacheAffinityPrefixChars?: number;
+  subagentPartitionsEnabled?: boolean;
+  subagentReservedKeysCount?: number;
+  subagentPartitionStrategy?: 'shared-burst' | 'isolated';
+  subagentMaxConcurrencyPerKey?: number;
 }
 
 export interface PluginConfig {
@@ -66,5 +70,9 @@ export interface PluginConfig {
   cacheAffinityEnabled?: boolean;
   cacheAffinityTtlMs?: number;
   cacheAffinityPrefixChars?: number;
+  subagentPartitionsEnabled?: boolean;
+  subagentReservedKeysCount?: number;
+  subagentPartitionStrategy?: 'shared-burst' | 'isolated';
+  subagentMaxConcurrencyPerKey?: number;
   [key: string]: unknown;
 }

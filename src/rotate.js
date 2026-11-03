@@ -29,6 +29,7 @@ import { recordStreamSuccessMetrics, preserveDispatchContext } from './stream-me
 import { withStreamWatchdog, StreamStallError } from './stream-watchdog.js';
 import { applyPreemptiveYield } from './preemptive-yield.js';
 import { extractPromptPrefixKey, applyCacheAffinity } from './cache-affinity.js';
+import { partitionPoolKeys } from './subagent-partitions.js';
 import { penalizeKey } from './rotate-penalty.js';
 import { recordPromptCache } from './prompt-cache.js';
 import { recordRequestOutcome, recordFailureCategory } from './ops-analytics.js';
@@ -210,6 +211,8 @@ export function createRotate(deps) {
       if (reqStore.cacheKey) {
         attemptList = applyCacheAffinity(attemptList, pool, { cacheKey: reqStore.cacheKey, now: wallNow, trace, pushEvent });
       }
+      // Issue #575: Subagent Concurrency Partitions
+      attemptList = partitionPoolKeys(attemptList, pool, { reqOptions: options, concurrencyTracker, now: wallNow, trace });
 
       // Issue #571: Pre-emptive Token & Request Yield before 429
       attemptList = applyPreemptiveYield(attemptList, pool, {
