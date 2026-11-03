@@ -140,6 +140,9 @@ const SettingsSchema = Schema.object({
   warnBelowHealthy: Schema.number().default(0),
   latencySloMs: Schema.number().default(0),
   showChatHeaderChip: Schema.boolean().default(true),
+  stallDetectionEnabled: Schema.boolean().default(true),
+  stallTimeoutMs: Schema.number().default(15000),
+  stallInitialTimeoutMs: Schema.number().default(30000),
   providers: Schema.array(Schema.object({
     provider: Schema.string().required(),
     keys: Schema.array(Schema.string()).default([]),
@@ -169,6 +172,9 @@ const SettingsSchema = Schema.object({
     proactiveRateLimitGuard: Schema.boolean(),
     rpmLimit: Schema.number(),
     tpmLimit: Schema.number(),
+    stallDetectionEnabled: Schema.boolean(),
+    stallTimeoutMs: Schema.number(),
+    stallInitialTimeoutMs: Schema.number(),
   })).default([...DEFAULT_PROVIDERS]),
 });
 

@@ -95,7 +95,7 @@ export function classifyFailure(failureOrPayload) {
   if (SURFACE_STATUS.has(status)) {
     return { action: 'surface', code: String(status), soft: false, reason: 'client' };
   }
-  if (code === 'TIMEOUT' || code === 'DEADLINE_EXCEEDED' || /timeout/i.test(message)) {
+  if (code === 'TIMEOUT' || code === 'DEADLINE_EXCEEDED' || code === 'STREAM_STALLED' || /timeout|stream stalled/i.test(message)) {
     return { action: 'switch', code: 'TIMEOUT', soft: true, reason: 'timeout' };
   }
   if (SOCKET_SWITCH.has(code) || /ECONNRESET|ECONNREFUSED|ETIMEDOUT|socket hang up|premature close/i.test(message)) {

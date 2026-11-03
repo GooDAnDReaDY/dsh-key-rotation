@@ -34,6 +34,9 @@ export interface PoolConfig {
   modelQuotas?: Record<string, Record<string, ModelQuotaConfig>>;
   priority?: number;
   disabled?: boolean;
+  stallDetectionEnabled?: boolean;
+  stallTimeoutMs?: number;
+  stallInitialTimeoutMs?: number;
 }
 
 export interface PluginConfig {
@@ -48,5 +51,8 @@ export interface PluginConfig {
   webhookEvents?: string[];
   trafficSmoothing?: boolean;
   maxConcurrentRequestsPerKey?: number;
+  stallDetectionEnabled?: boolean;
+  stallTimeoutMs?: number;
+  stallInitialTimeoutMs?: number;
   [key: string]: unknown;
 }

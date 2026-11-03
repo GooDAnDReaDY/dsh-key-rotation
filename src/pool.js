@@ -491,6 +491,7 @@ export function isSwitchableError(failureOrPayload, switchCodes = new Set(DEFAUL
   let rawCode = String(failure.code ?? failure.reason ?? '').trim();
   let code = rawCode.toUpperCase();
   if (code && SOCKET_TRANSPORT_CODES.has(code)) code = 'TRANSPORT';
+  if (code === 'STREAM_STALLED' || code === 'STALL_TIMEOUT' || code === 'INTER_TOKEN_STALL') code = 'TIMEOUT';
   const message = String(failure.message ?? failureOrPayload.message ?? '');
 
   // Treat numeric failure.code (e.g. code: "429") as HTTP status if status was not set (#545)

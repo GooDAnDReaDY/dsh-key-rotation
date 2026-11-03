@@ -26,6 +26,7 @@ import {
 
 import { LOCAL_POOL_EXHAUSTED_CODE, resolveKeyDirectly } from './resolver.js';
 import { recordStreamSuccessMetrics, preserveDispatchContext } from './stream-metrics.js';
+import { withStreamWatchdog, StreamStallError } from './stream-watchdog.js';
 import { penalizeKey } from './rotate-penalty.js';
 import { recordPromptCache } from './prompt-cache.js';
 import { recordRequestOutcome, recordFailureCategory } from './ops-analytics.js';
@@ -310,8 +311,33 @@ export function createRotate(deps) {
           }
 
           const _pickedRef = reqStore.pickedRef ?? pool.state.lastUsed;
+          let stallAbort = null;
+          if (typeof AbortController !== 'undefined') {
+            stallAbort = new AbortController();
+            if (budget?.signal) {
+              if (budget.signal.aborted) {
+                try { stallAbort.abort(budget.signal.reason); } catch {}
+              } else {
+                budget.signal.addEventListener('abort', () => {
+                  try { stallAbort?.abort(budget.signal.reason); } catch {}
+                }, { once: true });
+              }
+            }
+          }
+          const guardedStream = withStreamWatchdog(
+            preserveDispatchContext(inner, dispatchStorage, reqStore),
+            {
+              stallDetectionEnabled: pool.stallDetectionEnabled ?? runtime0.stallDetectionEnabled ?? true,
+              stallTimeoutMs: pool.stallTimeoutMs ?? runtime0.stallTimeoutMs ?? 15000,
+              stallInitialTimeoutMs: pool.stallInitialTimeoutMs ?? runtime0.stallInitialTimeoutMs ?? 30000,
+              abortController: stallAbort,
+              onStall: (err) => {
+                logWarn(`[dsh-key-rotation] ${options.provider}: key ${String(_pickedRef ?? '?')} stalled (${err.message})`);
+              },
+            }
+          );
           try {
-            for await (const chunk of preserveDispatchContext(inner, dispatchStorage, reqStore)) {
+            for await (const chunk of guardedStream) {
                 if (!reqStore.concurrencyRef && typeof concurrencyTracker?.acquire === 'function') {
                   const fallbackRef = reqStore.pickedRef ?? _pickedRef;
                   if (fallbackRef) {
@@ -434,33 +460,36 @@ export function createRotate(deps) {
             } catch (e) {
               const effectiveSwitchCodes = pool.switchCodes ?? switchCodes;
               const activeRef = _pickedRef ?? reqStore.pickedRef ?? pool.state.lastUsed ?? attemptList[attempt];
+              const isStall = e instanceof StreamStallError || e?.code === 'STREAM_STALLED' || e?.isStall;
               if (!yielded && isSwitchableError(e, effectiveSwitchCodes)) {
+                const failCode = isStall ? 'STREAM_STALLED' : (e?.code ?? 'TRANSPORT');
+                const catCode = isStall ? 'TIMEOUT' : failCode;
                 preTokenBuffer.length = 0; // Discard metadata from failed attempt (#527)
-                penalizeRef(activeRef, e?.code ?? 'TRANSPORT', String(e?.message ?? e), e?.headers ?? e?.response?.headers ?? pool.state.detectedLimits?.get?.(activeRef));
-                recordFailureCategory(pool, e?.code ?? 'TRANSPORT', String(e?.message ?? e), activeRef, now());
+                penalizeRef(activeRef, catCode, String(e?.message ?? e), e?.headers ?? e?.response?.headers ?? pool.state.detectedLimits?.get?.(activeRef));
+                recordFailureCategory(pool, catCode, String(e?.message ?? e), activeRef, now());
                 pool.state.switches = (pool.state.switches ?? 0) + 1;
-                pool.state.lastReason = String(e?.code ?? 'TRANSPORT');
+                pool.state.lastReason = failCode;
                 pool.state.lastSwitchAt = now();
-                lastFailure = finishError(e?.code ?? 'TRANSPORT', String(e?.message ?? e));
-                logWarn(`[dsh-key-rotation] ${options.provider}: key ${String(activeRef ?? '?')} stream threw before first token ${String(e?.code ?? e?.message ?? e)} - failover to next key`);
+                lastFailure = finishError(failCode, String(e?.message ?? e));
+                logWarn(`[dsh-key-rotation] ${options.provider}: key ${String(activeRef ?? '?')} stream threw before first token ${failCode} - failover to next key`);
                 if (switchNotify && activeRef) {
                   notifySwitch(runtime0, pool, {
                     provider: options.provider,
                     from: activeRef,
-                    code: String(e?.code ?? 'TRANSPORT'),
+                    code: failCode,
                     at: pool.state.lastSwitchAt,
                   });
                 }
                 continue; // Failover to next key!
               }
-              if (yielded && isSwitchableError(e, effectiveSwitchCodes)) {
-                penalizeRef(activeRef, e?.code ?? 'TRANSPORT', String(e?.message ?? e), e?.headers ?? e?.response?.headers ?? pool.state.detectedLimits?.get?.(activeRef));
+              if (yielded && (isStall || isSwitchableError(e, effectiveSwitchCodes))) {
+                penalizeRef(activeRef, isStall ? 'TIMEOUT' : (e?.code ?? 'TRANSPORT'), String(e?.message ?? e), e?.headers ?? e?.response?.headers ?? pool.state.detectedLimits?.get?.(activeRef));
               }
               if (!yielded) {
                 for (const prev of preTokenBuffer) yield prev;
                 preTokenBuffer.length = 0;
               }
-              yield finishError(e?.code ?? 'TRANSPORT', String(e?.message ?? e));
+              yield finishError(isStall ? 'STREAM_STALLED' : (e?.code ?? 'TRANSPORT'), String(e?.message ?? e));
               return;
             }
 

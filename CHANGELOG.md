@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.85 (2026-11-03)
+
+### Inter-Token Stall & Zombie Stream Detector (Block 12 Release)
+- **Watchdog Stream Protection (Issue #569)**: Added `withStreamWatchdog` and `StreamStallError` (`src/stream-watchdog.js`) to continuously monitor active token streams and protect against zombie HTTP connections and provider gateway hangs.
+- **Differentiated Reasoning & Inter-Token Timeouts**: Configurable `stallInitialTimeoutMs` (default: 30s) prevents false positives during initial reasoning generation for DeepSeek R1 and OpenAI o1/o3, while `stallTimeoutMs` (default: 15s) immediately aborts stalled streams when tokens stop arriving mid-response.
+- **Failover & Cooldown Integration (`src/rotate.js`)**: If a stall occurs before any token has yielded, the key is penalized and failover immediately rotates to the next available provider candidate. If a mid-stream stall occurs after partial output, the key is penalized and a structured `STREAM_STALLED` terminal chunk is delivered, keeping the conversation from hanging.
+- **Config & Taxonomy Support**: Added `stallDetectionEnabled`, `stallTimeoutMs`, and `stallInitialTimeoutMs` to Schemastery `SettingsSchema` and `PoolConfig` types, and integrated `STREAM_STALLED` into error taxonomy and 24-hour operations analytics as a recoverable `TIMEOUT`.
+
+## 0.8.84 (2026-10-31)
+
+### DSH 0.2.2 Cordis Service Isolation Compatibility (Hotfix Release)
+- **DSH 0.2.2 Strict Isolation (Issue #567, #568, GitHub #27)**: Resolved Cordis service access without explicit inject by introducing scoped inject guards for `webServer`, `settings`, and optional services across all HTTP routes, lifecycle hooks, and plugin updater.
+- **Zero-Breakage Backward Compatibility**: Retained full compatibility with DSH 0.2.1 and headless environments while ensuring strict adherence to Cordis 0.2.2+ isolation rules.
+
 ## 0.8.83 (2026-10-31)
 
 ### TypeScript Migration & Type-Safe Core Architecture (Block 11 Release)

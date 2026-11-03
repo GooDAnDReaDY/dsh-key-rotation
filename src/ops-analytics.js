@@ -18,7 +18,7 @@ export function classifyErrorCategory(code, message = '') {
   if (/^5\d\d$/.test(c) || c === 'SERVER' || c === 'BAD_GATEWAY' || c === 'SERVICE_UNAVAILABLE' || m.includes('internal server error')) {
     return 'server';
   }
-  if (c.includes('TIMEOUT') || c === 'ETIMEDOUT' || c === 'ESOCKETTIMEDOUT' || m.includes('timeout') || m.includes('timed out')) {
+  if (c.includes('TIMEOUT') || c.includes('STALL') || c === 'ETIMEDOUT' || c === 'ESOCKETTIMEDOUT' || m.includes('timeout') || m.includes('timed out') || m.includes('stalled')) {
     return 'timeout';
   }
   if (c === 'QUOTA' || c === '402' || c.includes('QUOTA') || m.includes('quota') || m.includes('credit') || m.includes('insufficient_quota')) {
