@@ -12,6 +12,7 @@ import { bucketAllow, bucketRetryMs, tpmAllow, tpmRetryMs } from './bucket.js';
 import { envValue, sortAttemptList, isKeyPaused, isKeyRevoked, isKeyBroken, costForDay, costForWeek, budgetVerdict, getSessionSticky, setSessionSticky } from './pool.js';
 import { decryptSecret } from './crypto-storage.js';
 import { applyPreemptiveYield } from './preemptive-yield.js';
+import { extractPromptPrefixKey, applyCacheAffinity } from './cache-affinity.js';
 import { resolveRefPool, isQuotaManagedRequest, providerOfBase, basePoolForBase } from './pool-index.js';
 import {
   isModelQuotaAvailable,
@@ -132,6 +133,11 @@ export function createResolver({
         sessionSticky: sessionId ? getSessionSticky(pool, sessionId) : null,
         lastUsed: pool.state.lastUsed,
       });
+    }
+    // Issue #573: Cache-Affinity Router
+    const cacheKey = extractPromptPrefixKey(resolveOpts, pool.cacheAffinityPrefixChars);
+    if (cacheKey) {
+      list = applyCacheAffinity(list, pool, { cacheKey, now: Date.now() });
     }
     // Issue #571: Pre-emptive Token & Request Yield before 429
     list = applyPreemptiveYield(list, pool, { now: Date.now() });

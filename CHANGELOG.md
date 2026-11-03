@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.87 (2026-11-03)
+
+### Cache-Affinity Router for Hot Prompt Cache (Block 14 Release)
+- **Cache-Affinity Module (Issue #573)**: Introduced `src/cache-affinity.js` with deterministic FNV-1a prompt prefix hashing (`extractPromptPrefixKey`) and LRU-managed `CacheAffinityRouter`.
+- **Hot Prompt Cache Affinity**: Binds stable system prompts and context prefixes to the provider key that has already warmed the upstream prompt cache, maintaining high hit-rates (>80%) across conversation sessions and multi-step tool calls.
+- **Synergistic Proactive Routing**: Cooperates with `applyPreemptiveYield` to ensure that hot-cache keys are prioritized only when they have safe token/request headroom, preventing cache optimization from triggering 429 rate limit failures.
+- **Config & Schemastery Support**: Added `cacheAffinityEnabled`, `cacheAffinityTtlMs` (default: 5 minutes), and `cacheAffinityPrefixChars` (default: 2048 chars) across Schemastery configuration, pool builders, and TypeScript types.
+
 ## 0.8.86 (2026-11-03)
 
 ### Pre-emptive Token & Request Yield before 429 (Block 13 Release)

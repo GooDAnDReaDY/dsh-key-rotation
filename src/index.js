@@ -143,6 +143,9 @@ const SettingsSchema = Schema.object({
   preemptiveRotationEnabled: Schema.boolean().default(true),
   preemptiveSafetyMarginTokens: Schema.number().default(4000),
   preemptiveSafetyMarginRequests: Schema.number().default(2),
+  cacheAffinityEnabled: Schema.boolean().default(true),
+  cacheAffinityTtlMs: Schema.number().default(300000),
+  cacheAffinityPrefixChars: Schema.number().default(2048),
   providers: Schema.array(Schema.object({
     provider: Schema.string().required(),
     keys: Schema.array(Schema.string()).default([]),
@@ -178,6 +181,9 @@ const SettingsSchema = Schema.object({
     preemptiveRotationEnabled: Schema.boolean(),
     preemptiveSafetyMarginTokens: Schema.number(),
     preemptiveSafetyMarginRequests: Schema.number(),
+    cacheAffinityEnabled: Schema.boolean(),
+    cacheAffinityTtlMs: Schema.number(),
+    cacheAffinityPrefixChars: Schema.number(),
   })).default([...DEFAULT_PROVIDERS]),
 });
 

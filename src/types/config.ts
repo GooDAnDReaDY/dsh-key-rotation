@@ -40,6 +40,9 @@ export interface PoolConfig {
   preemptiveRotationEnabled?: boolean;
   preemptiveSafetyMarginTokens?: number;
   preemptiveSafetyMarginRequests?: number;
+  cacheAffinityEnabled?: boolean;
+  cacheAffinityTtlMs?: number;
+  cacheAffinityPrefixChars?: number;
 }
 
 export interface PluginConfig {
@@ -60,5 +63,8 @@ export interface PluginConfig {
   preemptiveRotationEnabled?: boolean;
   preemptiveSafetyMarginTokens?: number;
   preemptiveSafetyMarginRequests?: number;
+  cacheAffinityEnabled?: boolean;
+  cacheAffinityTtlMs?: number;
+  cacheAffinityPrefixChars?: number;
   [key: string]: unknown;
 }

@@ -28,6 +28,7 @@ import { LOCAL_POOL_EXHAUSTED_CODE, resolveKeyDirectly } from './resolver.js';
 import { recordStreamSuccessMetrics, preserveDispatchContext } from './stream-metrics.js';
 import { withStreamWatchdog, StreamStallError } from './stream-watchdog.js';
 import { applyPreemptiveYield } from './preemptive-yield.js';
+import { extractPromptPrefixKey, applyCacheAffinity } from './cache-affinity.js';
 import { penalizeKey } from './rotate-penalty.js';
 import { recordPromptCache } from './prompt-cache.js';
 import { recordRequestOutcome, recordFailureCategory } from './ops-analytics.js';
@@ -109,7 +110,8 @@ export function createRotate(deps) {
       const breaker = runtime0.circuitBreakerEnabled === false ? null : circuitBreaker;
       let activePermit = null;
       const sessionId = options?.sessionId ?? options?.session ?? options?.metadata?.sessionId ?? options?.chatId ?? options?.conversationId;
-      const reqStore = { pool, pickedRef: undefined, concurrencyRef: undefined, startMs: now(), sessionId, model: options.model };
+      const cacheKey = extractPromptPrefixKey(options, pool.cacheAffinityPrefixChars);
+      const reqStore = { pool, pickedRef: undefined, concurrencyRef: undefined, startMs: now(), sessionId, model: options.model, cacheKey };
       setRotateStartMs(reqStore.startMs);
       const wallNow = Date.now();
       const quotaManaged = hasModelQuotaConfig(pool);
@@ -202,6 +204,11 @@ export function createRotate(deps) {
           if (i > 0) { list.splice(i, 1); list.unshift(preferred); }
           attemptList = list;
         }
+      }
+
+      // Issue #573: Cache-Affinity Router
+      if (reqStore.cacheKey) {
+        attemptList = applyCacheAffinity(attemptList, pool, { cacheKey: reqStore.cacheKey, now: wallNow, trace, pushEvent });
       }
 
       // Issue #571: Pre-emptive Token & Request Yield before 429
@@ -448,6 +455,7 @@ export function createRotate(deps) {
                       rawHdrs,
                       pushEvent,
                       quotaStore,
+                      cacheKey: reqStore?.cacheKey,
                     });
                   }
                   recordLatency(pool, reqStore);
