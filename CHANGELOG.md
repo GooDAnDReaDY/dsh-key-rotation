@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.89 (2026-11-03)
+
+### Interactive Header Chip UI & In-Chat Key Controls (Block 16 Release)
+- **Interactive Header Chip Component (Issue #577)**: Enhanced `KeyRotationHeaderChip` (`lib/client-src/60-header-chip.js`) into a rich, interactive control center directly in the DeepSeek Harness chat header.
+- **In-Chat Key Pinning & Selection**: Added instant dropdown selection to pin (`pinnedRef`) any key in the pool or restore `Auto (Round-robin)` rotation without opening the full settings page.
+- **Prompt Cache & Health Badges**: Displays live prompt cache hit counters (`⚡ {promptCacheHits}`) and active/pinned key tails (`...tail`) with real-time health indicator status.
+- **Quick-Action API Pinning Support**: Extended `/dsh-key-rotation/quick-action` route with `action: 'pin'` and audit event emission (`KEY_PINNED` / `KEY_UNPINNED`).
+- **Detailed Health Endpoint**: Enriched `/dsh-key-rotation/health` to expose pool key manifests, individual key statuses (`active`, `pinned`, `paused`, `cooling`), and prompt cache hit statistics.
+
 ## 0.8.88 (2026-11-03)
 
 ### Subagent Concurrency Partitions & Task Isolation (Block 15 Release)
