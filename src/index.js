@@ -140,6 +140,9 @@ const SettingsSchema = Schema.object({
   stallDetectionEnabled: Schema.boolean().default(true),
   stallTimeoutMs: Schema.number().default(15000),
   stallInitialTimeoutMs: Schema.number().default(30000),
+  preemptiveRotationEnabled: Schema.boolean().default(true),
+  preemptiveSafetyMarginTokens: Schema.number().default(4000),
+  preemptiveSafetyMarginRequests: Schema.number().default(2),
   providers: Schema.array(Schema.object({
     provider: Schema.string().required(),
     keys: Schema.array(Schema.string()).default([]),
@@ -172,6 +175,9 @@ const SettingsSchema = Schema.object({
     stallDetectionEnabled: Schema.boolean(),
     stallTimeoutMs: Schema.number(),
     stallInitialTimeoutMs: Schema.number(),
+    preemptiveRotationEnabled: Schema.boolean(),
+    preemptiveSafetyMarginTokens: Schema.number(),
+    preemptiveSafetyMarginRequests: Schema.number(),
   })).default([...DEFAULT_PROVIDERS]),
 });
 

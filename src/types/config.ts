@@ -37,6 +37,9 @@ export interface PoolConfig {
   stallDetectionEnabled?: boolean;
   stallTimeoutMs?: number;
   stallInitialTimeoutMs?: number;
+  preemptiveRotationEnabled?: boolean;
+  preemptiveSafetyMarginTokens?: number;
+  preemptiveSafetyMarginRequests?: number;
 }
 
 export interface PluginConfig {
@@ -54,5 +57,8 @@ export interface PluginConfig {
   stallDetectionEnabled?: boolean;
   stallTimeoutMs?: number;
   stallInitialTimeoutMs?: number;
+  preemptiveRotationEnabled?: boolean;
+  preemptiveSafetyMarginTokens?: number;
+  preemptiveSafetyMarginRequests?: number;
   [key: string]: unknown;
 }

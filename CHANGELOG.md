@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.86 (2026-11-03)
+
+### Pre-emptive Token & Request Yield before 429 (Block 13 Release)
+- **Pre-emptive Yield Module (Issue #571)**: Introduced `src/preemptive-yield.js` to evaluate active token and request headroom across provider keys using upstream `x-ratelimit-remaining-tokens`, `x-ratelimit-remaining-requests`, and reset window headers (`x-ratelimit-reset-tokens`).
+- **Zero-Round-Trip Proactive Rotation**: Keys with low token balance (`< preemptiveSafetyMarginTokens`, default: 4000) or low request count (`<= preemptiveSafetyMarginRequests`, default: 2) yield execution priority to candidate keys with ample quota before any HTTP `429 Too Many Requests` or `insufficient_quota` failure occurs.
+- **Graceful Degradation & Reset Recovery**: When upstream reset windows expire, capacity automatically restores to full priority. If all candidate keys in a pool are running on low quota, requests proceed using the key with highest remaining tokens or soonest reset time, avoiding false exhaustion.
+- **Config & Schemastery Support**: Added `preemptiveRotationEnabled`, `preemptiveSafetyMarginTokens`, and `preemptiveSafetyMarginRequests` across Schemastery configuration, pool builders, and TypeScript types.
+
 ## 0.8.85 (2026-11-03)
 
 ### Inter-Token Stall & Zombie Stream Detector (Block 12 Release)
