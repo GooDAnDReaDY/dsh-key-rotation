@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.91 (2026-11-05)
+
+### Configurable Chat Header Indicator Visibility & Immediate UI Reactivity
+- **Configurable Header Chip Visibility (Issue #585)**: Added `showChatHeaderChip` setting in `lib/index.js` (default `true`) allowing users to show or hide the conversation header rotation status chip (`rot`) on demand.
+- **Dedicated Interface & Display Section**: Moved header chip visibility control into a prominent, dedicated card section (`Interface & Display` / `界面与显示` / `Отображение в интерфейсе`) placed at the top of the plugin settings card.
+- **Immediate Reactive Sync & Flicker-Free Local Cache**: Integrated deep reactive subscription to plugin settings service so toggling `showChatHeaderChip` immediately updates in the open chat header without requiring application restart. Added `localStorage` caching (`dsh_krot_show_header_chip`) to prevent layout shift (FOUC) on cold mount.
+- **Source Code Modularity**: Separated error boundary and switch codes to `lib/client-src/13-error-boundary.js`, maintaining all client source fragments strictly under the 600-line limit while retaining zero runtime dependencies and a compact client bundle under 214 KiB.
+
 ## 0.8.90 (2026-11-05)
 
 ### Security Hardening, Error Diagnostics & Client Architecture Polish

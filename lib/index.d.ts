@@ -27,6 +27,19 @@ interface PoolConfig {
   modelQuotas?: Record<string, Record<string, ModelQuotaConfig>>;
   priority?: number;
   disabled?: boolean;
+  stallDetectionEnabled?: boolean;
+  stallTimeoutMs?: number;
+  stallInitialTimeoutMs?: number;
+  preemptiveRotationEnabled?: boolean;
+  preemptiveSafetyMarginTokens?: number;
+  preemptiveSafetyMarginRequests?: number;
+  cacheAffinityEnabled?: boolean;
+  cacheAffinityTtlMs?: number;
+  cacheAffinityPrefixChars?: number;
+  subagentPartitionsEnabled?: boolean;
+  subagentReservedKeysCount?: number;
+  subagentPartitionStrategy?: 'shared-burst' | 'isolated';
+  subagentMaxConcurrencyPerKey?: number;
 }
 interface PluginConfig {
   pools?: PoolConfig[];
@@ -40,6 +53,19 @@ interface PluginConfig {
   webhookEvents?: string[];
   trafficSmoothing?: boolean;
   maxConcurrentRequestsPerKey?: number;
+  stallDetectionEnabled?: boolean;
+  stallTimeoutMs?: number;
+  stallInitialTimeoutMs?: number;
+  preemptiveRotationEnabled?: boolean;
+  preemptiveSafetyMarginTokens?: number;
+  preemptiveSafetyMarginRequests?: number;
+  cacheAffinityEnabled?: boolean;
+  cacheAffinityTtlMs?: number;
+  cacheAffinityPrefixChars?: number;
+  subagentPartitionsEnabled?: boolean;
+  subagentReservedKeysCount?: number;
+  subagentPartitionStrategy?: 'shared-burst' | 'isolated';
+  subagentMaxConcurrencyPerKey?: number;
   [key: string]: unknown;
 }
 type KeyStatus = 'healthy' | 'cooling' | 'exhausted' | 'disabled' | 'retesting';
