@@ -27,9 +27,9 @@ export async function atomicWriteFile(filePath, data) {
     await fs.rename(tmp, filePath);
   } catch (err) {
     if (fh) {
-      try { await fh.close(); } catch {}
+      try { await fh.close(); } catch (err) { void err; }
     }
-    try { await fs.unlink(tmp); } catch {}
+    try { await fs.unlink(tmp); } catch (err) { void err; }
     throw err;
   }
 }
@@ -59,7 +59,7 @@ export async function cleanupStaleTmpFiles(filePath, maxAgeMs = 3600000) {
             await fs.unlink(fullPath);
             cleaned++;
           }
-        } catch {}
+        } catch (err) { void err; }
       }
     }
     return cleaned;

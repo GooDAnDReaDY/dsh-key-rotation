@@ -211,7 +211,7 @@ export class StatePersistence {
       this._lastWrite = this._nowSafe();
       try {
         await fs.promises.writeFile(this.journalPath, '', 'utf-8');
-      } catch {}
+      } catch (err) { void err; }
       return true;
     } catch {
       this._dirty = true;
@@ -236,10 +236,10 @@ export class StatePersistence {
         for (const line of lines) {
           const trimmed = line.trim();
           if (trimmed) {
-            try { this.replayEvent(raw, JSON.parse(trimmed)); } catch {}
+            try { this.replayEvent(raw, JSON.parse(trimmed)); } catch (err) { void err; }
           }
         }
-      } catch {}
+      } catch (err) { void err; }
     }
 
     return raw;

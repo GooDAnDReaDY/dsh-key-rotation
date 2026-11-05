@@ -264,4 +264,3 @@ export class KeyStateMachine {
   }
 }
 
-export const defaultKeyStateMachine = new KeyStateMachine();

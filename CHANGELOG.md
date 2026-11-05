@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.90 (2026-11-05)
+
+### Security Hardening, Error Diagnostics & Client Architecture Polish
+- **Fail-Closed Credential Decryption (Issue #579)**: Switched resolver credential lookup to `decryptSecretFailClosed`. Corrupted encrypted keys (`enc:v1:...`) or invalid `DSH_KEY_SECRET` will now quarantine the key into `brokenUntil` and immediately rotate to healthy credentials, completely preventing unencrypted ciphertext leakage to upstream AI providers.
+- **Diagnostics & Clean Error Handling (Issue #580)**: Replaced blind empty `catch {}` blocks across persistence, watchdog, atomic I/O, and routes with explicit error handlers and safe debug diagnostics, achieving `FAIL=0` on `dsh-plugin-preflight`.
+- **Client Source Modularization (Issue #581)**: Decomposed `lib/client-src/50-card-main.js` into modular fragments (`50-card-main.js` and `51-card-tests-and-sync.js`), strictly enforcing the `< 600` line threshold across all UI source files while keeping the client bundle well under the 256 KiB limit (210,679 bytes).
+- **Dead Code Cleanup (Issue #582)**: Removed unused `defaultKeyStateMachine` export from `src/core/state-machine.js`.
+
 ## 0.8.89 (2026-11-03)
 
 ### Interactive Header Chip UI & In-Chat Key Controls (Block 16 Release)
