@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.92 (2026-11-06)
+
+### Audit Hardening, Safe Storage Access & Contract Sync
+- **Safe Storage Access in Header Chip (Issue #587)**: Replaced blind `catch` blocks around `localStorage` with `bestEffort('header-chip.storage.get')` and `bestEffort('header-chip.storage.set')` in `KeyRotationHeaderChip` (`lib/client-src/60-header-chip.js`), safely handling sandboxed iframe restrictions while achieving `FAIL=0` in `dsh-plugin-preflight`.
+- **Auxiliary Cryptographic & Network Dispatcher Review (Issue #588)**: Documented `decryptConfig` (synchronous offline/test derivation helper) and `createSafeDispatcher` (custom Undici connect-time lookup factory) in `docs/design/DESIGN.md`, defining their architectural role and relationship to async production runtime handlers.
+- **Route Policy Contract Alignment (Issue #589)**: Fully synchronized the Route Policy table in `docs/design/DESIGN.md` with all 24 production endpoints from `lib/routes/paths.js`, documenting methods, loopback authorization requirements, and fail-closed security constraints for Blocks 11–16 features.
+
 ## 0.8.91 (2026-11-05)
 
 ### Configurable Chat Header Indicator Visibility & Immediate UI Reactivity

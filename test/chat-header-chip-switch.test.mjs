@@ -65,3 +65,8 @@ test('client.js KeyRotationHeaderChip implements localStorage flash-free cache (
 test('client.js registers { en, zh } dictionaries in ctx.locale (#585)', () => {
   assert.match(clientSrc, /ctx\.locale\.register\(NS,\s*\{\s*en,\s*zh\s*\}\)/);
 });
+
+test('client.js KeyRotationHeaderChip wraps localStorage with bestEffort (#587)', () => {
+  assert.match(clientSrc, /bestEffort\(['"]header-chip\.storage\.get['"]/);
+  assert.match(clientSrc, /bestEffort\(['"]header-chip\.storage\.set['"]/);
+});

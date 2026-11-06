@@ -220,6 +220,16 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
   - `lib/plugin-updater.js` `installExact()` validates `packageSpec` against `PACKAGE_SPEC_PATTERN` (`^(@[a-z0-9~][a-z0-9_.~-]*\/)?[a-z0-9~][a-z0-9_.~-]*(@[0-9a-zA-Z_.~+-]+)?$`) before spawning CLI commands.
 
 
+## Вспомогательные утилиты и безопасность (Helper Utilities & SDK)
+
+В составе модулей `lib/` реализованы специализированные утилиты криптографии и безопасного сетевого взаимодействия:
+- **`decryptConfig` / `decryptConfigAsync` (`lib/routes/config.js`)**:
+  - `decryptConfigAsync` — основной неблокирующий асинхронный метод расшифровки JSON-конфигурации для рантайма HTTP-роутов (`/dsh-key-rotation/config-import`).
+  - `decryptConfig` — синхронный деривационный хелпер (`pbkdf2Sync`) для независимой оффлайн-валидации, CLI-инструментов миграции и модульного тестирования криптографической схемы.
+- **`createSafeDispatcher` / `createSafeLookup` (`lib/safe-fetch.js`)**:
+  - `createSafeLookup` — DNS-валидатор IP-адресов при сокетном подключении, защищающий рантайм от SSRF и TOCTOU DNS-rebinding атак.
+  - `createSafeDispatcher` — фабрика кастомного коннектора для внешних диспетчеров (например, Undici), гарантирующая безопасное разрешение доменов при расширенной интеграции.
+
 ## Политика маршрутов (Route Policy)
 
 Все внешние и внутренние HTTP-маршруты плагина строго регламентированы: любой запрос с неразрешённым методом отклоняется со статусом `405 Method Not Allowed`, а чувствительные операции требуют валидации источника (`isTrustedBridgeRequest` fail-closed) либо авторизационного Bearer-токена.
@@ -241,6 +251,16 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 | `/dsh-key-rotation/test-matrix` | GET, POST | `isTrustedBridgeRequest` (Origin match loopback) | Параллельный тест всех ключей пулов (конкарренси 5) | 403 / 405 |
 | `/dsh-key-rotation/discover` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Сканирование ~/.dsh/.credentials.yaml и env | 403 / 405 |
 | `/dsh-key-rotation/auto-import` | POST | `isTrustedBridgeRequest` (Origin match loopback) | 1-click импорт нераспределённых ключей в пулы | 403 / 405 |
+| `/dsh-key-rotation/quick-action` | POST | `isTrustedBridgeRequest` (Origin match loopback) | Быстрые действия в чате (pin, pause, reset, skip) | 403 / 405 |
+| `/dsh-key-rotation/export` | GET, POST | `isTrustedBridgeRequest` (Origin match loopback) | Экспорт зашифрованной/открытой конфигурации | 403 / 405 |
+| `/dsh-key-rotation/config-import` | POST | `isTrustedBridgeRequest` (Origin match loopback) | Импорт и расшифровка конфигурации с валидацией | 403 / 405 |
+| `/dsh-key-rotation/balance` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Телеметрия нагрузки, RPM/TPM и квоты | 403 / 405 |
+| `/dsh-key-rotation/preset-limits` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Предустановленные лимиты известных моделей | 403 / 405 |
+| `/dsh-key-rotation/drain` | POST | `isTrustedBridgeRequest` (Origin match loopback) | Плавный вывод ключа из ротации без сброса активных сессий | 403 / 405 |
+| `/dsh-key-rotation/simulate` | POST | `isTrustedBridgeRequest` (Origin match loopback) | Симуляция маршрутизации и отказоустойчивости | 403 / 405 |
+| `/dsh-key-rotation/trace` | GET, DELETE | `isTrustedBridgeRequest` (Origin match loopback) | Чтение и очистка трейсов выбора ключей | 403 / 405 |
+| `/dsh-key-rotation/diag` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Комплексная системная диагностика рантайма | 403 / 405 |
+| `/dsh-key-rotation/metrics` | GET | `isTrustedBridgeRequest` (Origin match loopback) | Экспорт метрик производительности и задержек | 403 / 405 |
 
 ## Что публикуется (What is Published)
 
@@ -258,4 +278,4 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 - `test/**`, `tools/**`: тесты и проверочные скрипты не включаются в тарболл пакета.
 - `.worktrees/**`, `.git/**`: служебные файлы версионирования.
 
-*Дата последней проверки состава и целостности:* 2026-09-27.
+*Дата последней проверки состава и целостности:* 2026-11-06.
