@@ -201,7 +201,7 @@ const SettingsSchema = Schema.object({
 // New settings derives editable forms from volatile entry Config fields. Keep
 // initialization-only persistence options ordinary (restart-bound) and retain a
 // plain schema for old namespace registration. Older schemastery has no volatile.
-export const Config = typeof Schema.number().volatile === 'function'
+export const Config: Schema<any> = typeof Schema.number().volatile === 'function'
   ? Schema.object(Object.fromEntries(Object.entries(SettingsSchema.dict || {}).map(([name, field]) => [
     name, ['persistenceEnabled', 'persistencePath'].includes(name) ? field : field.volatile(),
   ])))

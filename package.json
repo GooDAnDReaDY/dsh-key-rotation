@@ -1,6 +1,6 @@
 {
   "name": "@goodandready/dsh-key-rotation",
-  "version": "0.8.92",
+  "version": "0.8.93",
   "packageManager": "pnpm@10.33.2",
   "description": "Per-provider API key rotation for DeepSeek Harness: a key pool per provider, auto-created clone routes, and switching to the next key on quota/rate-limit errors. Includes a Settings section (Key Rotation) to edit the key pools, cooldown and switch codes.",
   "keywords": [
@@ -37,6 +37,7 @@
   },
   "files": [
     "lib/**/*.js",
+    "lib/**/*.d.ts",
     "lib/*.js",
     "cordis.patch.yml",
     "README.md",
@@ -74,7 +75,7 @@
     "build:client": "node scripts/build-client.mjs",
     "pretest": "node scripts/build-client.mjs",
     "typecheck": "tsc --noEmit",
-    "build:server": "tsdown",
+    "build:server": "tsdown && rm -f lib/index.mjs",
     "build": "npm run build:server && npm run build:client"
   },
   "devDependencies": {
