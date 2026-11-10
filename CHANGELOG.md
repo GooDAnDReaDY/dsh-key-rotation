@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.94 (2026-11-10)
+
+### Reproducible Installation, Package Size Optimization & Single Source of Truth
+- **Reproducible Dependency Resolution (Issue #594)**: Synchronized `pnpm-lock.yaml` with all declared `devDependencies` under `pnpm@10.33.2`, enabling deterministic `pnpm install --frozen-lockfile` and clean, green preflight validation from fresh clones.
+- **Single Source of Truth & Clean Types Boundary (Issue #595)**: Removed redundant byte-for-byte duplicate `.js` files and duplicate `src/index.ts` from `src/`. Established `lib/` as the single canonical source of truth for runtime code, while retaining `src/types/` for `tsdown` type declaration bundling and aligning `tsconfig.json` exclusively to active types.
+- **NPM Package Boundary Optimization (Issue #596)**: Added `!lib/client-src/**` exclusion pattern to `package.json` `files` field. Unused client source fragments are no longer packaged into npm releases, reducing the package file count from 118 to 105 and shaving 216 KB off unpacked installation size.
+
 ## 0.8.93 (2026-11-09)
 
 ### TypeScript Portable Declarations & Typecheck Integrity
