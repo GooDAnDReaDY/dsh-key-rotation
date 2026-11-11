@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   encryptConfig,
-  decryptConfig,
+  decryptConfigAsync,
   maskConfig,
   diffConfigs,
   registerConfigIoRoutes,
@@ -11,7 +11,7 @@ import { registerQuickActionRoutes } from '../lib/ops-quick-action.js';
 import { registerStatusRoutes } from '../lib/ops-status.js';
 import { CONFIG_EXPORT_PATH, CONFIG_IMPORT_PATH, QUICK_ACTION_PATH, HEALTH_PATH } from '../lib/ops-paths.js';
 
-test('encryptConfig & decryptConfig: AES-256-GCM roundtrip with PBKDF2', () => {
+test('encryptConfig & decryptConfigAsync: AES-256-GCM roundtrip with PBKDF2', async () => {
   const plain = JSON.stringify({ providers: [{ provider: 'deepseek', keys: ['sk-live-1234567890abcdef'] }] });
   const passphrase = 'MySuperSecretMasterKey123!';
 
@@ -23,12 +23,12 @@ test('encryptConfig & decryptConfig: AES-256-GCM roundtrip with PBKDF2', () => {
   assert.ok(encrypted.tag);
   assert.ok(encrypted.ciphertext);
 
-  const decrypted = decryptConfig(encrypted, passphrase);
+  const decrypted = await decryptConfigAsync(encrypted, passphrase);
   assert.equal(decrypted, plain);
 
-  // Wrong passphrase must throw
-  assert.throws(() => {
-    decryptConfig(encrypted, 'WrongPassphrase');
+  // Wrong passphrase must reject
+  await assert.rejects(async () => {
+    await decryptConfigAsync(encrypted, 'WrongPassphrase');
   });
 });
 
@@ -159,7 +159,7 @@ test('Route CONFIG_EXPORT_PATH: exports masked, unmasked, and encrypted configur
   assert.equal(resData.encrypted, true);
   assert.ok(resData.ciphertext);
 
-  const decrypted = JSON.parse(decryptConfig(resData, 'SecretPass123'));
+  const decrypted = JSON.parse(await decryptConfigAsync(resData, 'SecretPass123'));
   assert.equal(decrypted.providers[0].keys[0], 'sk-deepseek-1234567890abcdef');
 });
 

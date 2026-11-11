@@ -11,6 +11,7 @@ import { atomicWriteFile } from '../lib/atomic-io.js';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const srcDir = path.join(root, 'lib', 'client-src');
 const outFile = path.join(root, 'lib', 'client.js');
+const WARN_BUNDLE_BYTES = 256000; // 250 KiB practical warning threshold (#599)
 const MAX_BUNDLE_BYTES = 262144; // 256 KiB DSH Store limit
 
 const isCheck = process.argv.includes('--check');
@@ -64,6 +65,10 @@ await atomicWriteFile(outFile, bundle);
 const st = await stat(outFile);
 
 console.log(`built lib/client.js from ${files.length} JSX/JS fragments (${st.size} bytes) via esbuild`);
+
+if (st.size >= WARN_BUNDLE_BYTES && st.size <= MAX_BUNDLE_BYTES) {
+  console.warn(`[build-client] WARN: lib/client.js (${st.size} bytes) is approaching DSH limit (${MAX_BUNDLE_BYTES} bytes)!`);
+}
 
 if (st.size > MAX_BUNDLE_BYTES) {
   console.error(`[build-client] ERROR: lib/client.js (${st.size} bytes) exceeds DSH limit (${MAX_BUNDLE_BYTES} bytes)!`);

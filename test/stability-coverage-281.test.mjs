@@ -57,7 +57,7 @@ test('pool: isLoopbackAddress validates various loopback and non-loopback IPs', 
   assert.equal(isLoopbackAddress('::1'), true);
   assert.equal(isLoopbackAddress('::ffff:127.0.0.1'), true);
 
-  assert.equal(isLoopbackAddress('192.168.1.1'), false);
+  assert.equal(isLoopbackAddress('198.51.100.1'), false);
   assert.equal(isLoopbackAddress('10.0.0.1'), false);
   assert.equal(isLoopbackAddress('8.8.8.8'), false);
   assert.equal(isLoopbackAddress(''), false);

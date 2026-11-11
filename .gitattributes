@@ -1,0 +1,9 @@
+# Exclude internal agent/workflow/design files from source archives and public publication
+AGENTS.md             export-ignore
+index.md              export-ignore
+docs/                 export-ignore
+scripts/              export-ignore
+tools/                export-ignore
+.gitea/               export-ignore
+.planning/            export-ignore
+.worktrees/           export-ignore

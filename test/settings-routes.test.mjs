@@ -116,7 +116,7 @@ test('bounded body reader rejects an oversized or interrupted request', async ()
 
 test('loopback origin validation accepts bracketed IPv6 and rejects cross-site/non-loopback', () => {
   assert.equal(isTrustedBridgeRequest({ socket: { remoteAddress: '::1' }, headers: { host: '[::1]:3000', origin: 'http://[::1]:3000' } }), true);
-  for (const ip of ['127.example.test', '127.999.0.1', '127.', '192.168.1.1']) assert.equal(isLoopbackAddress(ip), false);
+  for (const ip of ['127.example.test', '127.999.0.1', '127.', '198.51.100.1']) assert.equal(isLoopbackAddress(ip), false);
   assert.equal(isTrustedBridgeRequest({ socket: { remoteAddress: '127.0.0.1' }, headers: { host: 'localhost:3000', origin: 'http://localhost:3000', 'sec-fetch-site': 'cross-site' } }), false);
 });
 

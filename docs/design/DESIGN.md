@@ -223,12 +223,12 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 ## Вспомогательные утилиты и безопасность (Helper Utilities & SDK)
 
 В составе модулей `lib/` реализованы специализированные утилиты криптографии и безопасного сетевого взаимодействия:
-- **`decryptConfig` / `decryptConfigAsync` (`lib/routes/config.js`)**:
-  - `decryptConfigAsync` — основной неблокирующий асинхронный метод расшифровки JSON-конфигурации для рантайма HTTP-роутов (`/dsh-key-rotation/config-import`).
-  - `decryptConfig` — синхронный деривационный хелпер (`pbkdf2Sync`) для независимой оффлайн-валидации, CLI-инструментов миграции и модульного тестирования криптографической схемы.
-- **`createSafeDispatcher` / `createSafeLookup` (`lib/safe-fetch.js`)**:
+- **`decryptConfigAsync` (`lib/routes/config.js`)** *(обновлено 2026-11-11, #600)*:
+  - Основной неблокирующий асинхронный метод расшифровки JSON-конфигурации для рантайма HTTP-роутов (`/dsh-key-rotation/config-import`) и тестов.
+  - *Removed (2026-11-11, #600)*: синхронный `decryptConfig` (`pbkdf2Sync`, блокирующий event loop до 200k итераций) удалён как неиспользуемый в продакшн-рантайме (отдельного CLI у плагина нет); тесты переведены на реальный путь `decryptConfigAsync`.
+- **`createSafeDispatcher` / `createSafeLookup` (`lib/safe-fetch.js`)** *(обновлено 2026-11-11, #600)*:
   - `createSafeLookup` — DNS-валидатор IP-адресов при сокетном подключении, защищающий рантайм от SSRF и TOCTOU DNS-rebinding атак.
-  - `createSafeDispatcher` — фабрика кастомного коннектора для внешних диспетчеров (например, Undici), гарантирующая безопасное разрешение доменов при расширенной интеграции.
+  - `createSafeDispatcher` — фабрика безопасного диспетчера/коннектора; подключена в продакшн-путь `safeFetchJson` (по умолчанию конструирует `{ connect: { lookup } }` при отсутствии пользовательского `dispatcher`).
 
 ## Политика маршрутов (Route Policy)
 
@@ -273,9 +273,12 @@ Durations (cooldown remaining, breaker open window) use `nowMono()` = `performan
 - `CHANGELOG.md`: хронологический журнал релизов и изменений.
 - `LICENSE`: лицензия MIT © GooDAnDReaDY.
 
-### Исключения (не публикуются в npm и GitHub mirror)
-- `docs/**`: внутренняя проектная документация, спецификации (`docs/superpowers/`), планы и заметки деплоя остаются только в приватном Gitea-репозитории.
-- `test/**`, `tools/**`: тесты и проверочные скрипты не включаются в тарболл пакета.
-- `.worktrees/**`, `.git/**`: служебные файлы версионирования.
+### Исключения и правила упаковки (Gitea vs GitHub vs npm) *(актуализировано 2026-11-11, #598, #599)*
+- `AGENTS.md`, `index.md`, `docs/**` (`docs/design/DESIGN.md`, `docs/superpowers/**`, `docs/plans/`): отслеживаются и хранятся в Gitea-репозитории, но **не публикуются** ни в npm (`package.json.files`), ни в публичное GitHub-дерево (`.gitattributes` с `export-ignore` и `./scripts/publish-github.sh`).
+- `lib/client-src/**`, `test/**`, `tools/**`, `scripts/**`, `.worktrees/**`: не включаются в npm-пакет (`!lib/client-src/**`) и в обезличенное зеркало GitHub.
+- **Контроль размера бандла (`lib/client.js`) и чистоты checkout (#599)**:
+  - `lib/client.js` составляет ~213 685 байт (~81.5% от жёсткого лимита DSH Store в `262 144` байт / 256 KiB; порог `WARN` — `256 000` байт). При приближении к 250 KiB необходимо дробление/оптимизация клиентских ресурсов.
+  - Релизная упаковка разрешена **только вне рабочего дерева** (`npm pack --pack-destination /tmp`). Наличие любых `*.tgz` в корне репозитория и превышение лимита `262 144` байт автоматически блокируются скриптом `scripts/pack-check.mjs` (подключён в `npm test` и `npm run pack:check`).
+- **Аудит зависимостей (#598)**: в проекте используется `pnpm` (`pnpm-lock.yaml`); эквивалент `npm audit` — `pnpm audit --prod` (`No known vulnerabilities found`).
 
-*Дата последней проверки состава и целостности:* 2026-11-06.
+*Дата последней проверки состава и целостности:* 2026-11-11.

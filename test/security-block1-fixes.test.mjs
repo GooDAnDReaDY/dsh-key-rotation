@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isTrustedBridgeRequest, isDesktopShellRequest } from '../lib/pool.js';
-import { maskConfig, encryptConfig, decryptConfig, decryptConfigAsync, registerConfigIoRoutes, MAX_PBKDF2_ITERATIONS } from '../lib/ops-config-io.js';
+import { maskConfig, encryptConfig, decryptConfigAsync, registerConfigIoRoutes, MAX_PBKDF2_ITERATIONS } from '../lib/ops-config-io.js';
 import { inspectBalanceForRef } from '../lib/balance-inspector.js';
 import { createSelectionTrace, sanitizeTraceDetails } from '../lib/selection-trace.js';
 import { registerKeyRoutes } from '../lib/ops-keys.js';
@@ -85,7 +85,7 @@ test('Issue #552: POST /dsh-key-rotation/export accepts passphrase in body and e
   assert.equal(body.encrypted, true);
   assert.ok(body.ciphertext);
 
-  const decryptedStr = decryptConfig(body, 'TestSecretMasterKey123!');
+  const decryptedStr = await decryptConfigAsync(body, 'TestSecretMasterKey123!');
   const decrypted = JSON.parse(decryptedStr);
   assert.equal(decrypted.providers[0].keys[0], 'sk-key1234567890');
 });
@@ -127,10 +127,6 @@ test('Issue #542: DoS protection on PBKDF2 iterations bounds', async () => {
     ciphertext: 'deadbeef',
     iterations: 10000000 // Exceeds MAX_PBKDF2_ITERATIONS (200000)
   };
-
-  assert.throws(() => {
-    decryptConfig(payload, 'pass');
-  }, /PBKDF2 iterations must be between/);
 
   await assert.rejects(async () => {
     await decryptConfigAsync(payload, 'pass');
