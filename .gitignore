@@ -32,9 +32,7 @@ Thumbs.db
 .vscode/
 *.swp
 
-# never publish internal workflow files (issue #308)
-AGENTS.md
-index.md
+# never publish internal plans/workdirs (AGENTS.md & index.md are tracked in Gitea git and excluded via .gitattributes / publish-github.sh)
 docs/plans/
 docs/superpowers/
 openwiki/

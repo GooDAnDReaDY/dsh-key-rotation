@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.95 (2026-11-11)
+
+### Publication Hygiene, Bundle Size Guard & Dead-Export Resolution
+- **Gitea vs. Public Mirror Boundary Alignment (Issue #598)**: Restored `AGENTS.md` and `index.md` under Gitea git tracking (removing them from `.gitignore`) while excluding internal workflow/design files (`AGENTS.md`, `index.md`, `docs/`, `scripts/`, `tools/`) from public source archives via `.gitattributes` (`export-ignore`) and `scripts/publish-github.sh`. Documented the complete verification matrix and `pnpm audit --prod` security check in `AGENTS.md` and `index.md`.
+- **Checkout Cleanliness & Package Size Guard (Issue #599)**: Added `scripts/pack-check.mjs` (integrated into `npm test` and `npm run pack:check`) to block stray `*.tgz` archives in checkout root, enforce the DSH Store 262,144-byte file limit (`WARN` at ≥ 256,000 bytes), and validate the `npm pack` allowlist. Added 256,000-byte warning threshold to `scripts/build-client.mjs` and documented out-of-checkout packaging (`npm pack --pack-destination /tmp`).
+- **Production Helper Exports Resolution (Issue #600)**: Removed unused synchronous blocking `decryptConfig` export from `lib/routes/config.js` (migrating all crypto tests to the production non-blocking `decryptConfigAsync` path) and wired `createSafeDispatcher` directly into `safeFetchJson` in `lib/safe-fetch.js`. Recorded both decisions in `docs/design/DESIGN.md`.
+- **Sanitized Changelog, Tests & Automated Leak Check (Issue #601)**: Removed local paths, unit names, and LAN IP literals from `CHANGELOG.md` and test suites (migrating test addresses to RFC 5737 TEST-NET ranges and `/tmp/stand`), and added automated leak checks into `tools/check.mjs` (`npm run check`).
+- **Explicit Rejection Handling (Issue #603)**: Replaced four empty `.catch(() => {})` handlers across lifecycle persistence (`lib/lifecycle.js`), clipboard copy UI feedback (`lib/client-src/53-card-pool-rows.js`), and stream watchdog race cleanup (`lib/stream-watchdog.js`) with warning logs or explicit handling (`FAIL=0` in `preflight.sh`).
+
 ## 0.8.94 (2026-11-10)
 
 ### Reproducible Installation, Package Size Optimization & Single Source of Truth
@@ -532,7 +541,7 @@
 ### Fixed
 - **Telegram Inline Callback Wire Limit & Receiver Resolution (#419)**: Ensure serialized `callback_data` on the wire strictly conforms to Telegram API's 64-byte limit (`Buffer.byteLength <= 64`) via a bounded action token registry (`ACTION_REGISTRY`), while preserving action identity and supporting seamless receiver resolution in `ops-webhook.js`.
 - **Alert Debouncer Batching with Serial Queue (#428)**: Enable `NotifyQueue` to admit successive burst notifications into `AlertDebouncer` pending batches without waiting for debounce timer flush, restoring alert digest batching (`incidentCount: 3`, `digest: true`) while preserving queue backpressure and delivery outcome accounting.
-- **Documentation System Service Command (#425)**: Correct systemd command in `docs/deployment/github-npm-provenance.md` to `systemctl --user is-active dsh-test-web.service` to reflect that the MiniPC test service runs under user systemd manager.
+- **Documentation System Service Command (#425)**: Update release verification notes to reflect that the isolated test stand runs under the user systemd manager (`systemctl --user`).
 
 ## 0.8.45 - 2026-10-01
 
@@ -540,7 +549,7 @@
 - **Background Auto-Unbreak Decryption Check (#415)**: Skip auto-unbreak model probes and keep quarantine active when stored credentials cannot be decrypted due to missing or invalid `DSH_KEY_SECRET`.
 - **Telegram Inline Callback Byte-Limit & UTF-8 Roundtrip (#419)**: Ensure all inline button callbacks strictly fit within Telegram API's 64-byte limit while preserving action ID and JSON roundtrip on long or multibyte identifiers.
 - **DSH Core Integration Fixture & Matrix (#424)**: Eliminate temporary project copying (`cpSync`) from `test/support/real-core.mjs` by importing `lib/index.js` directly from the worktree; expand CI test matrix in `.github/workflows/tests.yml` to include DSH `0.1.7-rc.2` and `0.2.0-rc.1`.
-- **Release Documentation Process & Environment Alignment (#425)**: Update `docs/deployment/github-npm-provenance.md` with the accurate MiniPC acceptance environment (`/home/vadim/.dsh-test`, profile `web`, `dsh-test-web.service`) and ensure public GitHub mirror push occurs strictly after explicit user approval.
+- **Release Documentation Process & Environment Alignment (#425)**: Align release acceptance notes with the isolated test stand (profile `web`, user systemd service) and ensure public GitHub mirror push occurs strictly after explicit user approval.
 - **NotifyQueue Bounded Capacity & Serial Backoff Concurrency (#435)**: Restore serial queue pumping with `setImmediate` deferral, correctly bounding in-flight and pending webhook deliveries to `maxDepth` under high-burst traffic.
 
 ## 0.8.44 - 2026-10-01
@@ -564,7 +573,7 @@
   - Memoized `UpdaterSection` load callback with ref to prevent duplicate background network checks on unrelated parent settings updates (#421).
 - **Packaging, CI & Documentation (#424, #425)**:
   - Synchronized `package-lock.json` with `semver@7.8.5` and `undici@6.29.0` for clean `npm ci --ignore-scripts` reproducibility (#424).
-  - Updated `docs/deployment/github-npm-provenance.md` with mandatory pre-release MiniPC test-server acceptance and explicit user confirmation requirements (#425).
+  - Updated release notes with mandatory pre-release isolated test-server acceptance and explicit user confirmation requirements (#425).
 
 ## 0.8.43 - 2026-10-01
 
@@ -1019,7 +1028,7 @@ work on `feat/issue-303-v089-evolution` is still in flight, so this change lands
 ### Verification
 - unit: 248 pass / 0 fail / 1 skip
 - preflight: empty-catch FAIL cleared; remaining name FAIL is accepted short cordis id (image-gen convention)
-- MiniPC test contour: status 200, updater GET 200, POST foreign/missing origin 403, cleanup OK
+- Isolated test contour: status 200, updater GET 200, POST foreign/missing origin 403, cleanup OK
 - Production candidate (temporary tgz): status 200, providers=2 keys=7 present=7, updater GET 200, POST 403 on non-local origin
 
 ## 0.8.8 - 2026-09-12
