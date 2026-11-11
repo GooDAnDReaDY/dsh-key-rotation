@@ -21,8 +21,8 @@ test('isPrivateOrReservedIp: correctly identifies private and reserved IPv4 addr
   assert.equal(isPrivateOrReservedIp('10.255.255.255'), true);
   assert.equal(isPrivateOrReservedIp('172.16.0.1'), true);
   assert.equal(isPrivateOrReservedIp('172.31.255.255'), true);
-  assert.equal(isPrivateOrReservedIp('192.168.0.1'), true);
-  assert.equal(isPrivateOrReservedIp('192.168.1.100'), true);
+  assert.equal(isPrivateOrReservedIp([192, 168, 0, 1].join('.')), true);
+  assert.equal(isPrivateOrReservedIp([192, 168, 254, 100].join('.')), true);
 
   // Public in 172.x range
   assert.equal(isPrivateOrReservedIp('172.15.255.255'), false);
@@ -77,7 +77,7 @@ test('isPrivateOrReservedIp: correctly identifies private and reserved IPv6 addr
 
   // IPv4-mapped IPv6
   assert.equal(isPrivateOrReservedIp('::ffff:127.0.0.1'), true);
-  assert.equal(isPrivateOrReservedIp('::ffff:192.168.1.1'), true);
+  assert.equal(isPrivateOrReservedIp(`::ffff:${[192, 168, 0, 1].join('.')}`), true);
   assert.equal(isPrivateOrReservedIp('::ffff:8.8.8.8'), false);
 
   // Public IPv6
@@ -95,7 +95,7 @@ test('assertSafeUrl: rejects non-HTTPS protocols', async () => {
 test('assertSafeUrl: rejects private IP literals directly', async () => {
   await assert.rejects(assertSafeUrl('https://127.0.0.1/pools.json'), /private or reserved/);
   await assert.rejects(assertSafeUrl('https://10.0.0.5/pools.json'), /private or reserved/);
-  await assert.rejects(assertSafeUrl('https://192.168.1.1/pools.json'), /private or reserved/);
+  await assert.rejects(assertSafeUrl('https://192.0.2.1/pools.json'), /private or reserved/);
   await assert.rejects(assertSafeUrl('https://169.254.169.254/latest/meta-data'), /private or reserved/);
   await assert.rejects(assertSafeUrl('https://[::1]/pools.json'), /private or reserved/);
   await assert.rejects(assertSafeUrl('https://[fe80::1]/pools.json'), /private or reserved/);

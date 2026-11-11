@@ -11,7 +11,7 @@ function createMockBridge(overrides = {}) {
   const mockSettings = {
     writable: true,
     hasDocument: true,
-    documentPath: '/home/user/.dsh/config.yaml',
+    documentPath: '/tmp/stand/.dsh/config.yaml',
     describe: () => [{ ns: NS, value: curSection, revision: curRevision }],
     replace: async (ns, nextVal, expectedRev) => {
       if (expectedRev !== undefined && expectedRev !== curRevision) {

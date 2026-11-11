@@ -15,9 +15,9 @@ test('isLoopbackAddress: v6-mapped v4 loopback', () => {
 });
 
 test('isLoopbackAddress: non-loopback rejected', () => {
-  assert.equal(isLoopbackAddress('192.168.1.50'), false);
+  assert.equal(isLoopbackAddress('198.51.100.50'), false);
   assert.equal(isLoopbackAddress('10.0.0.1'), false);
-  assert.equal(isLoopbackAddress('::ffff:192.168.1.50'), false);
+  assert.equal(isLoopbackAddress('::ffff:198.51.100.50'), false);
 });
 
 test('isLoopbackAddress: undefined / null / empty rejected', () => {
@@ -29,7 +29,7 @@ test('isLoopbackAddress: undefined / null / empty rejected', () => {
 const req = (remoteAddress, headers = {}, method = 'GET') => ({ socket: { remoteAddress }, headers, method });
 
 test('isTrustedBridgeRequest: rejects non-loopback even with matching Origin', () => {
-  assert.equal(isTrustedBridgeRequest(req('192.168.1.50', { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' })), false);
+  assert.equal(isTrustedBridgeRequest(req('198.51.100.50', { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' })), false);
 });
 
 test('isTrustedBridgeRequest: rejects cross-site even from loopback', () => {

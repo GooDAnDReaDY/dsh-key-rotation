@@ -15,6 +15,10 @@ if (core && !(process.env.DSH_TEST_CORE_DIR && process.env.DSH_TEST_CORE_VERSION
 const files = readdirSync(join(root, 'test')).filter(name => /\.test\.(?:mjs|js)$/.test(name))
   .filter(name => core === (name === 'real-core.test.mjs')).sort().map(name => join(root, 'test', name));
 if (!files.length) throw new Error('No regression tests discovered');
+if (!core) {
+  const packCheck = spawnSync(process.execPath, [join(root, 'scripts', 'pack-check.mjs')], { cwd: root, stdio: 'inherit', timeout: 30000 });
+  if (packCheck.status !== 0) process.exit(packCheck.status ?? 1);
+}
 const run = spawnSync(process.execPath, ['--test', ...files], { cwd: root, stdio: 'inherit', timeout: 120000 });
 if (run.error) console.error(run.error.message);
 process.exit(run.status ?? 1);

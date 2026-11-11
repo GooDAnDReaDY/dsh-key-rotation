@@ -55,7 +55,7 @@ test("Issue #22 & #516 (Desktop support): mutating requests with absent Origin h
     const req = {
       method: "POST",
       headers: { host: "127.0.0.1:3000" },
-      socket: { remoteAddress: "192.168.1.50" }
+      socket: { remoteAddress: "198.51.100.50" }
     };
     assert.equal(isTrustedBridgeRequest(req), false);
   });

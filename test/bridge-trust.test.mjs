@@ -186,7 +186,7 @@ test('the guard needs a genuine loopback peer address', () => {
   assert.equal(isTrustedBridgeRequest({ ...base, socket: { remoteAddress: '127.0.0.1' } }), true);
   assert.equal(isTrustedBridgeRequest({ ...base, socket: { remoteAddress: '::1' } }), true);
   assert.equal(isTrustedBridgeRequest({ ...base, socket: { remoteAddress: '::ffff:127.0.0.1' } }), true);
-  assert.equal(isTrustedBridgeRequest({ ...base, socket: { remoteAddress: '192.168.1.10' } }), false);
+  assert.equal(isTrustedBridgeRequest({ ...base, socket: { remoteAddress: '198.51.100.10' } }), false);
   assert.equal(isTrustedBridgeRequest({ ...base, socket: { remoteAddress: '10.0.0.5' } }), false);
   assert.equal(isTrustedBridgeRequest({ ...base, socket: {} }), false);
   assert.equal(isTrustedBridgeRequest({ ...base, socket: null }), false);

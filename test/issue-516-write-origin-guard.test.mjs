@@ -24,7 +24,7 @@ test('Issue #516: isDesktopShellRequest predicate and forwarding guards', () => 
       headers: {
         'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
         cookie: 'dsh-auth-session=abc123xyz',
-        'x-forwarded-for': '192.168.1.150',
+        'x-forwarded-for': '198.51.100.150',
       },
     }),
     false,
@@ -144,7 +144,7 @@ test('Issue #516: isTrustedBridgeRequest write-origin-guard and spoofing protect
     isTrustedBridgeRequest(loopbackReq('POST', {
       origin: 'dsh-app://app',
       ...desktopHeaders,
-      'x-forwarded-for': '192.168.1.150',
+      'x-forwarded-for': '198.51.100.150',
     })),
     false,
     'POST with dsh-app Origin proxied from remote LAN must be refused'
@@ -155,7 +155,7 @@ test('Issue #516: isTrustedBridgeRequest write-origin-guard and spoofing protect
     isTrustedBridgeRequest({
       method: 'POST',
       headers: { host: '127.0.0.1:3000', ...desktopHeaders },
-      socket: { remoteAddress: '192.168.1.150' },
+      socket: { remoteAddress: '198.51.100.150' },
     }),
     false
   );
@@ -231,7 +231,7 @@ test('Issue #516: /auto-import fails closed on invalid body and unauthenticated 
   {
     mutatedSettings = false;
     const { req, res, getStatus, getData } = makeReqRes('{"all":true}', {
-      'x-forwarded-for': '192.168.1.150',
+      'x-forwarded-for': '198.51.100.150',
       'user-agent': 'Mozilla/5.0 @deepseek-ai/dsh-desktop/0.2.1-rc.2',
       cookie: 'dsh-auth-session=fake',
     });
