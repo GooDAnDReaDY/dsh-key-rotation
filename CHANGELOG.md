@@ -7,6 +7,7 @@
 - **Checkout Cleanliness & Package Size Guard (Issue #599)**: Added `scripts/pack-check.mjs` (integrated into `npm test` and `npm run pack:check`) to block stray `*.tgz` archives in checkout root, enforce the DSH Store 262,144-byte file limit (`WARN` at ≥ 256,000 bytes), and validate the `npm pack` allowlist. Added 256,000-byte warning threshold to `scripts/build-client.mjs` and documented out-of-checkout packaging (`npm pack --pack-destination /tmp`).
 - **Production Helper Exports Resolution (Issue #600)**: Removed unused synchronous blocking `decryptConfig` export from `lib/routes/config.js` (migrating all crypto tests to the production non-blocking `decryptConfigAsync` path) and wired `createSafeDispatcher` directly into `safeFetchJson` in `lib/safe-fetch.js`. Recorded both decisions in `docs/design/DESIGN.md`.
 - **Sanitized Changelog, Tests & Automated Leak Check (Issue #601)**: Removed local paths, unit names, and LAN IP literals from `CHANGELOG.md` and test suites (migrating test addresses to RFC 5737 TEST-NET ranges and `/tmp/stand`), and added automated leak checks into `tools/check.mjs` (`npm run check`).
+- **Explicit Rejection Handling (Issue #603)**: Replaced four empty `.catch(() => {})` handlers across lifecycle persistence (`lib/lifecycle.js`), clipboard copy UI feedback (`lib/client-src/53-card-pool-rows.js`), and stream watchdog race cleanup (`lib/stream-watchdog.js`) with warning logs or explicit handling (`FAIL=0` in `preflight.sh`).
 
 ## 0.8.94 (2026-11-10)
 
