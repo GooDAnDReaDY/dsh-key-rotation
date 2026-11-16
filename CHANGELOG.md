@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.96 (2026-11-16)
+
+### Fixed
+- **Sticky Session Affinity Key Distribution (Issue #28, #605)**:
+  - Fixed candidate selection in `rotate()` stream lifecycle (`lib/rotate.js`), eliminating fallback to stale `pool.state.lastUsed` that previously caused all parallel chat sessions to collapse onto a single key.
+  - Threaded `pool` reference into `sortAttemptList` across `lib/resolver.js` and `lib/rotate.js`, ensuring `SessionRouter` resolves and retains session sticky assignments directly on pool state.
+  - Guarded sticky routing fallback in `lib/resolver.js` so unassigned sessions never prematurely fall back to global `lastUsed` when `sessionId` is present.
+  - Added round-robin tie-breaking cursor across keys with identical minimum active session counts in `SessionRouter.prototype.selectLeastUsedKey` (`lib/session-router.js`), ensuring uniform multi-session distribution across pool keys.
+  - Recorded `pool.state.lastUsed` and `pool.state.usageCounts` accurately on streaming completion in `lib/stream-metrics.js` and `lib/rotate.js`.
+
 ## 0.8.95 (2026-11-11)
 
 ### Publication Hygiene, Bundle Size Guard & Dead-Export Resolution
