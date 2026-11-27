@@ -262,7 +262,7 @@ Rules and limits worth knowing:
 
 ### 📊 5. Observability, Telemetry & Webhooks
 * **Interactive Multi-Platform Webhooks (`lib/webhook.js`)**: Dispatches rich notifications with HMAC-signed action buttons for **Telegram** (Inline Keyboards), **Discord** (Action Rows), and **Slack** (Block Kit). Administrators can click buttons to reset cooldowns or pause providers directly from their mobile chat.
-* **Usage & Cost Reporting (`lib/usage-report.js`)**: Per-key daily request counters and estimated cost breakdown with one-click CSV/JSON export (`GET /dsh-key-rotation/usage-report`).
+* **Usage & Cost Reporting (`lib/usage-report.js`)**: Per-key daily request counters and estimated cost breakdown with one-click CSV/JSON export (`GET /dsh-key-rotation/usage`).
 * **Latency SLO & Histogram (`lib/histogram.js`)**: Tracks Time-To-First-Token (TTFT) and stream durations with health score degradation scoring (`0..100`).
 
 ---
@@ -309,6 +309,12 @@ Access full visual management under **Settings → Key Rotation** or via the Hea
 * **Cross-Pool Revocation & Inheritance**: Model pools automatically inherit pause, revoke, and expiry states from their base provider; runtime 401 permanent authentication failures revoke the credential across all shared pools immediately.
 
 ---
+
+## Requirements
+
+- **DeepSeek Harness (DSH)**: `>=0.2.2-rc.1 <0.3.0-0`
+- **Node.js**: `>=20`
+- **Core Services**: `@deepseek-ai/dsh-llm`, `@deepseek-ai/dsh-settings`, `@deepseek-ai/dsh-host-webserver`, `@deepseek-ai/dsh-session-projection`, `@deepseek-ai/dsh-credentials`
 
 ## 📦 Installation
 
@@ -412,7 +418,7 @@ All management routes require loopback authentication (`127.0.0.1` / `::1`) with
 | `/dsh-key-rotation/key` | `PUT` / `DELETE` | Add, update, or remove credentials in host storage and pool. |
 | `/dsh-key-rotation/reset` | `POST` | Instantly resets all cooldowns and restores all keys to `ready`. |
 | `/dsh-key-rotation/test-matrix` | `POST` | Triggers parallel health check across all configured keys and models. |
-| `/dsh-key-rotation/usage-report` | `GET` | Returns aggregated usage metrics in JSON or CSV format (`?format=csv`). |
+| `/dsh-key-rotation/usage` | `GET` | Returns aggregated usage metrics in JSON or CSV format (`?format=csv`). |
 | `/dsh-key-rotation/webhook-action` | `POST` | Receives and executes interactive actions from Telegram/Slack callbacks (`Authorization: Bearer` or `X-Telegram-Bot-Api-Secret-Token`). |
 
 ---

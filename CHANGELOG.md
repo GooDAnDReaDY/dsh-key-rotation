@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.97 (2026-11-27)
+
+### Fixed
+- **HTTP Routes Validation, Async Export & SSRF Hardening (#616, #619, #620, #621, #622, #623, #631)**:
+  - Fixed `diagBuffer` `ReferenceError` and `deps.diagBuffer` buffer wiring in `POST /dsh-key-rotation/diag` (`lib/routes/telemetry.js`).
+  - Added schema/provider/live-secret validation (`validateProviders`, `assertJson`, `scanForLiveSecrets`) to `POST /dsh-key-rotation/config-import`.
+  - Fixed `PLUGIN_VERSION` resolution (`../../package.json`), preserved non-secret credential ref names in `maskConfig` (raising partial masking length threshold to `> 12` chars), and rejected invalid JSON in `/export`.
+  - Switched `/export` encryption to non-blocking `encryptConfigAsync`.
+  - Wrapped `readJson` in `try/catch` for `/balance` and `/preset-limits`, and enforced `isValidRef` validation on `/drain`.
+  - Enforced strict Telegram `botToken` format validation in `POST /webhook-action`.
+  - Routed default `ModelCatalog` fetches through `safeFetchJson` (with custom `headers` support) and removed dead `resetMs` parsing in `lib/pool.js`.
+- **WebUI Simulator, DSH 0.2.2 Design Tokens, A11y & Localization (#617, #624, #625, #626)**:
+  - Fixed `providersList` `ReferenceError` in WebUI `runSimulator` (`lib/client-src/50-card-main.js`).
+  - Replaced nonexistent CSS custom properties with DSH 0.2.2 theme tokens (`--dsw-alias-border-l2`, `--dsw-alias-state-error-primary`, etc.) and added missing `.krot-*` styling classes and `@keyframes krot-shimmer`.
+  - Migrated header chevron icon import to `@deepseek-ai/dsh-client-ui-primitives` (`IconChevronDownOutlineMedium`), added `Escape` dismissal, and improved dialog ARIA attributes.
+  - Localized remaining UI strings (`searchProvidersPlaceholder`) and pruned 37 unused locale keys.
+- **Rotation Clock Parity, Cascade Circuit Breaker & Tooling Hygiene (#618, #628, #629, #630)**:
+  - Unified `recordLatency` in `lib/index.js` on `nowMono()` and passed `breaker` to all `executeCascade` paths in `lib/rotate.js`.
+  - Added `--tag` support and sanitized mirror checks to `scripts/publish-github.sh`.
+  - Aligned `@deepseek-ai/dsh-llm` `devDependencies` with `peerDependencies` (`semver.subset`), switched `test/build-client.test.mjs` to non-mutating `--check` mode, and synced `/usage` endpoint docs and `docs/design/DESIGN.md`.
+
 ## 0.8.96 (2026-11-16)
 
 ### Fixed

@@ -223,7 +223,7 @@ dsh-key-rotation:
 
 ### 📊 5. Телеметрия, аналитика и интерактивные вебхуки
 * **Интерактивные вебхуки (`lib/webhook.js`)**: Отправка форматированных алертов с кнопками действий в **Telegram** (Inline Keyboards), **Discord** (Action Rows) и **Slack** (Block Kit). Администратор может сбросить кулдаун или отключить провайдер прямо из мессенджера.
-* **Отчеты об использовании и расходах (`lib/usage-report.js`)**: Учет суточного числа запросов и расчетной стоимости по каждому ключу с экспортом в CSV/JSON (`GET /dsh-key-rotation/usage-report`).
+* **Отчеты об использовании и расходах (`lib/usage-report.js`)**: Учет суточного числа запросов и расчетной стоимости по каждому ключу с экспортом в CSV/JSON (`GET /dsh-key-rotation/usage`).
 * **Гистограмма задержек SLO (`lib/histogram.js`)**: Измерение времени до первого токена (TTFT) и расчет индекса здоровья пула (`0..100`).
 
 ---
@@ -270,6 +270,12 @@ dsh-key-rotation:
 3. После установки UI предлагает **перезапустить DSH**.
 
 Без `--force`, без raw shell и установки из worktree/DEV. Обновление — только по явному нажатию.
+
+## Требования
+
+- **DeepSeek Harness (DSH)**: `>=0.2.2-rc.1 <0.3.0-0`
+- **Node.js**: `>=20`
+- **Сервисы ядра**: `@deepseek-ai/dsh-llm`, `@deepseek-ai/dsh-settings`, `@deepseek-ai/dsh-host-webserver`, `@deepseek-ai/dsh-session-projection`, `@deepseek-ai/dsh-credentials`
 
 ## 📦 Установка
 
@@ -366,7 +372,7 @@ dsh-key-rotation:
 | `/dsh-key-rotation/key` | `PUT` / `DELETE` | Добавление, обновление или удаление ключей в хранилище и пуле. |
 | `/dsh-key-rotation/reset` | `POST` | Мгновенный сброс всех кулдаунов и возврат ключей в статус `ready`. |
 | `/dsh-key-rotation/test-matrix` | `POST` | Запуск параллельного тестирования всей матрицы ключей и моделей. |
-| `/dsh-key-rotation/usage-report` | `GET` | Получение сводного отчета использования в формате JSON или CSV (`?format=csv`). |
+| `/dsh-key-rotation/usage` | `GET` | Получение сводного отчета использования в формате JSON или CSV (`?format=csv`). |
 | `/dsh-key-rotation/webhook-action` | `POST` | Обработка интерактивных действий от кнопок в Telegram/Slack (`Authorization: Bearer` или `X-Telegram-Bot-Api-Secret-Token`). |
 
 ---

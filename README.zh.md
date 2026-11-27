@@ -172,7 +172,7 @@ graph LR
 
 ### 📊 4. 统计分析与多平台交互式 Webhook
 * **交互式 Webhook (`lib/webhook.js`)**：向 **Telegram**、**Discord**、**Slack** 推送带交互按钮的富文本警报，可在移动聊天中一键重置冷却或暂停提供商。
-* **使用量与成本报表 (`lib/usage-report.js`)**：按日统计各密钥请求数与预估成本，支持一键导出 CSV/JSON (`GET /dsh-key-rotation/usage-report`)。
+* **使用量与成本报表 (`lib/usage-report.js`)**：按日统计各密钥请求数与预估成本，支持一键导出 CSV/JSON (`GET /dsh-key-rotation/usage`)。
 * **延迟 SLO 监控 (`lib/histogram.js`)**：记录首字延迟（TTFT）与健康度评分 (`0..100`)。
 
 ### 🎯 5. 模型级路由与按模型 Token 额度
@@ -271,6 +271,12 @@ claude-sonnet 请求
 * **跨池吊销与状态继承**：模型子池自动继承基础提供商的暂停、吊销与过期时间；运行时 401 永久认证失败将即时在所有关联共享池中统一标记吊销。
 
 ---
+
+## 环境要求
+
+- **DeepSeek Harness (DSH)**：`>=0.2.2-rc.1 <0.3.0-0`
+- **Node.js**：`>=20`
+- **核心服务**：`@deepseek-ai/dsh-llm`、`@deepseek-ai/dsh-settings`、`@deepseek-ai/dsh-host-webserver`、`@deepseek-ai/dsh-session-projection`、`@deepseek-ai/dsh-credentials`
 
 ## 📦 安装指南
 
